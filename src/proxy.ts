@@ -23,7 +23,6 @@ export default async function proxy(request: NextRequest) {
     }
   )
 
-  // 세션 갱신
   await supabase.auth.getUser()
 
   return supabaseResponse

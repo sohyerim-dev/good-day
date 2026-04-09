@@ -1,157 +1,93 @@
 "use client";
-import Input from "@/components/ui/Input";
+
+import LoginInput from "@/components/ui/LoginInput";
 import { createClient } from "@/lib/supabase/client";
-import useUserStore from "@/store/userStore";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import React from "react";
 
 export default function Login() {
+  const supabase = createClient();
   const router = useRouter();
-  const [error, setError] = useState("");
-  const [emailError, setEmailError] = useState("");
-  const [passwordError, setPasswordError] = useState("");
-  const { setUser } = useUserStore();
 
-  async function loginAction(formData: FormData) {
-    // 에러 초기화
-    setEmailError("");
-    setPasswordError("");
-    setError("");
+  async function handleSubmit(
+    e: React.FormEvent<HTMLFormElement> | SubmitEvent,
+  ) {
+    e.preventDefault();
 
+    const formData = new FormData(e.currentTarget as HTMLFormElement);
     const email = formData.get("email") as string;
     const password = formData.get("password") as string;
 
-    let hasError = false;
-    if (!email) {
-      setEmailError("이메일을 입력해주세요.");
-      hasError = true;
-    }
-    if (!password) {
-      setPasswordError("비밀번호를 입력해주세요.");
-      hasError = true;
-    }
-
-    if (hasError) return;
-
-    const supabase = createClient();
-    const { error: loginError } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
-    // supabase에 이메일 + 비밀번호를 보내서 로그인하는 함수
-    // 성공 시 세션 토큰이 자동으로 쿠키에 저장 => 토큰을 직접 관리할 필요가 없음.
-    // 토큰 저장/갱신은 SDK가 알아서 처리함.
 
-    if (loginError) {
-      if (loginError.message.includes("Invalid login credentials")) {
-        setError("이메일 또는 비밀번호가 올바르지 않습니다.");
-      } else if (loginError.message.includes("Email not confirmed")) {
-        setError("이메일 인증이 완료되지 않았습니다.");
-      } else {
-        setError("로그인에 실패했습니다. 잠시 후 다시 시도해주세요.");
-      }
+    if (error) {
+      // 에러 처리
+      console.log(error.message);
       return;
     }
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("username, avatar_url")
-        .eq("id", user.id)
-        .single();
-
-      if (profile) {
-        setUser({
-          id: user.id,
-          email: user.email ?? "",
-          username: profile.username,
-          avatar_url: profile.avatar_url,
-        });
-      }
-    }
-    // 로그인 성공 -> 메인으로 이동
-    const autoLogin = formData.get("auto-login");
-    localStorage.setItem("autoLogin", autoLogin ? "true" : "false");
-    // 일반 로그인 시 로그아웃 방지
-    sessionStorage.setItem("activeSession", "true");
     router.push("/");
   }
-
   return (
-    <main className="flex flex-col items-center justify-center h-svh">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col w-fit m-auto min-h-svh items-center gap-2 justify-center"
+    >
       <h1 className="sr-only">로그인</h1>
       <Image
-        src="/images/text-logo.svg"
-        alt="마이 플레이스 로고"
-        width={71.72}
-        height={92.04}
+        src="/images/logo.svg"
+        width={100}
+        height={97}
         priority
+        style={{ width: 100, height: 97 }}
+        alt="마이플레이스"
       />
-      <p className="text-[16px] mt-6.25 mb-10">사진으로 발견하는 나만의 장소</p>
-      <form
-        className="flex flex-col"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const formData = new FormData(e.currentTarget);
-          loginAction(formData);
-        }}
-      >
-        <Input
-          label={{ name: "email", labelClass: "sr-only", text: "이메일" }}
-          icon="/icons/mail.svg"
-          type="email"
-          color="EE6300"
-          placeholder="이메일"
-          className="w-70"
-          wrapperClass="mb-5"
-          error={emailError}
-          defaultValue="test@myplace.com"
-        />
-        <Input
-          label={{ name: "password", labelClass: "sr-only", text: "비밀번호" }}
-          type="password"
-          icon="/icons/password.svg"
-          color="EE6300"
-          placeholder="비밀번호"
-          autoComplete="off"
-          className="w-70"
-          wrapperClass="mb-5"
-          error={passwordError}
-          defaultValue="test1234"
-        />
-        <div className="flex justify-between mb-8">
-          <label htmlFor="auto-login">
-            <input
-              id="auto-login"
-              name="auto-login"
-              type="checkbox"
-              className="mr-1.25 focus:outline-[#ee6300]"
-            />
-            자동 로그인
+      <h2 className="mt-2 font-bold text-[18px]">
+        사진으로 발견하는 나만의 장소
+      </h2>
+      <LoginInput
+        src="icons/mail.svg"
+        type="email"
+        label="이메일"
+        placeholder="이메일을 입력해주세요."
+        className="mt-6"
+        autoComplete="email"
+      />
+      <LoginInput
+        src="icons/password.svg"
+        type="password"
+        label="패스워드"
+        placeholder="패스워드를 입력해주세요."
+        className="mt-2.5"
+        autoComplete="current-password"
+      />
+      <div className="flex justify-between w-full mt-1">
+        <div className="flex items-center self-start">
+          <input
+            type="checkbox"
+            id="auto-login"
+            name="auto-login"
+            className="h-3.5 w-3.5 mr-1 focus:outline-[#EE6300]"
+          />
+          <label htmlFor="auto-login" className="text-[14px]">
+            자동로그인
           </label>
-          <Link href="/signup" className="focus:outline-[#ee6300]">
-            회원가입
-          </Link>
         </div>
-
-        <p
-          className={`text-[14px] text-red-600 transition-opacity ${error ? "opacity-100" : "opacity-0"}`}
-        >
-          {error || "\u00A0"}
-        </p>
-        <button
-          type="submit"
-          className="rounded-xl bg-[#161616] text-[20px] text-[#fafafa] px-5 py-2.5 hover:bg-[#ee6300] focus:outline-[#ee6300]"
-        >
-          로그인
-        </button>
-      </form>
-    </main>
+        <Link href="/signup" className="text-[14px] focus:outline-[#EE6300]">
+          회원가입
+        </Link>
+      </div>
+      <button
+        type="submit"
+        className="bg-[#EE6300] rounded-2xl w-full h-12 mt-2.5 text-white cursor-pointer hover:bg-white hover:text-[#EE6300] focus:border-2 focus:border-[#EE6300] focus:bg-white focus:text-[#EE6300] hover:border hover:border-[#EE6300] focus:outline-none"
+      >
+        로그인
+      </button>
+    </form>
   );
 }

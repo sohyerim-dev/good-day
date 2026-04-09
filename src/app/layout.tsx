@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import AuthProvider from "@/components/AuthProvider";
-import SplashScreen from "@/components/SplashScreen";
 
 export const metadata: Metadata = {
   title: "My Place",
@@ -20,7 +18,6 @@ export default function RootLayout({
     <html lang="ko" style={{ colorScheme: "light" }}>
       <head>
         <meta name="color-scheme" content="light only" />
-        <meta name="supported-color-schemes" content="light" />
         <meta name="theme-color" content="#ffffff" />
         <link
           rel="stylesheet"
@@ -29,11 +26,7 @@ export default function RootLayout({
           href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
         />
       </head>
-      <body className="antialiased">
-        <SplashScreen>
-          <AuthProvider>{children}</AuthProvider>
-        </SplashScreen>
-      </body>
+      <body className="">{children}</body>
     </html>
   );
 }
