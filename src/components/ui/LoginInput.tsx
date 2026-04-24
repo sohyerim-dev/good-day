@@ -10,6 +10,7 @@ interface LoginInputProps {
   placeholder: string;
   className?: string;
   autoComplete?: string;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
 export default function LoginInput({
@@ -19,6 +20,7 @@ export default function LoginInput({
   placeholder,
   className,
   autoComplete,
+  onChange,
 }: LoginInputProps) {
   const [focused, setFocused] = useState(false);
 
@@ -47,7 +49,8 @@ export default function LoginInput({
         placeholder={placeholder}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        className={`border outline-none rounded-2xl h-12 w-62 pl-12 pr-6 pt-3.5 pb-3.25 text-[14px] border-[#9CA3AF] ${focused ? "border-[#EE6300]" : "border-[#9CA3AF]"}`}
+        onChange={onChange}
+        className={`border outline-none rounded-2xl h-12 w-68 pl-12 pr-6 pt-3.5 pb-3.25 text-[14px] border-[#9CA3AF] ${focused ? "border-[#EE6300]" : "border-[#9CA3AF]"}`}
       />
     </div>
   );

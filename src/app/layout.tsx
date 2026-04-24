@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
-  title: "My Place",
-  description: "사진으로 발견하는 나만의 장소",
+  title: "굿데이 | 나만의 놀기 코스 플래너",
+  description:
+    "내 취향대로 짜는 놀기 코스 플래너. 장소 검색, 경로 안내, 코스 공유까지.",
   icons: {
-    icon: "/icons/myplace-favicon.svg",
+    icon: "/icons/favicon.svg",
   },
 };
 
@@ -19,14 +21,10 @@ export default function RootLayout({
       <head>
         <meta name="color-scheme" content="light only" />
         <meta name="theme-color" content="#ffffff" />
-        <link
-          rel="stylesheet"
-          as="style"
-          crossOrigin="anonymous"
-          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
-        />
       </head>
-      <body className="">{children}</body>
+      <body className="">
+        <AuthProvider>{children}</AuthProvider>
+      </body>
     </html>
   );
 }
