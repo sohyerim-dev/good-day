@@ -19,20 +19,22 @@ export default function SortablePlaceItem({ place, onRemove }: Props) {
     transition,
   };
   return (
-    <li
-      ref={setNodeRef}
-      style={style}
-      className="flex flex-row py-5 w-full items-center justify-between"
-    >
-      <div className="flex flex-row items-center">
-        <span {...attributes} {...listeners} className="cursor-grab mr-2">
-          <Image src="/icons/drag.svg" alt="드래그" width={30} height={30} />
+    <li ref={setNodeRef} style={style} className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 mb-2">
+      <div className="flex items-center gap-2">
+        <span {...attributes} {...listeners} className="cursor-grab">
+          <Image src="/icons/drag.svg" alt="드래그" width={24} height={24} />
         </span>
-        <span className="mr-2 font-medium">
-          {place.order}. {place.title}
+        <span className="font-medium text-[14px]">
+          <span className="text-[#EE6300] font-bold mr-1">{place.order}.</span>
+          {place.title}
         </span>
       </div>
-      <button onClick={onRemove}>삭제</button>
+      <button
+        onClick={onRemove}
+        className="text-[12px] text-gray-400 border border-gray-300 rounded-xl px-2 py-1 cursor-pointer shrink-0"
+      >
+        삭제
+      </button>
     </li>
   );
 }
