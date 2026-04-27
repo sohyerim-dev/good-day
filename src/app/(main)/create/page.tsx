@@ -274,7 +274,7 @@ export default function Create() {
                       alt=""
                       width={20}
                       height={20}
-                      className="ml-25 mb-2"
+                      className="mx-auto mb-2"
                     />
                   </li>
                 )}

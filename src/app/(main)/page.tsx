@@ -25,7 +25,13 @@ export default function Home() {
   return (
     <main className="p-4 flex flex-col items-center">
       <h1 className="sr-only">메인 페이지</h1>
-      <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" className="mb-4" />
+      <Image
+        src="/images/logo.svg"
+        width={65}
+        height={89.5}
+        alt="굿데이"
+        className="mb-4"
+      />
       <div className="flex justify-end w-full mb-4">
         <Link
           href="/create"
@@ -38,7 +44,7 @@ export default function Home() {
       <h2 className="font-bold text-[18px] mb-3 self-start">나의 코스</h2>
 
       {courses.length === 0 ? (
-        <div className="flex flex-col items-center justify-center bg-gray-50 rounded-2xl p-10 gap-2">
+        <div className="flex flex-col items-center w-full justify-center bg-gray-50 rounded-2xl p-10 gap-2">
           <p className="text-gray-400 text-[14px]">
             아직 등록한 코스가 없어요.
           </p>

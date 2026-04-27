@@ -10,3 +10,16 @@ export interface Course {
   bookmarks_count: number;
   created_at: string;
 }
+
+export interface CoursePlace {
+  id: string;
+  order: number;
+  places: {
+    id: string;
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+    naver_url: string;
+  };
+}

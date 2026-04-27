@@ -161,7 +161,7 @@ export default function SignUp() {
       <SignupInput
         type="password"
         label="비밀번호"
-        autoComplete="current-password"
+        autoComplete="off"
         placeholder="비밀번호를 입력해주세요."
         className="mt-5"
         onChange={(e) => setPassword(e.target.value)}
@@ -169,7 +169,7 @@ export default function SignUp() {
       <SignupInput
         type="re-password"
         label="비밀번호 확인"
-        autoComplete="current-password"
+        autoComplete="off"
         placeholder="비밀번호를 입력해주세요."
         className="mt-5"
         onChange={(e) => setRePassword(e.target.value)}

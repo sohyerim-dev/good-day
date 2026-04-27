@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/", label: "홈", icon: "/icons/home.svg" },
   { href: "/hot", label: "인기코스", icon: "/icons/hot.svg" },
-  { href: "/explore", label: "탐색", icon: "/icons/explore.svg" },
+  { href: "/explore", label: "코스탐색", icon: "/icons/explore.svg" },
   { href: "/my-course", label: "마이코스", icon: "/icons/route.svg" },
 ];
 export default function BottomNav() {
