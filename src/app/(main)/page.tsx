@@ -64,9 +64,17 @@ export default function Home() {
                 className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
               >
                 <div className="flex flex-col gap-1">
-                  <span className="font-medium">{course.title}</span>
+                  <div className="flex gap-1 flex-row items-center">
+                    <Image
+                      src="/icons/orange-route.svg"
+                      width={20}
+                      height={20}
+                      alt=""
+                    />
+                    <span className="font-medium">{course.title}</span>
+                  </div>
                   {course.description && (
-                    <span className="text-[12px] text-gray-400">
+                    <span className="text-[12px] text-gray-400 pl-6">
                       {course.description}
                     </span>
                   )}

@@ -22,7 +22,7 @@ export default function RootLayout({
         <meta name="color-scheme" content="light only" />
         <meta name="theme-color" content="#ffffff" />
       </head>
-      <body className="">
+      <body className="max-w-svw max-h-svh">
         <AuthProvider>{children}</AuthProvider>
       </body>
     </html>

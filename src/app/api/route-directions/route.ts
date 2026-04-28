@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// 클라이언트에서 fetch("/api/route-directions", { method: "POST" }) 로 호출하면 실행되는 함수
 export async function POST(req: NextRequest) {
   const { places } = await req.json();
-  const origin = places[0];
-  const destination = places[places.length - 1];
+
+  // 클라이언트에서 [{ lat, lng}, { lat, lng}] 형태로 두 좌표를 보냄.
+  const origin = places[0]; // 출발지
+  const destination = places[places.length - 1]; // 도착지
 
   const transitBody = JSON.stringify({
     origin: {
@@ -17,6 +20,7 @@ export async function POST(req: NextRequest) {
     travelMode: "TRANSIT",
   });
 
+  // Promise.all은 두 요청을 동시에 보내서 기다림.
   const [transitRes, tmapRes] = await Promise.all([
     fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
       method: "POST",
@@ -53,11 +57,17 @@ export async function POST(req: NextRequest) {
   const summary = tmapData.features?.[0]?.properties;
   const walkDuration = summary?.totalTime ? `${summary.totalTime}s` : undefined;
 
-  const walkPath = tmapData.features
-    ?.filter((f: { geometry: { type: string } }) => f.geometry.type === "LineString")
-    .flatMap((f: { geometry: { coordinates: [number, number][] } }) =>
-      f.geometry.coordinates.map(([lng, lat]: [number, number]) => ({ lat, lng })),
-    ) ?? [];
+  const walkPath =
+    tmapData.features
+      ?.filter(
+        (f: { geometry: { type: string } }) => f.geometry.type === "LineString",
+      )
+      .flatMap((f: { geometry: { coordinates: [number, number][] } }) =>
+        f.geometry.coordinates.map(([lng, lat]: [number, number]) => ({
+          lat,
+          lng,
+        })),
+      ) ?? [];
 
   return NextResponse.json({
     ...transitData,

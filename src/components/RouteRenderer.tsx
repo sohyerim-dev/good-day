@@ -9,23 +9,34 @@ interface Props {
   places: CoursePlace[];
   onRouteData: (data: RouteSegment[]) => void;
 }
-export default function RouteRenderer({ places, onRouteData }: Props) {
-  const map = useMap(); // APIProvider 안의 현재 지도 인스턴스
-  const geometryLib = useMapsLibrary("geometry"); // polyline 디코딩에 필요한 구글맵 라이브러리
+const ROUTE_COLORS = ["#EE6300", "#2563EB", "#16A34A", "#9333EA", "#DC2626"];
 
+export default function RouteRenderer({ places, onRouteData }: Props) {
+  const map = useMap();
+  const geometryLib = useMapsLibrary("geometry");
   const markerLib = useMapsLibrary("marker");
 
   useEffect(() => {
     if (!map || !geometryLib || !markerLib || places.length < 2) return;
 
-    places.forEach((p) => {
+    places.forEach((p, i) => {
+      const color = ROUTE_COLORS[i % ROUTE_COLORS.length];
+
       const content = document.createElement("div");
-      content.innerHTML = `<div style="background: white; border: 2px solid #333; border-radius: 8px; padding: 4px 8px; font-size: 12px; font-weight: bold; color: #333;">${p.order}. ${p.places.name}</div>`;
+      content.innerHTML = `<div style="background: white; border: 2px solid ${color}; border-radius: 8px; padding: 4px 8px; font-size: 12px; font-weight: bold; color: #333;">${p.order}. ${p.places.name}</div>`;
 
       new markerLib!.AdvancedMarkerElement({
         position: { lat: p.places.lat, lng: p.places.lng },
         map,
         content,
+      });
+
+      const dot = document.createElement("div");
+      dot.style.cssText = `width: 14px; height: 14px; background: ${color}; border: 3px solid white; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,0.3);`;
+      new markerLib!.AdvancedMarkerElement({
+        position: { lat: p.places.lat, lng: p.places.lng },
+        map,
+        content: dot,
       });
     });
 
@@ -58,11 +69,12 @@ export default function RouteRenderer({ places, onRouteData }: Props) {
         });
         if (!encoded) continue;
 
+        const color = ROUTE_COLORS[i % ROUTE_COLORS.length];
         const path = geometryLib?.encoding.decodePath(encoded);
         new google.maps.Polyline({
           path,
           map,
-          strokeColor: "#EE6300",
+          strokeColor: color,
           strokeWeight: 4,
         });
 
@@ -70,7 +82,7 @@ export default function RouteRenderer({ places, onRouteData }: Props) {
           new google.maps.Polyline({
             path: data.walkPath,
             map,
-            strokeColor: "#888",
+            strokeColor: color,
             strokeWeight: 2,
             strokeOpacity: 0,
             icons: [

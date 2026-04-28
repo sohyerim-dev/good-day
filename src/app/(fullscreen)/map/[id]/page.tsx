@@ -35,7 +35,7 @@ export default function RoutePage({
   }, [id]);
 
   return (
-    <main className="relative h-screen overflow-hidden">
+    <main className="relative h-screen overflow-hidden max-h-svh">
       <div className="z-50 absolute top-4 left-4 right-4 flex justify-between">
         <button
           onClick={() => router.back()}
@@ -56,7 +56,7 @@ export default function RoutePage({
       {/* 범례 */}
       <div className="z-50 absolute bottom-8 left-4 bg-white rounded-2xl px-4 py-2 shadow text-[12px] flex flex-col gap-1">
         <div className="flex items-center gap-2">
-          <div className="w-6 h-[3px] bg-[#EE6300]" />
+          <div className="w-6 h-0.75 bg-gray-700 rounded" />
           <span>교통수단 경로</span>
         </div>
         <div className="flex items-center gap-2">
@@ -144,9 +144,15 @@ export default function RoutePage({
                             )}
                           </span>
                           <span className="text-gray-400 ml-2">
-                            {step.transitDetails?.stopDetails?.departureStop?.name}{" "}
+                            {
+                              step.transitDetails?.stopDetails?.departureStop
+                                ?.name
+                            }{" "}
                             →{" "}
-                            {step.transitDetails?.stopDetails?.arrivalStop?.name}
+                            {
+                              step.transitDetails?.stopDetails?.arrivalStop
+                                ?.name
+                            }
                           </span>
                         </div>
                       </div>

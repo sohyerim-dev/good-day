@@ -46,14 +46,19 @@ export default function CoursePage({
     <main className="flex flex-col min-h-full">
       {/* 상단 헤더 */}
       <div className="p-4 border-b border-gray-100">
-        <h1 className="text-[22px] font-bold">{course?.title}</h1>
+        <div className="flex items-center gap-1">
+          <Image src="/icons/orange-route.svg" width={20} height={20} alt="" />
+          <h1 className="text-[22px] font-bold">{course?.title}</h1>
+        </div>
         {course?.description && (
-          <p className="text-[14px] text-gray-500 mt-1">{course.description}</p>
+          <p className="text-[14px] text-gray-500 mt-1 pl-6">
+            {course.description}
+          </p>
         )}
       </div>
 
       {/* 장소 목록 */}
-      <ul className="p-4 flex flex-col gap-2 pb-24">
+      <ul className="p-4 flex flex-col gap-2 pb-44">
         {places.map((p, i) => (
           <Fragment key={p.id}>
             <li
@@ -93,7 +98,7 @@ export default function CoursePage({
       </ul>
 
       {/* 하단 고정 버튼 영역 */}
-      <div className="fixed bottom-20 left-0 right-0 px-4 flex gap-2 mb-5">
+      <div className="fixed bottom-24 left-0 right-0 px-4 flex gap-2">
         <Link
           href={`/map/${id}`}
           className="flex-1 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"

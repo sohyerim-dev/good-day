@@ -7,7 +7,7 @@ export default function MainLayout({
 }) {
   return (
     <>
-      <div className="pb-20">{children}</div>
+      <div className="pb-20 max-w-svw max-h-svh">{children}</div>
       <BottomNav />
     </>
   );
