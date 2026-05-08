@@ -41,6 +41,25 @@ export default function CoursePage({
       .then(({ data }) => {
         if (data) setPlaces(data);
       });
+
+    // 좋아요 여부 확인
+    supabase
+      .from("likes")
+      .select("id")
+      .eq("user_id", user?.id)
+      .eq("course_id", id)
+      .single()
+      .then(({ data }) => setLiked(!!data));
+
+    // "!!"는 data가 있으면 true, 없으면 false로 변환
+    // 북마크 여부 확인
+    supabase
+      .from("bookmarks")
+      .select("id")
+      .eq("user_id", user?.id)
+      .eq("course_id", id)
+      .single()
+      .then(({ data }) => setBookmarked(!!data));
   }, [id, user?.id]);
 
   return (
@@ -56,6 +75,11 @@ export default function CoursePage({
               alt=""
             />
             <h1 className="text-[22px] font-bold">{course?.title}</h1>
+            {course && course.user_id === user?.id && (
+              <span className="text-[11px] bg-[#EE6300] text-white rounded-full px-2 py-0.5">
+                내 코스
+              </span>
+            )}
           </div>
           <button onClick={() => router.back()} className="text-gray-400">
             뒤로 가기
@@ -127,7 +151,20 @@ export default function CoursePage({
           <div className="flex gap-2">
             <button
               className="bg-gray-100 rounded-2xl px-4 py-3"
-              onClick={() => setLiked(!liked)}
+              onClick={async () => {
+                if (liked) {
+                  await supabase
+                    .from("likes")
+                    .delete()
+                    .eq("user_id", user?.id)
+                    .eq("course_id", id);
+                } else {
+                  await supabase
+                    .from("likes")
+                    .insert({ user_id: user?.id, course_id: id });
+                }
+                setLiked(!liked);
+              }}
             >
               <Image
                 src={liked ? "/icons/heart-filled.svg" : "/icons/heart.svg"}
@@ -138,7 +175,20 @@ export default function CoursePage({
             </button>
             <button
               className="bg-gray-100 rounded-2xl px-4 py-3"
-              onClick={() => setBookmarked(!bookmarked)}
+              onClick={async () => {
+                if (bookmarked) {
+                  await supabase
+                    .from("bookmarks")
+                    .delete()
+                    .eq("user_id", user?.id)
+                    .eq("course_id", id);
+                } else {
+                  await supabase
+                    .from("bookmarks")
+                    .insert({ user_id: user?.id, course_id: id });
+                }
+                setBookmarked(!bookmarked);
+              }}
             >
               <Image
                 src={

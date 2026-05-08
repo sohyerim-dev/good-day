@@ -19,9 +19,22 @@ export default function Explore() {
   const [swLng, setSwLng] = useState<number>();
 
   const [explorePlaces, setExplorePlaces] = useState<ExploreCoursePlace[]>([]);
+  const [exploreAllPlaces, setExploreAllPlaces] = useState<
+    ExploreCoursePlace[]
+  >([]);
+  const placeGroup = exploreAllPlaces.reduce(
+    (acc, p) => {
+      const courseId = p.course_places[0].course_id;
+      if (!acc[courseId]) acc[courseId] = [];
+      acc[courseId].push(p);
+      return acc;
+    },
+    {} as Record<string, ExploreCoursePlace[]>,
+  );
   const [selected, setSelected] = useState<ExploreCoursePlace | null>(null);
   const [selectedCoursePlaces, setSelectedCoursePlaces] =
     useState<{ order: number; places: { name: string } }[]>();
+  const [showCourses, setShowCourses] = useState(false);
 
   useEffect(() => {
     // 현재 위치 기반 좌표를 center에 저장
@@ -48,6 +61,16 @@ export default function Explore() {
         // console.log(filtered);
         setExplorePlaces(filtered ?? []);
       });
+    supabase
+      .from("places")
+      .select("*, course_places!inner(*, courses(*))")
+      .gte("lat", swLat)
+      .lte("lat", neLat)
+      .gte("lng", swLng)
+      .lte("lng", neLng)
+      .then(({ data }) => {
+        setExploreAllPlaces(data ?? []);
+      });
   }, [swLat, neLat, swLng, neLng]);
 
   return (
@@ -57,6 +80,17 @@ export default function Explore() {
         className="top-4 left-4 absolute z-50 bg-white rounded-2xl px-4 py-2 shadow text-[16px] font-medium cursor-pointer text-[#EE6300] hover:text-black"
       >
         뒤로 가기
+      </button>
+      <button
+        onClick={() => {
+          setShowCourses(!showCourses);
+          setSelected(null);
+        }}
+        className={`absolute top-4 right-4 z-50 rounded-2xl px-4 py-2 shadow text-[16px] font-medium cursor-pointer ${
+          showCourses ? "bg-gray-800 text-white" : "bg-[#EE6300] text-white"
+        }`}
+      >
+        {showCourses ? "목록 닫기" : "목록 보기"}
       </button>
       <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
         <Map
@@ -90,39 +124,65 @@ export default function Explore() {
                 .then(({ data }) => {
                   setSelectedCoursePlaces(data ?? []);
                 });
+              setShowCourses(false);
             }}
           />
         </Map>
       </APIProvider>
       {selected && (
         <div className="z-50 absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
-          <div className="flex-col flex mb-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-bold text-[18px]">
-                {selected.course_places[0].courses.title}
-              </h2>
-              <button
-                onClick={() => setSelected(null)}
-                className="text-gray-400"
-              >
-                닫기
-              </button>
-            </div>
-            <ul>
-              {selectedCoursePlaces?.map((p, i) => (
-                <li key={i} className="mb-2">
-                  {""} {i + 1}. {p.places.name}{" "}
-                  {i !== selectedCoursePlaces.length - 1 && "→"}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href={`/courses/${selected.course_places[0].course_id}`}
-              className="mt-4 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-bold text-[18px]">
+              {selected.course_places[0].courses.title}
+            </h2>
+            <button
+              onClick={() => setSelected(null)}
+              className="text-[14px] text-gray-400"
             >
-              자세히 보기
-            </Link>
+              닫기
+            </button>
           </div>
+          <ul className="flex flex-col gap-2 mb-4">
+            {selectedCoursePlaces?.map((p, i) => (
+              <li key={i} className="bg-gray-50 rounded-2xl px-4 py-3 text-[14px]">
+                <span className="text-[#EE6300] font-medium mr-2">{i + 1}.</span>
+                {p.places.name}
+              </li>
+            ))}
+          </ul>
+          <Link
+            href={`/courses/${selected.course_places[0].course_id}`}
+            className="block bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
+          >
+            자세히 보기
+          </Link>
+        </div>
+      )}
+      {showCourses && (
+        <div className="z-50 absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-bold text-[18px]">이 지역 코스</h2>
+            <button
+              onClick={() => setShowCourses(false)}
+              className="text-[14px] text-gray-400"
+            >
+              닫기
+            </button>
+          </div>
+          <ul className="flex flex-col gap-3">
+            {Object.entries(placeGroup).map(([courseId, places], i) => (
+              <li key={courseId}>
+                <Link href={`/courses/${courseId}`} className="block bg-gray-50 rounded-2xl p-4">
+                  <p className="font-medium text-[15px] mb-1">
+                    {i + 1}. {places[0].course_places[0].courses.title}
+                  </p>
+                  <p className="text-[12px] text-gray-400">
+                    {places.map((p) => p.name).join(" → ")}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </main>
