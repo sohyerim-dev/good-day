@@ -5,6 +5,7 @@ import { useUserStore } from "@/store/userStore";
 import { Course, CoursePlace } from "@/types/course";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Fragment, use, useEffect, useState } from "react";
 
 export default function CoursePage({
@@ -17,7 +18,7 @@ export default function CoursePage({
   const supabase = createClient();
   const [course, setCourse] = useState<Course | null>(null);
   const [places, setPlaces] = useState<CoursePlace[]>([]);
-
+  const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
   useEffect(() => {
@@ -46,10 +47,21 @@ export default function CoursePage({
     <main className="flex flex-col min-h-full">
       {/* 상단 헤더 */}
       <div className="p-4 border-b border-gray-100">
-        <div className="flex items-center gap-1">
-          <Image src="/icons/orange-route.svg" width={20} height={20} alt="" />
-          <h1 className="text-[22px] font-bold">{course?.title}</h1>
+        <div className="flex justify-between">
+          <div className="flex items-center gap-1">
+            <Image
+              src="/icons/orange-route.svg"
+              width={20}
+              height={20}
+              alt=""
+            />
+            <h1 className="text-[22px] font-bold">{course?.title}</h1>
+          </div>
+          <button onClick={() => router.back()} className="text-gray-400">
+            뒤로 가기
+          </button>
         </div>
+
         {course?.description && (
           <p className="text-[14px] text-gray-500 mt-1 pl-6">
             {course.description}

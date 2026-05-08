@@ -108,7 +108,6 @@ export default function Explore() {
                 닫기
               </button>
             </div>
-
             <ul>
               {selectedCoursePlaces?.map((p, i) => (
                 <li key={i} className="mb-2">
@@ -118,7 +117,7 @@ export default function Explore() {
               ))}
             </ul>
             <Link
-              href={`/map/${selected.course_places[0].course_id}`}
+              href={`/courses/${selected.course_places[0].course_id}`}
               className="mt-4 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
             >
               자세히 보기
