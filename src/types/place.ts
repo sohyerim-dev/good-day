@@ -8,3 +8,23 @@ export interface NaverPlace {
   link: string; // 네이버 검색 링크
   naverPlaceUrl: string; // 네이버 플레이스 직접 URL
 }
+
+export interface ExploreCoursePlace {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  naver_url: string;
+  course_places: {
+    id: string;
+    course_id: string;
+    place_id: string;
+    order: number;
+    courses: {
+      id: string;
+      title: string;
+      user_id: string;
+    };
+  }[];
+}

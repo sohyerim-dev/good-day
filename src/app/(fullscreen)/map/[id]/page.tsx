@@ -14,15 +14,19 @@ export default function RoutePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [places, setPlace] = useState<CoursePlace[]>([]);
+
+  const [places, setPlace] = useState<CoursePlace[]>([]); // 코스 장소 목록
+
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showTransit, setShowTransit] = useState(
     searchParams.get("transit") === "true",
-  );
-  const [routeData, setRouteData] = useState<RouteSegment[]>([]);
+  ); // 바텀시트 열림/닫힘
+  const [routeData, setRouteData] = useState<RouteSegment[]>([]); // 경로 데이터
 
+  // 해당 코스의 장소 목록 불러오기
+  // course_places와 places 테이블을 JOIN해서 좌표, 이름 등을 한 번에 가져옴
   useEffect(() => {
     supabase
       .from("course_places")
