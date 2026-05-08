@@ -24,20 +24,40 @@ export default function RoutePage({
     searchParams.get("transit") === "true",
   ); // 바텀시트 열림/닫힘
   const [routeData, setRouteData] = useState<RouteSegment[]>([]); // 경로 데이터
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(true);
 
   // 해당 코스의 장소 목록 불러오기
   // course_places와 places 테이블을 JOIN해서 좌표, 이름 등을 한 번에 가져옴
   useEffect(() => {
+    setLoading(true);
     supabase
       .from("course_places")
       .select("*, places(*)")
       .eq("course_id", id)
       .order("order")
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (data) setPlace(data);
+        setLoading(false);
+        if (!data || error) setError("경로를 불러올 수 없어요");
       });
   }, [id]);
 
+  if (loading)
+    return (
+      <main className="flex items-center justify-center h-screen">
+        <div className="w-8 h-8 border-4 border-[#EE6300] border-t-transparent rounded-full animate-spin" />
+      </main>
+    );
+  if (error)
+    return (
+      <main className="flex flex-col items-center justify-center h-screen gap-4">
+        <p className="text-gray-400">{error}</p>
+        <button onClick={() => router.back()} className="text-[#EE6300]">
+          뒤로 가기
+        </button>
+      </main>
+    );
   return (
     <main className="relative h-screen overflow-hidden max-h-svh">
       <div className="z-50 absolute top-4 left-4 right-4 flex justify-between">

@@ -16,20 +16,27 @@ export default function CoursePage({
   const { id } = use(params);
   const user = useUserStore((state) => state.user);
   const supabase = createClient();
+  const [error, setError] = useState("");
   const [course, setCourse] = useState<Course | null>(null);
   const [places, setPlaces] = useState<CoursePlace[]>([]);
   const router = useRouter();
   const [liked, setLiked] = useState(false);
   const [bookmarked, setBookmarked] = useState(false);
+  const [placesError, setPlacesError] = useState("");
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
+    setLoading(true);
     // 코스 정보
     supabase
       .from("courses")
       .select("*")
       .eq("id", id)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (data) setCourse(data);
+        setLoading(false);
+        if (!data || error) setError("코스를 찾을 수 없어요");
       });
 
     //장소 목록 (순서대로)
@@ -38,8 +45,9 @@ export default function CoursePage({
       .select("*, places(*)")
       .eq("course_id", id)
       .order("order")
-      .then(({ data }) => {
+      .then(({ data, error }) => {
         if (data) setPlaces(data);
+        if (!data || error) setPlacesError("장소 목록을 불러올 수 없어요");
       });
 
     // 좋아요 여부 확인
@@ -61,6 +69,33 @@ export default function CoursePage({
       .single()
       .then(({ data }) => setBookmarked(!!data));
   }, [id, user?.id]);
+
+  // 얼리 리턴 처리
+  if (loading)
+    return (
+      <main className="flex flex-col min-h-full">
+        <div className="p-4 border-b border-gray-100 animate-pulse">
+          <div className="h-7 bg-gray-200 rounded w-1/2" />
+        </div>
+        <div className="p-4 flex flex-col gap-2">
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="h-16 bg-gray-200 rounded-2xl animate-pulse"
+            />
+          ))}
+        </div>
+      </main>
+    );
+  if (error)
+    return (
+      <main className="flex flex-col items-center justify-center min-h-full gap-4">
+        <p className="text-gray-400">코스를 찾을 수 없어요</p>
+        <button onClick={() => router.back()} className="text-[#EE6300]">
+          뒤로 가기
+        </button>
+      </main>
+    );
 
   return (
     <main className="flex flex-col min-h-full">
@@ -94,44 +129,48 @@ export default function CoursePage({
       </div>
 
       {/* 장소 목록 */}
-      <ul className="p-4 flex flex-col gap-2 pb-44">
-        {places.map((p, i) => (
-          <Fragment key={p.id}>
-            <li
-              key={p.id}
-              className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
-            >
-              <div className="flex flex-col gap-1">
-                <span className="font-medium">
-                  <span className="text-[#EE6300] mr-2">{p.order}.</span>
-                  {p.places.name}
-                </span>
-                <span className="text-[12px] text-gray-400">
-                  {p.places.address}
-                </span>
-              </div>
-              <a
-                href={p.places.naver_url}
-                target="_blank"
-                className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 shrink-0"
+      {placesError ? (
+        <p className="text-gray-400">{placesError}</p>
+      ) : (
+        <ul className="p-4 flex flex-col gap-2 pb-44">
+          {places.map((p, i) => (
+            <Fragment key={p.id}>
+              <li
+                key={p.id}
+                className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
               >
-                네이버 플레이스
-              </a>
-            </li>
-            {i !== places.length - 1 && (
-              <li>
-                <Image
-                  src="/icons/arrow-big-down.svg"
-                  alt=""
-                  width={20}
-                  height={20}
-                  className="mx-auto m-2"
-                />
+                <div className="flex flex-col gap-1">
+                  <span className="font-medium">
+                    <span className="text-[#EE6300] mr-2">{p.order}.</span>
+                    {p.places.name}
+                  </span>
+                  <span className="text-[12px] text-gray-400">
+                    {p.places.address}
+                  </span>
+                </div>
+                <a
+                  href={p.places.naver_url}
+                  target="_blank"
+                  className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 shrink-0"
+                >
+                  네이버 플레이스
+                </a>
               </li>
-            )}
-          </Fragment>
-        ))}
-      </ul>
+              {i !== places.length - 1 && (
+                <li>
+                  <Image
+                    src="/icons/arrow-big-down.svg"
+                    alt=""
+                    width={20}
+                    height={20}
+                    className="mx-auto m-2"
+                  />
+                </li>
+              )}
+            </Fragment>
+          ))}
+        </ul>
+      )}
 
       {/* 하단 고정 버튼 영역 */}
       <div className="fixed bottom-24 left-0 right-0 px-4 flex gap-2">
@@ -153,17 +192,18 @@ export default function CoursePage({
               className="bg-gray-100 rounded-2xl px-4 py-3"
               onClick={async () => {
                 if (liked) {
-                  await supabase
+                  const { error } = await supabase
                     .from("likes")
                     .delete()
                     .eq("user_id", user?.id)
                     .eq("course_id", id);
+                  if (!error) setLiked(!liked);
                 } else {
-                  await supabase
+                  const { error } = await supabase
                     .from("likes")
                     .insert({ user_id: user?.id, course_id: id });
+                  if (!error) setLiked(!liked);
                 }
-                setLiked(!liked);
               }}
             >
               <Image
@@ -177,17 +217,18 @@ export default function CoursePage({
               className="bg-gray-100 rounded-2xl px-4 py-3"
               onClick={async () => {
                 if (bookmarked) {
-                  await supabase
+                  const { error } = await supabase
                     .from("bookmarks")
                     .delete()
                     .eq("user_id", user?.id)
                     .eq("course_id", id);
+                  if (!error) setBookmarked(!bookmarked);
                 } else {
-                  await supabase
+                  const { error } = await supabase
                     .from("bookmarks")
                     .insert({ user_id: user?.id, course_id: id });
+                  if (!error) setBookmarked(!bookmarked);
                 }
-                setBookmarked(!bookmarked);
               }}
             >
               <Image

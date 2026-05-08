@@ -38,12 +38,15 @@ export default function Explore() {
 
   useEffect(() => {
     // 현재 위치 기반 좌표를 center에 저장
-    navigator.geolocation.getCurrentPosition((position) => {
-      setCenter({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude,
-      });
-    });
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setCenter({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        });
+      },
+      () => {},
+    );
   }, []);
   useEffect(() => {
     if (!neLat || !neLng || !swLat || !swLng) return;
@@ -94,6 +97,7 @@ export default function Explore() {
       </button>
       <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
         <Map
+          clickableIcons={false}
           mapId="DEMO_MAP_ID"
           style={{ width: "100%", height: "100vh" }}
           // 첫 페이지 화면 - 현재 위치 기반으로 지도 보여주기
@@ -115,6 +119,7 @@ export default function Explore() {
           <MarkerRenderer
             places={explorePlaces}
             onMarkerClick={(place) => {
+              setSelectedCoursePlaces(undefined);
               setSelected(place);
               supabase
                 .from("course_places")
@@ -142,14 +147,30 @@ export default function Explore() {
               닫기
             </button>
           </div>
-          <ul className="flex flex-col gap-2 mb-4">
-            {selectedCoursePlaces?.map((p, i) => (
-              <li key={i} className="bg-gray-50 rounded-2xl px-4 py-3 text-[14px]">
-                <span className="text-[#EE6300] font-medium mr-2">{i + 1}.</span>
-                {p.places.name}
-              </li>
-            ))}
-          </ul>
+          {selectedCoursePlaces === undefined ? (
+            <div className="flex justify-center py-4">
+              <div className="w-6 h-6 border-4 border-[#EE6300] border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : selectedCoursePlaces.length === 0 ? (
+            <p className="text-gray-400 text-center py-4">
+              장소를 불러올 수 없어요
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-2 mb-4">
+              {selectedCoursePlaces?.map((p, i) => (
+                <li
+                  key={i}
+                  className="bg-gray-50 rounded-2xl px-4 py-3 text-[14px]"
+                >
+                  <span className="text-[#EE6300] font-medium mr-2">
+                    {i + 1}.
+                  </span>
+                  {p.places.name}
+                </li>
+              ))}
+            </ul>
+          )}
+
           <Link
             href={`/courses/${selected.course_places[0].course_id}`}
             className="block bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
@@ -172,7 +193,10 @@ export default function Explore() {
           <ul className="flex flex-col gap-3">
             {Object.entries(placeGroup).map(([courseId, places], i) => (
               <li key={courseId}>
-                <Link href={`/courses/${courseId}`} className="block bg-gray-50 rounded-2xl p-4">
+                <Link
+                  href={`/courses/${courseId}`}
+                  className="block bg-gray-50 rounded-2xl p-4"
+                >
                   <p className="font-medium text-[15px] mb-1">
                     {i + 1}. {places[0].course_places[0].courses.title}
                   </p>
