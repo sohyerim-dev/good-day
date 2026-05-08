@@ -16,17 +16,21 @@ export default function MarkerRenderer({ places, onMarkerClick }: Props) {
 
     places.forEach((p, i) => {
       const pin = new markerLib.PinElement({
-        glyphSrc: new URL("/icons/orange-route.svg", location.href),
-        background: "#FFFFFF",
+        glyphSrc: new URL("/icons/white-route.svg", location.href),
+        background: "#EE6300",
         borderColor: "#EE6300",
       });
+      pin.style.setProperty("--gmp-marker-pin-border-width", "3px");
       const marker = new markerLib!.AdvancedMarkerElement({
         position: { lat: p.lat, lng: p.lng },
         map,
         content: pin,
       });
 
-      marker.addEventListener("gmp-click", () => onMarkerClick(p));
+      marker.addEventListener("click", () => {
+        // console.log("cliked", p);
+        onMarkerClick(p);
+      });
     });
   }, [map, markerLib, places]);
   return null;
