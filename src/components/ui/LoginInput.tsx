@@ -10,6 +10,7 @@ interface LoginInputProps {
   placeholder: string;
   className?: string;
   autoComplete?: string;
+  defaultValue?: string;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
 }
 
@@ -20,6 +21,7 @@ export default function LoginInput({
   placeholder,
   className,
   autoComplete,
+  defaultValue,
   onChange,
 }: LoginInputProps) {
   const [focused, setFocused] = useState(false);
@@ -45,6 +47,7 @@ export default function LoginInput({
         type={type}
         name={type}
         id={type}
+        defaultValue={defaultValue}
         autoComplete={autoComplete}
         placeholder={placeholder}
         onFocus={() => setFocused(true)}
