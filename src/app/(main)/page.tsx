@@ -58,7 +58,7 @@ export default function Home() {
       ) : (
         <ul className="flex flex-col gap-3 w-full">
           {courses.map((course) => (
-            <li key={course.id} className="text-center">
+            <li key={course.id}>
               <Link
                 href={`/courses/${course.id}`}
                 className="group flex items-center justify-between bg-gray-50 rounded-2xl p-4"
