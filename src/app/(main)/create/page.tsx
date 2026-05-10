@@ -96,7 +96,7 @@ export default function Create() {
       hour: "2-digit",
       minute: "2-digit",
     });
-    const courseTitle = title.trim() || `나의 코스 - ${dateStr} ${timeStr}`;
+    const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
     setTitle(courseTitle);
 
     if (selectedPlaces.length === 0) return;
