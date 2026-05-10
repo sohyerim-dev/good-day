@@ -125,6 +125,12 @@ export default function EditCourse({
   async function handleSave() {
     if (selectedPlaces.length === 0) return;
 
+    const now = new Date();
+    const dateStr = now.toLocaleDateString("ko-KR");
+    const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+    const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
+    setTitle(courseTitle);
+
     // places upsert
     const { data: placesData, error: placesError } = await supabase
       .from("places")
@@ -151,7 +157,7 @@ export default function EditCourse({
     const { error: courseError } = await supabase
       .from("courses")
       .update({
-        title,
+        title: courseTitle,
         description,
         is_public: isPublic,
         course_lat,
