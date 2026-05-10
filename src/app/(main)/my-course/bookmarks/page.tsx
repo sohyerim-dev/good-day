@@ -17,7 +17,6 @@ export default function Bookmarks() {
 
   useEffect(() => {
     if (!user?.id) return;
-    setLoading(true);
     supabase
       .from("bookmarks")
       .select("*, courses(*)")

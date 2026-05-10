@@ -30,7 +30,6 @@ export default function RoutePage({
   // 해당 코스의 장소 목록 불러오기
   // course_places와 places 테이블을 JOIN해서 좌표, 이름 등을 한 번에 가져옴
   useEffect(() => {
-    setLoading(true);
     supabase
       .from("course_places")
       .select("*, places(*)")

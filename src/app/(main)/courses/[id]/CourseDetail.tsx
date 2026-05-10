@@ -30,7 +30,6 @@ export default function CourseDetail({
 
   useEffect(() => {
     if (!user?.id) return;
-    setLoading(true);
     supabase
       .from("courses")
       .select("*")
