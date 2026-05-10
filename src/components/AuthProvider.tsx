@@ -37,7 +37,7 @@ export default function AuthProvider({
 
       if (autoLogin === "false" && !activeSession) {
         supabase.auth.signOut();
-        router.push("login");
+        router.push("/login");
         return;
       }
       setUser({

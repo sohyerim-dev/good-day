@@ -22,7 +22,6 @@ export async function generateMetadata({
       }
     );
     const courses = await res.json();
-    console.log("[generateMetadata] courses:", JSON.stringify(courses));
     data = courses?.[0] ?? null;
   } catch (e) {
     console.error("[generateMetadata] fetch error:", e);
