@@ -4,12 +4,14 @@ import LoginInput from "@/components/ui/LoginInput";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import React, { useState } from "react";
 
 export default function Login() {
   const supabase = createClient();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") || "/";
   const [email, setEmail] = useState("good-day@test.com");
   const [password, setPassword] = useState("goodday1234");
   const [error, setError] = useState("");
@@ -68,7 +70,7 @@ export default function Login() {
       }
       return;
     }
-    router.push("/");
+    router.push(redirectTo);
   }
 
   return (

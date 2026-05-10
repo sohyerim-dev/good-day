@@ -23,6 +23,7 @@ export default function CoursePage({
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [placesError, setPlacesError] = useState("");
   const [loading, setLoading] = useState(true);
   const [savedPlaces, setSavedPlaces] = useState<Set<string>>(new Set());
@@ -112,6 +113,13 @@ export default function CoursePage({
         setSavedPlaces((prev) => new Set(prev).add(placeId));
       }
     }
+  }
+
+  async function handleShare() {
+    const url = `${window.location.origin}/courses/${id}`;
+    await navigator.clipboard.writeText(url);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   }
 
   async function handleDeleteCourse() {
@@ -262,8 +270,20 @@ export default function CoursePage({
         >
           교통수단 보기
         </Link>
-        {course && course.user_id !== user?.id && (
-          <div className="flex gap-2">
+        <div className="flex gap-2">
+          <button
+            onClick={handleShare}
+            className="relative bg-gray-100 rounded-2xl px-4 py-3"
+          >
+            <Image src="/icons/link.svg" alt="공유" width={24} height={24} />
+            {copied && (
+              <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-[11px] rounded px-2 py-1 whitespace-nowrap">
+                복사됨
+              </span>
+            )}
+          </button>
+          {course && course.user_id !== user?.id && (
+            <>
             <button
               className="bg-gray-100 rounded-2xl px-4 py-3"
               onClick={async () => {
@@ -318,8 +338,9 @@ export default function CoursePage({
                 height={24}
               />
             </button>
-          </div>
-        )}
+            </>
+          )}
+        </div>
       </div>
     </main>
   );

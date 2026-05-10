@@ -20,7 +20,7 @@ export default function AuthProvider({
 
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) {
-        router.push("/login");
+        router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
         return;
       }
 
