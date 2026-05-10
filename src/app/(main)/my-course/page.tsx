@@ -4,19 +4,19 @@ import { useUserStore } from "@/store/userStore";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export default function MyCourse() {
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
   const [isEditing, setIsEditing] = useState(false);
-  const [username, setUsername] = useState(user?.username ?? "");
+  const [editUsername, setEditUsername] = useState("");
   const supabase = createClient();
   const router = useRouter();
 
   async function handleUsernameUpdate() {
-    await supabase.from("profiles").update({ username }).eq("id", user?.id);
-    setUser({ ...user!, username });
+    await supabase.from("profiles").update({ username: editUsername }).eq("id", user?.id);
+    setUser({ ...user!, username: editUsername });
     setIsEditing(false);
   }
 
@@ -26,9 +26,6 @@ export default function MyCourse() {
     router.push("/login");
   }
 
-  useEffect(() => {
-    if (user?.username) setUsername(user.username);
-  }, [user?.username]);
 
   return (
     <main className="flex flex-col min-h-full">
@@ -40,8 +37,8 @@ export default function MyCourse() {
           {isEditing ? (
             <div className="flex items-center gap-2">
               <input
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                value={editUsername}
+                onChange={(e) => setEditUsername(e.target.value)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleUsernameUpdate();
                 }}
@@ -58,10 +55,10 @@ export default function MyCourse() {
           ) : (
             <div className="flex items-center gap-2">
               <p className="font-bold text-[18px]">
-                {username || "닉네임 없음"}
+                {user?.username || "닉네임 없음"}
               </p>
               <button
-                onClick={() => setIsEditing(true)}
+                onClick={() => { setEditUsername(user?.username ?? ""); setIsEditing(true); }}
                 className="border hover:bg-white hover:text-[#EE6300] text-[11px] text-white bg-[#EE6300] rounded-full leading-4.75 px-2 py-0.5"
               >
                 수정
