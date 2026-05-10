@@ -1,4 +1,5 @@
 "use client";
+import CoursePreviewRenderer from "@/components/CoursePreviewRenderer";
 import LocationSetter from "@/components/LocationSetter";
 import MarkerRenderer from "@/components/MarkerRenderer";
 import { createClient } from "@/lib/supabase/client";
@@ -34,7 +35,7 @@ export default function Explore() {
   );
   const [selected, setSelected] = useState<ExploreCoursePlace | null>(null);
   const [selectedCoursePlaces, setSelectedCoursePlaces] =
-    useState<{ order: number; places: { name: string } }[]>();
+    useState<{ order: number; places: { name: string; lat: number; lng: number } }[]>();
   const [showCourses, setShowCourses] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<number | undefined>();
   const [locationQuery, setLocationQuery] = useState("");
@@ -55,7 +56,7 @@ export default function Explore() {
     if (!neLat || !neLng || !swLat || !swLng) return;
     supabase
       .from("places")
-      .select("*, course_places!inner(*, courses(*))")
+      .select("*, course_places!inner(*, courses(*, profiles(username)))")
       .gte("lat", swLat)
       .lte("lat", neLat)
       .gte("lng", swLng)
@@ -69,7 +70,7 @@ export default function Explore() {
       });
     supabase
       .from("places")
-      .select("*, course_places!inner(*, courses(*))")
+      .select("*, course_places!inner(*, courses(*, profiles(username)))")
       .gte("lat", swLat)
       .lte("lat", neLat)
       .gte("lng", swLng)
@@ -165,32 +166,42 @@ export default function Explore() {
           }}
         >
           <LocationSetter lat={center.lat} lng={center.lng} zoom={zoomLevel} />
-          <MarkerRenderer
-            places={explorePlaces}
-            onMarkerClick={(place) => {
-              setSelectedCoursePlaces(undefined);
-              setSelected(place);
-              supabase
-                .from("course_places")
-                .select("*, places(*)")
-                .eq("course_id", place.course_places[0].course_id)
-                .order("order")
-                .then(({ data }) => {
-                  setSelectedCoursePlaces(data ?? []);
-                });
-              setShowCourses(false);
-            }}
-          />
+          {selectedCoursePlaces && selectedCoursePlaces.length > 0 && (
+            <CoursePreviewRenderer places={selectedCoursePlaces} />
+          )}
+          {!selected && (
+            <MarkerRenderer
+              places={explorePlaces}
+              onMarkerClick={(place) => {
+                setSelectedCoursePlaces(undefined);
+                setSelected(place);
+                supabase
+                  .from("course_places")
+                  .select("*, places(*)")
+                  .eq("course_id", place.course_places[0].course_id)
+                  .order("order")
+                  .then(({ data }) => {
+                    setSelectedCoursePlaces(data ?? []);
+                  });
+                setShowCourses(false);
+              }}
+            />
+          )}
         </Map>
       </APIProvider>
       {selected && (
         <div className="z-50 absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
-            <h2 className="font-bold text-[18px]">
-              {selected.course_places[0].courses.title}
-            </h2>
+            <div className="flex items-center">
+              <h2 className="font-bold text-[18px]">
+                {selected.course_places[0].courses.title}
+              </h2>
+              <h3 className="text-[14px] text-gray-400 ml-2">
+                {selected.course_places[0].courses.profiles.username}
+              </h3>
+            </div>
             <button
-              onClick={() => setSelected(null)}
+              onClick={() => { setSelected(null); setSelectedCoursePlaces(undefined); }}
               className="text-[14px] text-gray-400"
             >
               닫기
@@ -245,15 +256,18 @@ export default function Explore() {
             </p>
           ) : (
             <ul className="flex flex-col gap-3">
-              {Object.entries(placeGroup).map(([courseId, places], i) => (
+              {Object.entries(placeGroup).map(([courseId, places]) => (
                 <li key={courseId}>
                   <Link
                     href={`/courses/${courseId}`}
                     className="block bg-gray-50 rounded-2xl p-4"
                   >
-                    <p className="font-medium text-[15px] mb-1">
-                      {i + 1}. {places[0].course_places[0].courses.title}
-                    </p>
+                    <span className="text-gray-400 text-[14px] mr-2">
+                      {places[0].course_places[0].courses.profiles.username}
+                    </span>
+                    <span className="font-medium text-[15px]">
+                      {places[0].course_places[0].courses.title}
+                    </span>
                     <p className="text-[12px] text-gray-400">
                       {places.map((p) => p.name).join(" → ")}
                     </p>

@@ -29,11 +29,22 @@ export default function Bookmarks() {
         setLoading(false);
       });
   }, [user?.id]);
+
+  async function handleUnbookmark(courseId: string) {
+    if (!confirm("북마크를 취소할까요?")) return;
+    await supabase
+      .from("bookmarks")
+      .delete()
+      .eq("user_id", user?.id)
+      .eq("course_id", courseId);
+    setBookmarks((prev) => prev.filter((b) => b.id !== courseId));
+  }
+
   return (
     <main className="flex flex-col min-h-full">
       {/* 헤더 */}
       <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-        <h1 className="text-[22px] font-bold">내 코스</h1>
+        <h1 className="text-[22px] font-bold">북마크한 코스</h1>
         <button
           onClick={() => router.back()}
           className="text-gray-400 text-[14px] hover:text-black"
@@ -59,18 +70,28 @@ export default function Bookmarks() {
           </p>
         ) : (
           bookmarks.map((bookmark) => (
-            <Link
+            <div
               key={bookmark.id}
-              href={`/courses/${bookmark.id}`}
-              className="block bg-gray-50 rounded-2xl p-4"
+              className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
             >
-              <p className="font-medium">{bookmark.title}</p>
-              {bookmark.description && (
-                <p className="text-[12px] text-gray-400 mt-1">
-                  {bookmark.description}
-                </p>
-              )}
-            </Link>
+              <Link
+                href={`/courses/${bookmark.id}`}
+                className="flex flex-col gap-1 flex-1"
+              >
+                <p className="font-medium">{bookmark.title}</p>
+                {bookmark.description && (
+                  <p className="text-[12px] text-gray-400">
+                    {bookmark.description}
+                  </p>
+                )}
+              </Link>
+              <button
+                onClick={() => handleUnbookmark(bookmark.id)}
+                className="text-[12px] text-red-400 border border-red-300 rounded-xl px-2 py-1 shrink-0 ml-3"
+              >
+                취소
+              </button>
+            </div>
           ))
         )}
       </div>

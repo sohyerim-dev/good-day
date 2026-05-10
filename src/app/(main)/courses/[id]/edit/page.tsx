@@ -1,7 +1,7 @@
 "use client";
 
 import { NaverPlace, SavedPlace } from "@/types/place";
-import { Fragment, useState } from "react";
+import { Fragment, use, useEffect, useState } from "react";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -13,34 +13,71 @@ import Image from "next/image";
 import { useUserStore } from "@/store/userStore";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-export default function Create() {
+
+export default function EditCourse({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = use(params);
   const user = useUserStore((state) => state.user);
   const router = useRouter();
   const supabase = createClient();
 
-  // 코스 제목, 설명, 공개 여부
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
 
-  // 네이버 장소 검색 입력값과 결과 목록
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<NaverPlace[]>([]);
 
-  // 코스에 추가된 장소 목록 (순서 포함))
   const [selectedPlaces, setSelectedPlaces] = useState<
     (NaverPlace & { order: number })[]
   >([]);
 
-  // 검색 결과 패널 표시 여부 / 코스 장소 목록 섹션 표시 여부
   const [searchActive, setSearchActive] = useState(false);
   const [placeActive, setPlaceActive] = useState(false);
 
-  // 내 저장 장소 바텀시트 표시 여부 / 저장된 장소 목록
   const [showSaved, setShowSaved] = useState(false);
   const [savedPlacesList, setSavedPlacesList] = useState<SavedPlace[]>([]);
 
-  // 네이버 장소 검색 API 호출, 결과를 searchResults에 저장
+  // 기존 코스 데이터 로드
+  useEffect(() => {
+    supabase
+      .from("courses")
+      .select("*")
+      .eq("id", id)
+      .single()
+      .then(({ data }) => {
+        if (!data) return;
+        setTitle(data.title);
+        setDescription(data.description ?? "");
+        setIsPublic(data.is_public);
+      });
+
+    supabase
+      .from("course_places")
+      .select("*, places(*)")
+      .eq("course_id", id)
+      .order("order")
+      .then(({ data }) => {
+        if (!data) return;
+        const asNaverPlaces = data.map((cp) => ({
+          id: cp.places.id,
+          title: cp.places.name,
+          address: cp.places.address,
+          roadAddress: cp.places.address,
+          mapx: String(cp.places.lng * 10000000),
+          mapy: String(cp.places.lat * 10000000),
+          link: cp.places.naver_url,
+          naverPlaceUrl: cp.places.naver_url,
+          order: cp.order,
+        }));
+        setSelectedPlaces(asNaverPlaces);
+        if (asNaverPlaces.length > 0) setPlaceActive(true);
+      });
+  }, [id]);
+
   async function handleSearch() {
     if (!query.trim()) return;
     const res = await fetch(
@@ -51,7 +88,6 @@ export default function Create() {
     setSearchActive(true);
   }
 
-  // 검색 결과에서 장소를 코스에 추가, 첫 추가 시 목록 섹션 표시
   function handleAddPlace(place: NaverPlace) {
     setSelectedPlaces((prev) => [
       ...prev,
@@ -62,7 +98,6 @@ export default function Create() {
     }
   }
 
-  // 장소 삭제 후 order 재정렬, 모두 삭제되면 목록 섹션 숨김
   function handleRemovePlace(index: number) {
     setSelectedPlaces((prev) => {
       const next = prev
@@ -73,7 +108,6 @@ export default function Create() {
     });
   }
 
-  // 드래그 완료 시 순서 변경 후 order 재정렬
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -88,20 +122,10 @@ export default function Create() {
     });
   }
 
-  // 코스 저장 -> places upsert -> courses insert -> course_places insert 순으로 처리
   async function handleSave() {
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("ko-KR");
-    const timeStr = now.toLocaleTimeString("ko-KR", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-    const courseTitle = title.trim() || `나의 코스 - ${dateStr} ${timeStr}`;
-    setTitle(courseTitle);
-
     if (selectedPlaces.length === 0) return;
 
-    // places 테이블에 upsert
+    // places upsert
     const { data: placesData, error: placesError } = await supabase
       .from("places")
       .upsert(
@@ -118,41 +142,39 @@ export default function Create() {
 
     if (placesError || !placesData) return;
 
-    // 중심 좌표 계산
     const course_lat =
       placesData.reduce((sum, p) => sum + p.lat, 0) / placesData.length;
     const course_lng =
       placesData.reduce((sum, p) => sum + p.lng, 0) / placesData.length;
 
-    // courses 테이블에 insert
-    const { data: courseData, error: courseError } = await supabase
+    // courses update
+    const { error: courseError } = await supabase
       .from("courses")
-      .insert({
-        user_id: user!.id,
-        title: courseTitle,
+      .update({
+        title,
         description,
         is_public: isPublic,
         course_lat,
         course_lng,
       })
-      .select()
-      .single();
+      .eq("id", id);
 
-    if (courseError || !courseData) return;
+    if (courseError) return;
 
-    // course_places 테이블에 insert
+    // 기존 course_places 삭제 후 재삽입
+    await supabase.from("course_places").delete().eq("course_id", id);
+
     await supabase.from("course_places").insert(
       placesData.map((place, i) => ({
-        course_id: courseData.id,
+        course_id: id,
         place_id: place.id,
         order: selectedPlaces[i].order,
       })),
     );
 
-    router.push("/");
+    router.push(`/courses/${id}`);
   }
 
-  // 저장된 장소를 NaverPlace 형식으로 변환해서 코스에 추가, 중복 방지
   function handleAddFromSaved(place: SavedPlace) {
     if (selectedPlaces.some((p) => p.id === place.id)) return;
     const asNaverPlace: NaverPlace = {
@@ -170,9 +192,8 @@ export default function Create() {
 
   return (
     <main className="p-4 flex flex-col gap-4 pb-32">
-      <h1 className="text-[20px] text-center font-bold">코스 추가하기</h1>
+      <h1 className="text-[20px] text-center font-bold">코스 수정하기</h1>
 
-      {/* 코스 정보 */}
       <label htmlFor="course-title" className="font-medium text-[18px]">
         코스 제목
       </label>
@@ -194,7 +215,6 @@ export default function Create() {
         onChange={(e) => setDescription(e.target.value)}
       />
 
-      {/* 장소 검색 */}
       <label htmlFor="place-search" className="font-medium text-[18px]">
         장소 검색
       </label>
@@ -231,7 +251,7 @@ export default function Create() {
       >
         내 저장된 장소에서 추가
       </button>
-      {/* 검색 결과 */}
+
       <ul className={searchActive ? "bg-gray-50 rounded-2xl p-4 w-full" : ""}>
         {searchResults.length !== 0 ? (
           searchResults.map((place: NaverPlace, index: number) => (
@@ -278,7 +298,6 @@ export default function Create() {
         </li>
       </ul>
 
-      {/* 추가된 장소 목록 */}
       <div className="flex">
         <h2 className={placeActive ? "text-[18px] font-medium" : "hidden"}>
           나의 코스
@@ -324,6 +343,7 @@ export default function Create() {
           </ul>
         </SortableContext>
       </DndContext>
+
       <label className="flex items-center gap-2 cursor-pointer">
         <span className="font-medium">코스 공개</span>
         <input
@@ -346,6 +366,7 @@ export default function Create() {
       >
         저장
       </button>
+
       {showSaved && (
         <div className="fixed inset-x-0 top-0 bottom-20 z-9999 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">

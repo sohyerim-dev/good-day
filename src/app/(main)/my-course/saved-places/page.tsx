@@ -27,6 +27,16 @@ export default function SavedPlaces() {
       });
   }, [user?.id]);
 
+  async function handleDeletePlace(placeId: string) {
+    if (!confirm("저장을 취소할까요?")) return;
+    await supabase
+      .from("saved_places")
+      .delete()
+      .eq("user_id", user?.id)
+      .eq("place_id", placeId);
+    setPlaces((prev) => prev.filter((p) => p.id !== placeId));
+  }
+
   return (
     <main className="flex flex-col min-h-full">
       {/* 헤더 */}
@@ -57,16 +67,27 @@ export default function SavedPlaces() {
           </p>
         ) : (
           places.map((place) => (
-            <div key={place.id} className="bg-gray-50 rounded-2xl p-4">
-              <p className="font-medium">{place.name}</p>
-              <p className="text-[12px] text-gray-400 mt-1">{place.address}</p>
-              <a
-                href={place.naver_url}
-                target="_blank"
-                className="text-[12px] text-[#EE6300] mt-2 inline-block"
+            <div
+              key={place.id}
+              className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
+            >
+              <div className="flex flex-col gap-1">
+                <p className="font-medium">{place.name}</p>
+                <p className="text-[12px] text-gray-400">{place.address}</p>
+                <a
+                  href={place.naver_url}
+                  target="_blank"
+                  className="text-[12px] text-[#EE6300]"
+                >
+                  네이버 플레이스
+                </a>
+              </div>
+              <button
+                onClick={() => handleDeletePlace(place.id)}
+                className="text-[12px] text-red-400 border border-red-300 rounded-xl px-2 py-1 shrink-0 ml-3"
               >
-                네이버 플레이스
-              </a>
+                삭제
+              </button>
             </div>
           ))
         )}

@@ -26,3 +26,11 @@ export interface CoursePlace {
     naver_url: string; // 네이버 플레이스 URL
   };
 }
+
+export interface HotCourse {
+  id: string;
+  title: string;
+  profiles: { username: string };
+  likes: { count: number }[];
+  course_places: { order: number; places: { name: string } }[];
+}

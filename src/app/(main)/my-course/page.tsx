@@ -1,6 +1,7 @@
 "use client";
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -21,6 +22,7 @@ export default function MyCourse() {
 
   async function handleLogout() {
     await supabase.auth.signOut();
+    setUser(null);
     router.push("/login");
   }
 
@@ -29,7 +31,7 @@ export default function MyCourse() {
   }, [user?.username]);
 
   return (
-    <main className="flex flex-col min-h-full pb-24">
+    <main className="flex flex-col min-h-full">
       {/* 유저 정보 */}
       <div className="p-4 border-b border-gray-100">
         <h1 className="text-[22px] font-bold mb-3">마이코스</h1>
@@ -85,9 +87,9 @@ export default function MyCourse() {
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
               className="lucide lucide-chevron-right-icon lucide-chevron-right"
             >
               <path d="m9 18 6-6-6-6" />
@@ -107,9 +109,9 @@ export default function MyCourse() {
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
               className="lucide lucide-chevron-right-icon lucide-chevron-right"
             >
               <path d="m9 18 6-6-6-6" />
@@ -129,9 +131,31 @@ export default function MyCourse() {
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
-              stroke-width="2"
-              stroke-linecap="round"
-              stroke-linejoin="round"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="lucide lucide-chevron-right-icon lucide-chevron-right"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </span>
+        </Link>
+        <Link
+          href="/my-course/terms"
+          className="group flex justify-between items-center bg-gray-50 rounded-2xl p-4"
+        >
+          <span className="font-medium">이용약관</span>
+          <span className="text-gray-300 group-hover:text-[#EE6300]">
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
               className="lucide lucide-chevron-right-icon lucide-chevron-right"
             >
               <path d="m9 18 6-6-6-6" />
@@ -140,14 +164,59 @@ export default function MyCourse() {
         </Link>
       </div>
 
-      {/* 로그아웃 / 회원탈퇴 */}
-      <div className="p-4 border-t border-gray-100 flex flex-col gap-2 mt-auto">
-        <button
-          onClick={handleLogout}
-          className="text-left text-[14px] text-gray-500 cursor-pointer py-2 hover:text-black"
-        >
-          로그아웃
-        </button>
+      <div className="mt-auto">
+        {/* 로그아웃 */}
+        <div className="p-4 border-t border-gray-100 flex flex-col gap-2">
+          <button
+            onClick={handleLogout}
+            className="text-left text-[14px] text-gray-500 cursor-pointer py-2 hover:text-black"
+          >
+            로그아웃
+          </button>
+        </div>
+
+        {/* 개발자 정보 */}
+        <div className="px-4 pb-24 pt-4 border-t border-gray-100">
+          <h2 className="text-[16px] font-bold mb-3">개발자 정보</h2>
+          <div className="bg-gray-50 rounded-2xl p-4 flex flex-col gap-2">
+            <p className="text-[11px] text-gray-400 font-medium uppercase tracking-wider">
+              Developer
+            </p>
+            <p className="font-bold text-[15px]">소혜림</p>
+            <p className="text-[12px] text-gray-400">
+              굿데이 서비스 기획 및 개발
+            </p>
+            <div className="flex flex-col gap-1.5 mt-1">
+              <a
+                href="mailto:musik91@naver.com"
+                className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-[#EE6300]"
+              >
+                <Image
+                  src="/icons/mail.svg"
+                  alt=""
+                  width={14}
+                  height={14}
+                  className="opacity-40"
+                />
+                musik91@naver.com
+              </a>
+              <a
+                href="https://github.com/sohyerim-dev"
+                target="_blank"
+                className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-[#EE6300]"
+              >
+                <Image
+                  src="/icons/link.svg"
+                  alt=""
+                  width={14}
+                  height={14}
+                  className="opacity-40"
+                />
+                github.com/sohyerim-dev
+              </a>
+            </div>
+          </div>
+        </div>
       </div>
     </main>
   );

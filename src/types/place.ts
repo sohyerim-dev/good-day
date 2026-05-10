@@ -25,6 +25,7 @@ export interface ExploreCoursePlace {
       id: string;
       title: string;
       user_id: string;
+      profiles: { username: string };
     };
   }[];
 }

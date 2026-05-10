@@ -21,6 +21,7 @@ export default function CoursePage({
   const [places, setPlaces] = useState<CoursePlace[]>([]);
   const router = useRouter();
   const [liked, setLiked] = useState(false);
+  const [likeCount, setLikeCount] = useState(0);
   const [bookmarked, setBookmarked] = useState(false);
   const [placesError, setPlacesError] = useState("");
   const [loading, setLoading] = useState(true);
@@ -58,8 +59,15 @@ export default function CoursePage({
       .select("id")
       .eq("user_id", user?.id)
       .eq("course_id", id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => setLiked(!!data));
+
+    // 좋아요 수 조회
+    supabase
+      .from("likes")
+      .select("id", { count: "exact", head: true })
+      .eq("course_id", id)
+      .then(({ count }) => setLikeCount(count ?? 0));
 
     // "!!"는 data가 있으면 true, 없으면 false로 변환
     // 북마크 여부 확인
@@ -68,7 +76,7 @@ export default function CoursePage({
       .select("id")
       .eq("user_id", user?.id)
       .eq("course_id", id)
-      .single()
+      .maybeSingle()
       .then(({ data }) => setBookmarked(!!data));
 
     // 현재 코스의 모든 장소가 저장됐는지 조회
@@ -104,6 +112,12 @@ export default function CoursePage({
         setSavedPlaces((prev) => new Set(prev).add(placeId));
       }
     }
+  }
+
+  async function handleDeleteCourse() {
+    if (!confirm("코스를 삭제할까요?")) return;
+    await supabase.from("courses").delete().eq("id", id);
+    router.push("/");
   }
 
   // 얼리 리턴 처리
@@ -146,10 +160,28 @@ export default function CoursePage({
               alt=""
             />
             <h1 className="text-[22px] font-bold">{course?.title}</h1>
+            <div className="flex items-center gap-1 text-[13px] text-gray-400">
+              <Image src="/icons/heart-filled.svg" alt="좋아요" width={14} height={14} />
+              <span>{likeCount}</span>
+            </div>
             {course && course.user_id === user?.id && (
-              <span className="text-[11px] leading-4.75 bg-[#EE6300] text-white rounded-full px-2 py-0.5">
-                내 코스
-              </span>
+              <>
+                <span className="text-[11px] leading-4.75 bg-[#EE6300] text-white rounded-full px-2 py-0.5">
+                  내 코스
+                </span>
+                <Link
+                  href={`/courses/${id}/edit`}
+                  className="text-[11px] text-[#EE6300] border leading-4.75 border-[#EE6300] rounded-full px-2 py-0.5"
+                >
+                  수정
+                </Link>
+                <button
+                  onClick={handleDeleteCourse}
+                  className="text-[11px] text-red-400 border leading-4.75 border-red-300 rounded-full px-2 py-0.5"
+                >
+                  삭제
+                </button>
+              </>
             )}
           </div>
           <button onClick={() => router.back()} className="text-gray-400">
@@ -241,12 +273,12 @@ export default function CoursePage({
                     .delete()
                     .eq("user_id", user?.id)
                     .eq("course_id", id);
-                  if (!error) setLiked(!liked);
+                  if (!error) { setLiked(false); setLikeCount((prev) => prev - 1); }
                 } else {
                   const { error } = await supabase
                     .from("likes")
                     .insert({ user_id: user?.id, course_id: id });
-                  if (!error) setLiked(!liked);
+                  if (!error) { setLiked(true); setLikeCount((prev) => prev + 1); }
                 }
               }}
             >

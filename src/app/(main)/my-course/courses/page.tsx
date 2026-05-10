@@ -29,6 +29,12 @@ export default function Courses() {
       });
   }, [user?.id]);
 
+  async function handleDeleteCourse(courseId: string) {
+    if (!confirm("코스를 삭제할까요?")) return;
+    await supabase.from("courses").delete().eq("id", courseId);
+    setCourses((prev) => prev.filter((c) => c.id !== courseId));
+  }
+
   return (
     <main className="flex flex-col min-h-full">
       {/* 헤더 */}
@@ -59,18 +65,28 @@ export default function Courses() {
           </p>
         ) : (
           courses.map((course) => (
-            <Link
+            <div
               key={course.id}
-              href={`/courses/${course.id}`}
-              className="block bg-gray-50 rounded-2xl p-4"
+              className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
             >
-              <p className="font-medium">{course.title}</p>
-              {course.description && (
-                <p className="text-[12px] text-gray-400 mt-1">
-                  {course.description}
-                </p>
-              )}
-            </Link>
+              <Link
+                href={`/courses/${course.id}`}
+                className="flex flex-col gap-1 flex-1"
+              >
+                <p className="font-medium">{course.title}</p>
+                {course.description && (
+                  <p className="text-[12px] text-gray-400">
+                    {course.description}
+                  </p>
+                )}
+              </Link>
+              <button
+                onClick={() => handleDeleteCourse(course.id)}
+                className="text-[12px] text-red-400 border cursor-pointer hover:bg-red-400 hover:text-white border-red-300 rounded-xl px-2 py-1 shrink-0 ml-3"
+              >
+                삭제
+              </button>
+            </div>
           ))
         )}
       </div>
