@@ -133,7 +133,7 @@ export default function RouteRenderer({ places, onRouteData }: Props) {
       markers.forEach((m) => (m.map = null));
       polylines.forEach((p) => p.setMap(null));
     };
-  }, [map, geometryLib, places, markerLib, mapsLib]);
+  }, [map, geometryLib, places, markerLib, mapsLib, onRouteData]);
 
   // 해당 컴포넌트는 지도에 직접 그리기만 하고 화면에 HTML을 렌더링하지 않음
   // 하지만 React 컴포넌트는 반드시 뭔가를 반환해야 해서 null을 반환함
