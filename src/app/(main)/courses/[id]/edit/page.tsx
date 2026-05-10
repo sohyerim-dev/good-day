@@ -21,6 +21,7 @@ export default function EditCourse({
 }) {
   const { id } = use(params);
   const user = useUserStore((state) => state.user);
+  const hasHydrated = useUserStore((state) => state.hasHydrated);
   const router = useRouter();
   const supabase = createClient();
 
@@ -128,6 +129,7 @@ export default function EditCourse({
     const now = new Date();
     const dateStr = now.toLocaleDateString("ko-KR");
     const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+
     const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
     setTitle(courseTitle);
 
@@ -368,7 +370,8 @@ export default function EditCourse({
       </label>
       <button
         onClick={handleSave}
-        className="bg-[#EE6300] border hover:border-[#EE6300] hover:bg-white hover:text-[#EE6300] mt-2 rounded-2xl p-5 w-full cursor-pointer text-white"
+        disabled={!hasHydrated}
+        className="bg-[#EE6300] border hover:border-[#EE6300] hover:bg-white hover:text-[#EE6300] mt-2 rounded-2xl p-5 w-full cursor-pointer text-white disabled:opacity-50 disabled:cursor-not-allowed"
       >
         저장
       </button>

@@ -13,6 +13,7 @@ export default function AuthProvider({
   const router = useRouter();
   const pathname = usePathname();
   const setUser = useUserStore((state) => state.setUser);
+  const setHasHydrated = useUserStore((state) => state.setHasHydrated);
 
   useEffect(() => {
     if (pathname === "/login" || pathname === "/signup") return;
@@ -44,6 +45,7 @@ export default function AuthProvider({
         email: user.email ?? "",
         username: profile?.username ?? "",
       });
+      setHasHydrated(true);
     });
   }, [router, pathname]);
 
