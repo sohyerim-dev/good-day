@@ -20,7 +20,7 @@ export default function Login() {
   ) {
     e.preventDefault();
 
-    console.log(email, password);
+    // console.log(email, password);
     // 빈값 검사
     if (!email) {
       setError("이메일을 입력해주세요.");
