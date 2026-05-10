@@ -26,19 +26,14 @@ export default function Terms({
   function handleModal(id: string) {
     if (id === "privacy")
       return (
-        <Modal
-          title="개인정보처리방침"
-          children={PRIVACY_POLICY}
-          onClose={() => setShowModal(false)}
-        />
+        <Modal title="개인정보처리방침" onClose={() => setShowModal(false)}>
+          {PRIVACY_POLICY}
+        </Modal>
       );
-    else id === "terms";
     return (
-      <Modal
-        title="이용약관"
-        children={TERMS_OF_SERVICE}
-        onClose={() => setShowModal(false)}
-      />
+      <Modal title="이용약관" onClose={() => setShowModal(false)}>
+        {TERMS_OF_SERVICE}
+      </Modal>
     );
   }
   return (
