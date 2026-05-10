@@ -9,18 +9,24 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const res = await fetch(
-    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/courses?id=eq.${id}&select=title,description`,
-    {
-      headers: {
-        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
-      },
-      cache: "no-store",
-    }
-  );
-  const courses = await res.json();
-  const data = courses?.[0];
+  let data = null;
+  try {
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/courses?id=eq.${id}&select=title,description`,
+      {
+        headers: {
+          apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+          Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+        },
+        cache: "no-store",
+      }
+    );
+    const courses = await res.json();
+    console.log("[generateMetadata] courses:", JSON.stringify(courses));
+    data = courses?.[0] ?? null;
+  } catch (e) {
+    console.error("[generateMetadata] fetch error:", e);
+  }
 
   return {
     title: data?.title ? `${data.title} | 굿데이` : "굿데이",
