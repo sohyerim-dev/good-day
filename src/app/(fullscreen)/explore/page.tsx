@@ -36,6 +36,8 @@ export default function Explore() {
   const [selectedCoursePlaces, setSelectedCoursePlaces] =
     useState<{ order: number; places: { name: string } }[]>();
   const [showCourses, setShowCourses] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<number | undefined>();
+  const [locationQuery, setLocationQuery] = useState("");
 
   useEffect(() => {
     // 현재 위치 기반 좌표를 center에 저장
@@ -77,6 +79,15 @@ export default function Explore() {
       });
   }, [swLat, neLat, swLng, neLng]);
 
+  async function handleLocationSearch() {
+    if (!locationQuery.trim()) return;
+    const res = await fetch(
+      `/api/geocode?query=${encodeURIComponent(locationQuery.trim())}`,
+    );
+    const data = await res.json();
+    if (data.lat && data.lng) setCenter({ lat: data.lat, lng: data.lng });
+    setZoomLevel(15);
+  }
   return (
     <main className="relative h-screen overflow-hidden max-h-svh">
       <button
@@ -85,13 +96,49 @@ export default function Explore() {
       >
         뒤로 가기
       </button>
+      <div className="absolute top-16 left-4 right-4 z-50 flex gap-2">
+        <input
+          value={locationQuery}
+          onChange={(e) => setLocationQuery(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") handleLocationSearch();
+          }}
+          placeholder="지역 검색 (예: 홍대입구역, 강남, 성수동)"
+          className="border border-gray-200 flex-1 bg-white rounded-2xl px-4 py-2 shadow text-[14px] focus:outline-none"
+        />
+        <button
+          onClick={handleLocationSearch}
+          className="bg-[#EE6300] hover:bg-white hover:text-[#EE6300] text-white rounded-2xl px-4 py-2 shadow text-[14px] cursor-pointer"
+        >
+          검색
+        </button>
+        <button
+          onClick={() => {
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                setCenter({
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                });
+              },
+              () => {},
+            );
+          }}
+          className="bg-white hover:text-black rounded-2xl px-3 py-2 shadow text-[14px] font-medium cursor-pointer text-[#EE6300] shrink-0"
+        >
+          내 위치
+        </button>
+      </div>
+
       <button
         onClick={() => {
           setShowCourses(!showCourses);
           setSelected(null);
         }}
-        className={`absolute top-4 right-4 z-50 rounded-2xl px-4 py-2 shadow text-[16px] font-medium cursor-pointer ${
-          showCourses ? "bg-gray-800 text-white" : "bg-[#EE6300] text-white"
+        className={`absolute top-4 right-4 z-50 rounded-2xl px-4 py-2 shadow text-[16px] font-medium cursor-pointer  ${
+          showCourses
+            ? "bg-gray-800 text-white hover:bg-[#EE6300]"
+            : "bg-[#EE6300] text-white hover:bg-gray-800"
         }`}
       >
         {showCourses ? "목록 닫기" : "목록 보기"}
@@ -117,7 +164,7 @@ export default function Explore() {
             setSwLng(sw?.lng());
           }}
         >
-          <LocationSetter lat={center.lat} lng={center.lng} />
+          <LocationSetter lat={center.lat} lng={center.lng} zoom={zoomLevel} />
           <MarkerRenderer
             places={explorePlaces}
             onMarkerClick={(place) => {

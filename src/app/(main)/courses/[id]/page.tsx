@@ -147,7 +147,7 @@ export default function CoursePage({
             />
             <h1 className="text-[22px] font-bold">{course?.title}</h1>
             {course && course.user_id === user?.id && (
-              <span className="text-[11px] bg-[#EE6300] text-white rounded-full px-2 py-0.5">
+              <span className="text-[11px] leading-4.75 bg-[#EE6300] text-white rounded-full px-2 py-0.5">
                 내 코스
               </span>
             )}

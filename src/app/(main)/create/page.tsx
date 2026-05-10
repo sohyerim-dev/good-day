@@ -211,7 +211,7 @@ export default function Create() {
         />
         <button
           onClick={handleSearch}
-          className="bg-[#EE6300] rounded-2xl p-4 w-[30%] cursor-pointer text-white"
+          className="bg-[#EE6300] border hover:border-[#EE6300] hover:text-[#EE6300] hover:bg-white rounded-2xl p-4 w-[30%] cursor-pointer text-white"
         >
           검색
         </button>
@@ -227,7 +227,7 @@ export default function Create() {
               setShowSaved(true);
             });
         }}
-        className="border border-[#EE6300] text-[#EE6300] rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
+        className="border hover:bg-[#EE6300] hover:text-white border-[#EE6300] text-[#EE6300] rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
       >
         내 저장된 장소에서 추가
       </button>
@@ -251,7 +251,7 @@ export default function Create() {
               </div>
               <button
                 onClick={() => handleAddPlace(place)}
-                className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer shrink-0"
+                className="text-[12px] hover:bg-[#EE6300] hover:text-white text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer shrink-0"
               >
                 추가
               </button>
@@ -271,7 +271,7 @@ export default function Create() {
         <li className={searchActive ? "flex justify-end mt-1" : "hidden"}>
           <button
             onClick={() => setSearchActive(false)}
-            className="text-[12px] text-gray-400"
+            className="text-[12px] text-gray-400 hover:text-black"
           >
             닫기
           </button>
@@ -342,7 +342,7 @@ export default function Create() {
       </label>
       <button
         onClick={handleSave}
-        className="bg-[#EE6300] mt-2 rounded-2xl p-5 w-full cursor-pointer text-white"
+        className="bg-[#EE6300] border hover:border-[#EE6300] hover:bg-white hover:text-[#EE6300] mt-2 rounded-2xl p-5 w-full cursor-pointer text-white"
       >
         저장
       </button>

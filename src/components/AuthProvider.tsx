@@ -18,11 +18,17 @@ export default function AuthProvider({
     if (pathname === "/login" || pathname === "/signup") return;
     const supabase = createClient();
 
-    supabase.auth.getUser().then(({ data: { user } }) => {
+    supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) {
         router.push("/login");
         return;
       }
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("username")
+        .eq("id", user.id)
+        .single();
 
       // 자동로그인 해제 + 새 창이면 로그아웃
       const autoLogin = localStorage.getItem("autoLogin");
@@ -33,7 +39,11 @@ export default function AuthProvider({
         router.push("login");
         return;
       }
-      setUser({ id: user.id, email: user.email ?? "" });
+      setUser({
+        id: user.id,
+        email: user.email ?? "",
+        username: profile?.username ?? "",
+      });
     });
   }, [router, pathname]);
 

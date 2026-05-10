@@ -61,7 +61,7 @@ export default function Home() {
             <li key={course.id} className="text-center">
               <Link
                 href={`/courses/${course.id}`}
-                className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
+                className="group flex items-center justify-between bg-gray-50 rounded-2xl p-4"
               >
                 <div className="flex flex-col gap-1">
                   <div className="flex gap-1 flex-row items-center">
@@ -79,7 +79,22 @@ export default function Home() {
                     </span>
                   )}
                 </div>
-                <span className="text-gray-300 text-[18px]">›</span>
+                <span className="text-gray-300 group-hover:text-[#EE6300] text-[18px]">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    className="lucide lucide-chevron-right-icon lucide-chevron-right"
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </span>
               </Link>
             </li>
           ))}
