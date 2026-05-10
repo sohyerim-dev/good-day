@@ -1,13 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
-
-export const dynamic = "force-dynamic";
 import { Metadata } from "next";
 import CourseDetail from "./CourseDetail";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -15,11 +9,18 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const { data } = await supabase
-    .from("courses")
-    .select("title, description")
-    .eq("id", id)
-    .single();
+  const res = await fetch(
+    `${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/courses?id=eq.${id}&select=title,description`,
+    {
+      headers: {
+        apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!}`,
+      },
+      cache: "no-store",
+    }
+  );
+  const courses = await res.json();
+  const data = courses?.[0];
 
   return {
     title: data?.title ? `${data.title} | 굿데이` : "굿데이",
