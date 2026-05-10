@@ -17,10 +17,15 @@ export default function RouteRenderer({ places, onRouteData }: Props) {
   const map = useMap(); // 현재 렌더링된 Google Map 인스턴스
   const geometryLib = useMapsLibrary("geometry"); // 폴리라인 좌표 디코딩용 라이브러리
   const markerLib = useMapsLibrary("marker"); // AdvancedMarketElement(마커 찍는 객체) 사용을 위한 라이브러리
+  const mapsLib = useMapsLibrary("maps"); // Polyline, LatLngBounds 사용을 위한 라이브러리
 
   useEffect(() => {
     // 지도, 라이브러리 로딩 체크, 장소가 최소 2개 이상인지 체크
-    if (!map || !geometryLib || !markerLib || places.length < 2) return;
+    if (!map || !geometryLib || !markerLib || !mapsLib || places.length < 2) return;
+
+    let cancelled = false;
+    const markers: google.maps.marker.AdvancedMarkerElement[] = [];
+    const polylines: google.maps.Polyline[] = [];
 
     // 마커 찍기
     places.forEach((p, i) => {
@@ -31,20 +36,20 @@ export default function RouteRenderer({ places, onRouteData }: Props) {
       const content = document.createElement("div");
       content.innerHTML = `<div style="background: white; border: 2px solid ${color}; border-radius: 8px; padding: 4px 8px; font-size: 12px; font-weight: bold; color: #333;">${p.order}. ${p.places.name}</div>`;
 
-      new markerLib!.AdvancedMarkerElement({
+      markers.push(new markerLib!.AdvancedMarkerElement({
         position: { lat: p.places.lat, lng: p.places.lng },
         map,
         content,
-      });
+      }));
 
       // 점 표기
       const dot = document.createElement("div");
       dot.style.cssText = `width: 14px; height: 14px; background: ${color}; border: 3px solid white; border-radius: 50%; box-shadow: 0 1px 4px rgba(0,0,0,0.3);`;
-      new markerLib!.AdvancedMarkerElement({
+      markers.push(new markerLib!.AdvancedMarkerElement({
         position: { lat: p.places.lat, lng: p.places.lng },
         map,
         content: dot,
-      });
+      }));
     });
 
     // 지도 범위 맞추기
@@ -60,43 +65,48 @@ export default function RouteRenderer({ places, onRouteData }: Props) {
     const segments: RouteSegment[] = [];
 
     async function fetchRoute() {
-      // 각 구간마다 /api/route-direction에 두 좌표를 보내서 경로 받기
-      for (let i = 0; i < places.length - 1; i++) {
-        const res = await fetch("/api/route-directions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            places: [
-              { lat: places[i].places.lat, lng: places[i].places.lng },
-              { lat: places[i + 1].places.lat, lng: places[i + 1].places.lng },
-            ],
-          }),
-        });
+      // 모든 구간 경로를 동시에 요청
+      const results = await Promise.all(
+        Array.from({ length: places.length - 1 }, (_, i) =>
+          fetch("/api/route-directions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              places: [
+                { lat: places[i].places.lat, lng: places[i].places.lng },
+                { lat: places[i + 1].places.lat, lng: places[i + 1].places.lng },
+              ],
+            }),
+          }).then((r) => r.json()),
+        ),
+      );
 
-        const data = await res.json();
+      if (cancelled) return;
+
+      results.forEach((data, i) => {
         const encoded = data.routes?.[0]?.polyline?.encodedPolyline;
 
-        // 각 구간 데이터를 segments 배열에 쌓기
         segments.push({
           ...data.routes?.[0]?.legs?.[0],
           walkDuration: data.walkDuration,
         });
-        if (!encoded) continue;
+
+        if (!encoded) return;
 
         const color = ROUTE_COLORS[i % ROUTE_COLORS.length];
-        // Google이 폴리라인을 문자열로 압축해서 보내주면 좌표 배열로 풀기
         const path = geometryLib?.encoding.decodePath(encoded);
+
         // 대중교통 실선
-        new google.maps.Polyline({
+        polylines.push(new google.maps.Polyline({
           path,
           map,
           strokeColor: color,
           strokeWeight: 4,
-        });
+        }));
 
         if (data.walkPath?.length > 1) {
           // 도보 점선
-          new google.maps.Polyline({
+          polylines.push(new google.maps.Polyline({
             path: data.walkPath,
             map,
             strokeColor: color,
@@ -109,15 +119,21 @@ export default function RouteRenderer({ places, onRouteData }: Props) {
                 repeat: "12px",
               },
             ],
-          });
+          }));
         }
-      }
-      // 모든 데이터를 배열에 쌓아서 부모에게 올려보내서 바텀시트에 표시
-      onRouteData(segments);
+      });
+
+      if (!cancelled) onRouteData(segments);
     }
 
     fetchRoute();
-  }, [map, geometryLib, places, markerLib]);
+
+    return () => {
+      cancelled = true;
+      markers.forEach((m) => (m.map = null));
+      polylines.forEach((p) => p.setMap(null));
+    };
+  }, [map, geometryLib, places, markerLib, mapsLib]);
 
   // 해당 컴포넌트는 지도에 직접 그리기만 하고 화면에 HTML을 렌더링하지 않음
   // 하지만 React 컴포넌트는 반드시 뭔가를 반환해야 해서 null을 반환함
