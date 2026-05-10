@@ -24,8 +24,10 @@ export default function CoursePage({
   const [bookmarked, setBookmarked] = useState(false);
   const [placesError, setPlacesError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [savedPlaces, setSavedPlaces] = useState<Set<string>>(new Set());
 
   useEffect(() => {
+    if (!user?.id) return;
     setLoading(true);
     // 코스 정보
     supabase
@@ -68,7 +70,41 @@ export default function CoursePage({
       .eq("course_id", id)
       .single()
       .then(({ data }) => setBookmarked(!!data));
+
+    // 현재 코스의 모든 장소가 저장됐는지 조회
+    supabase
+      .from("saved_places")
+      .select("place_id")
+      .eq("user_id", user?.id)
+      .then(({ data }) => {
+        if (data) setSavedPlaces(new Set(data.map((d) => d.place_id)));
+      });
   }, [id, user?.id]);
+
+  async function handleSavePlace(placeId: string) {
+    if (savedPlaces.has(placeId)) {
+      const { error } = await supabase
+        .from("saved_places")
+        .delete()
+        .eq("user_id", user?.id)
+        .eq("place_id", placeId);
+
+      if (!error) {
+        setSavedPlaces((prev) => {
+          const next = new Set(prev);
+          next.delete(placeId);
+          return next;
+        });
+      }
+    } else {
+      const { error } = await supabase
+        .from("saved_places")
+        .insert({ "user_id": user?.id, place_id: placeId });
+      if (!error) {
+        setSavedPlaces((prev) => new Set(prev).add(placeId));
+      }
+    }
+  }
 
   // 얼리 리턴 처리
   if (loading)
@@ -148,13 +184,21 @@ export default function CoursePage({
                     {p.places.address}
                   </span>
                 </div>
-                <a
-                  href={p.places.naver_url}
-                  target="_blank"
-                  className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 shrink-0"
-                >
-                  네이버 플레이스
-                </a>
+                <div className="flex gap-2 shrink-0">
+                  <a
+                    href={p.places.naver_url}
+                    target="_blank"
+                    className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 hover:bg-[#EE6300] hover:text-white"
+                  >
+                    네이버 플레이스
+                  </a>
+                  <button
+                    onClick={() => handleSavePlace(p.places.id)}
+                    className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer hover:bg-[#EE6300] hover:text-white"
+                  >
+                    {savedPlaces.has(p.places.id) ? "저장됨" : "저장"}
+                  </button>
+                </div>
               </li>
               {i !== places.length - 1 && (
                 <li>

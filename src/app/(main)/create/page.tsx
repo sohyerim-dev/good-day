@@ -1,6 +1,6 @@
 "use client";
 
-import { NaverPlace } from "@/types/place";
+import { NaverPlace, SavedPlace } from "@/types/place";
 import { Fragment, useState } from "react";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import {
@@ -14,28 +14,33 @@ import { useUserStore } from "@/store/userStore";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 export default function Create() {
-  // 코스 정보
+  const user = useUserStore((state) => state.user);
+  const router = useRouter();
+  const supabase = createClient();
+
+  // 코스 제목, 설명, 공개 여부
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
 
-  // 장소 검색
+  // 네이버 장소 검색 입력값과 결과 목록
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<NaverPlace[]>([]);
 
-  // 추가된 장소 목록
+  // 코스에 추가된 장소 목록 (순서 포함))
   const [selectedPlaces, setSelectedPlaces] = useState<
     (NaverPlace & { order: number })[]
   >([]);
 
+  // 검색 결과 패널 표시 여부 / 코스 장소 목록 섹션 표시 여부
   const [searchActive, setSearchActive] = useState(false);
   const [placeActive, setPlaceActive] = useState(false);
 
-  const user = useUserStore((state) => state.user);
-  const router = useRouter();
+  // 내 저장 장소 바텀시트 표시 여부 / 저장된 장소 목록
+  const [showSaved, setShowSaved] = useState(false);
+  const [savedPlacesList, setSavedPlacesList] = useState<SavedPlace[]>([]);
 
-  const supabase = createClient();
-
+  // 네이버 장소 검색 API 호출, 결과를 searchResults에 저장
   async function handleSearch() {
     if (!query.trim()) return;
     const res = await fetch(
@@ -46,6 +51,7 @@ export default function Create() {
     setSearchActive(true);
   }
 
+  // 검색 결과에서 장소를 코스에 추가, 첫 추가 시 목록 섹션 표시
   function handleAddPlace(place: NaverPlace) {
     setSelectedPlaces((prev) => [
       ...prev,
@@ -56,14 +62,18 @@ export default function Create() {
     }
   }
 
+  // 장소 삭제 후 order 재정렬, 모두 삭제되면 목록 섹션 숨김
   function handleRemovePlace(index: number) {
-    setSelectedPlaces((prev) =>
-      prev
+    setSelectedPlaces((prev) => {
+      const next = prev
         .filter((_, i) => i !== index)
-        .map((place, i) => ({ ...place, order: i + 1 })),
-    );
+        .map((place, i) => ({ ...place, order: i + 1 }));
+      if (next.length === 0) setPlaceActive(false);
+      return next;
+    });
   }
 
+  // 드래그 완료 시 순서 변경 후 order 재정렬
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
@@ -78,6 +88,7 @@ export default function Create() {
     });
   }
 
+  // 코스 저장 -> places upsert -> courses insert -> course_places insert 순으로 처리
   async function handleSave() {
     const now = new Date();
     const dateStr = now.toLocaleDateString("ko-KR");
@@ -141,6 +152,22 @@ export default function Create() {
     router.push("/");
   }
 
+  // 저장된 장소를 NaverPlace 형식으로 변환해서 코스에 추가, 중복 방지
+  function handleAddFromSaved(place: SavedPlace) {
+    if (selectedPlaces.some((p) => p.id === place.id)) return;
+    const asNaverPlace: NaverPlace = {
+      id: place.id,
+      title: place.name,
+      address: place.address,
+      roadAddress: place.address,
+      mapx: String(place.lng * 10000000),
+      mapy: String(place.lat * 10000000),
+      link: place.naver_url,
+      naverPlaceUrl: place.naver_url,
+    };
+    handleAddPlace(asNaverPlace);
+  }
+
   return (
     <main className="p-4 flex flex-col gap-4">
       <h1 className="text-[20px] text-center font-bold">코스 추가하기</h1>
@@ -189,7 +216,21 @@ export default function Create() {
           검색
         </button>
       </div>
-
+      <button
+        onClick={() => {
+          supabase
+            .from("saved_places")
+            .select("*, places(*)")
+            .eq("user_id", user?.id)
+            .then(({ data }) => {
+              setSavedPlacesList(data?.map((d) => d.places) ?? []);
+              setShowSaved(true);
+            });
+        }}
+        className="border border-[#EE6300] text-[#EE6300] rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
+      >
+        내 저장된 장소에서 추가
+      </button>
       {/* 검색 결과 */}
       <ul className={searchActive ? "bg-gray-50 rounded-2xl p-4 w-full" : ""}>
         {searchResults.length !== 0 ? (
@@ -305,6 +346,53 @@ export default function Create() {
       >
         저장
       </button>
+      {showSaved && (
+        <div className="fixed inset-x-0 top-0 bottom-20 z-9999 flex flex-col justify-end">
+          <div className="bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-[18px]">내 저장 장소</h2>
+              <button
+                onClick={() => setShowSaved(false)}
+                className="text-[14px] text-gray-400"
+              >
+                닫기
+              </button>
+            </div>
+            {savedPlacesList.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">
+                저장된 장소가 없어요
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {savedPlacesList.map((place) => (
+                  <li
+                    key={place.id}
+                    className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3"
+                  >
+                    <div className="flex flex-col gap-1">
+                      <span className="font-medium text-[14px]">
+                        {place.name}
+                      </span>
+                      <span className="text-[12px] text-gray-400">
+                        {place.address}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleAddFromSaved(place);
+                        setShowSaved(false);
+                      }}
+                      className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 shrink-0"
+                    >
+                      추가
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
     </main>
   );
 }

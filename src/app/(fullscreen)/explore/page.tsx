@@ -1,4 +1,5 @@
 "use client";
+import LocationSetter from "@/components/LocationSetter";
 import MarkerRenderer from "@/components/MarkerRenderer";
 import { createClient } from "@/lib/supabase/client";
 import { ExploreCoursePlace } from "@/types/place";
@@ -8,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 export default function Explore() {
-  // defaultCenter는 한번 지정하면 계속 유지되기 때문에 지도 위치가 바뀔 때마다 state를 업데이트하는 방법
+  // 현재 위치를 가져와서 LocationSetter를 통해 지도를 이동시킴
   const [center, setCenter] = useState({ lat: 37.5, lng: 127 });
 
   const router = useRouter();
@@ -101,7 +102,7 @@ export default function Explore() {
           mapId="DEMO_MAP_ID"
           style={{ width: "100%", height: "100vh" }}
           // 첫 페이지 화면 - 현재 위치 기반으로 지도 보여주기
-          defaultCenter={center}
+          defaultCenter={{ lat: 37.5, lng: 127 }}
           defaultZoom={12}
           mapTypeControl={false}
           onIdle={(e) => {
@@ -116,6 +117,7 @@ export default function Explore() {
             setSwLng(sw?.lng());
           }}
         >
+          <LocationSetter lat={center.lat} lng={center.lng} />
           <MarkerRenderer
             places={explorePlaces}
             onMarkerClick={(place) => {
@@ -190,23 +192,29 @@ export default function Explore() {
               닫기
             </button>
           </div>
-          <ul className="flex flex-col gap-3">
-            {Object.entries(placeGroup).map(([courseId, places], i) => (
-              <li key={courseId}>
-                <Link
-                  href={`/courses/${courseId}`}
-                  className="block bg-gray-50 rounded-2xl p-4"
-                >
-                  <p className="font-medium text-[15px] mb-1">
-                    {i + 1}. {places[0].course_places[0].courses.title}
-                  </p>
-                  <p className="text-[12px] text-gray-400">
-                    {places.map((p) => p.name).join(" → ")}
-                  </p>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          {Object.entries(placeGroup).length === 0 ? (
+            <p className="text-gray-400 text-center py-4">
+              이 지역에 등록된 코스가 없어요
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-3">
+              {Object.entries(placeGroup).map(([courseId, places], i) => (
+                <li key={courseId}>
+                  <Link
+                    href={`/courses/${courseId}`}
+                    className="block bg-gray-50 rounded-2xl p-4"
+                  >
+                    <p className="font-medium text-[15px] mb-1">
+                      {i + 1}. {places[0].course_places[0].courses.title}
+                    </p>
+                    <p className="text-[12px] text-gray-400">
+                      {places.map((p) => p.name).join(" → ")}
+                    </p>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
     </main>

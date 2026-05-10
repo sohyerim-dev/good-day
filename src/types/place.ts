@@ -28,3 +28,12 @@ export interface ExploreCoursePlace {
     };
   }[];
 }
+
+export interface SavedPlace {
+  id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  naver_url: string;
+}
