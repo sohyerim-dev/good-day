@@ -10,8 +10,8 @@ import React, { useState } from "react";
 export default function Login() {
   const supabase = createClient();
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("good-day@test.com");
+  const [password, setPassword] = useState("goodday1234");
   const [error, setError] = useState("");
   const [autoLogin, setAutoLogin] = useState(false);
 
