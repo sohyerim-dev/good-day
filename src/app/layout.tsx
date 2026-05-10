@@ -9,6 +9,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icons/favicon.svg",
   },
+  openGraph: {
+    title: "굿데이 | 나만의 놀기 코스 플래너",
+    description:
+      "내 취향대로 짜는 놀기 코스 플래너. 장소 검색, 경로 안내, 코스 공유까지.",
+    images: ["/images/og-image.png"],
+  },
 };
 
 export default function RootLayout({
