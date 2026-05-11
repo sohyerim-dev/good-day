@@ -37,7 +37,7 @@ export default function Hot() {
       </div>
 
       {/* 목록 */}
-      <ul className="p-4 flex flex-col gap-3">
+      <ul className="p-4 flex flex-col gap-3 pb-24">
         {loading ? (
           [1, 2, 3].map((i) => (
             <div
