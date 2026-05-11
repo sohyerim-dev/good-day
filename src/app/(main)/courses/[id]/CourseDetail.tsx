@@ -166,6 +166,9 @@ export default function CourseDetail({
                 <span>{likeCount}</span>
               </div>
             </div>
+            {course?.description && (
+              <p className="text-[14px] text-gray-500 pl-6">{course.description}</p>
+            )}
             {course && course.user_id === user?.id && (
               <div className="flex items-center gap-1 pl-6">
                 <span className="text-[11px] leading-4.75 bg-[#EE6300] text-white rounded-full px-2 py-0.5">
@@ -190,12 +193,6 @@ export default function CourseDetail({
             뒤로 가기
           </button>
         </div>
-
-        {course?.description && (
-          <p className="text-[14px] text-gray-500 mt-1 pl-6">
-            {course.description}
-          </p>
-        )}
       </div>
 
       {/* 장소 목록 */}
