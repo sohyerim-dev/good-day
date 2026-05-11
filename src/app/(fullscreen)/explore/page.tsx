@@ -97,22 +97,24 @@ export default function Explore() {
       >
         뒤로 가기
       </button>
-      <div className="absolute top-16 left-4 right-4 z-50 flex gap-2">
-        <input
-          value={locationQuery}
-          onChange={(e) => setLocationQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleLocationSearch();
-          }}
-          placeholder="지역 검색 (예: 홍대입구역, 강남, 성수동)"
-          className="border border-gray-200 flex-1 bg-white rounded-2xl px-4 py-2 shadow text-[14px] focus:outline-none"
-        />
-        <button
-          onClick={handleLocationSearch}
-          className="bg-[#EE6300] hover:bg-white hover:text-[#EE6300] text-white rounded-2xl px-4 py-2 shadow text-[14px] cursor-pointer"
-        >
-          검색
-        </button>
+      <div className="absolute top-16 left-4 right-4 z-50 flex flex-col gap-2">
+        <div className="flex gap-2">
+          <input
+            value={locationQuery}
+            onChange={(e) => setLocationQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleLocationSearch();
+            }}
+            placeholder="지역 검색 (예: 홍대입구역, 강남, 성수동)"
+            className="border border-gray-200 flex-1 bg-white rounded-2xl px-4 py-2 shadow text-[14px] focus:outline-none"
+          />
+          <button
+            onClick={handleLocationSearch}
+            className="bg-[#EE6300] hover:bg-white hover:text-[#EE6300] text-white rounded-2xl px-4 py-2 shadow text-[14px] cursor-pointer whitespace-nowrap"
+          >
+            검색
+          </button>
+        </div>
         <button
           onClick={() => {
             navigator.geolocation.getCurrentPosition(
@@ -125,7 +127,7 @@ export default function Explore() {
               () => {},
             );
           }}
-          className="bg-white hover:text-black rounded-2xl px-3 py-2 shadow text-[14px] font-medium cursor-pointer text-[#EE6300] shrink-0"
+          className="bg-white hover:text-black rounded-2xl px-3 py-2 shadow text-[14px] font-medium cursor-pointer text-[#EE6300] self-start"
         >
           내 위치
         </button>

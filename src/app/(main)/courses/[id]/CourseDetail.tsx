@@ -199,7 +199,7 @@ export default function CourseDetail({
       {placesError ? (
         <p className="text-gray-400">{placesError}</p>
       ) : (
-        <ul className="p-4 flex flex-col gap-2 pb-44">
+        <ul className="p-4 flex flex-col gap-2 pb-56">
           {places.map((p, i) => (
             <Fragment key={p.id}>
               <li
