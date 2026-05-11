@@ -24,6 +24,8 @@ export default function Explore() {
   const [exploreAllPlaces, setExploreAllPlaces] = useState<
     ExploreCoursePlace[]
   >([]);
+  // 장소 배열을 코스 ID 기준으로 그룹화 { courseId: [place, place, ...] }
+  // 목록 보기에서 코스 단위로 렌더링하기 위해 사용
   const placeGroup = exploreAllPlaces.reduce(
     (acc, p) => {
       const courseId = p.course_places[0].course_id;
@@ -53,7 +55,11 @@ export default function Explore() {
     );
   }, []);
   useEffect(() => {
+    // 지도 영역(bounds)이 설정된 후에만 조회
     if (!neLat || !neLng || !swLat || !swLng) return;
+
+    // 마커용: 현재 지도 영역 내에서 코스의 첫 번째 장소(order=1)만 가져옴
+    // 코스 시작점에만 마커를 표시해 지도가 복잡해지지 않게 함
     supabase
       .from("places")
       .select("*, course_places!inner(*, courses(*, profiles(username)))")
@@ -65,9 +71,10 @@ export default function Explore() {
         const filtered = data?.filter((p) =>
           p.course_places.some((cp: { order: number }) => cp.order === 1),
         );
-        // console.log(filtered);
         setExplorePlaces(filtered ?? []);
       });
+
+    // 목록용: 현재 지도 영역 내 모든 장소를 가져와서 코스 단위로 그룹화에 사용
     supabase
       .from("places")
       .select("*, course_places!inner(*, courses(*, profiles(username)))")
