@@ -143,6 +143,7 @@ export default function Explore() {
           onClick={() => {
             setShowCourses(!showCourses);
             setSelected(null);
+            setSelectedCoursePlaces(undefined);
           }}
           className={`rounded-2xl px-4 py-2 shadow text-[16px] font-medium cursor-pointer ${
             showCourses
@@ -164,10 +165,8 @@ export default function Explore() {
           mapTypeControl={false}
           onIdle={(e) => {
             const bounds = e.map.getBounds();
-            // console.log("bounds", bounds);
             const ne = bounds?.getNorthEast(); // 북동
             const sw = bounds?.getSouthWest(); // 남서
-            // console.log(ne?.lat(), ne?.lng(), sw?.lat(), sw?.lng());
             setNeLat(ne?.lat());
             setNeLng(ne?.lng());
             setSwLat(sw?.lat());

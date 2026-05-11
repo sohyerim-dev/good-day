@@ -19,8 +19,6 @@ export async function GET(req: NextRequest) {
   );
 
   const data = await res.json();
-  // 네이버 응답을 그대로 클라이언트에 전달
-  console.log(data);
   const cleaned = data.items.map((item: NaverPlace) => ({
     ...item,
     title: item.title.replace(/<[^>]*>/g, ""),

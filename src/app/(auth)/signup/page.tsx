@@ -94,7 +94,6 @@ export default function SignUp() {
       return;
     }
 
-    console.log("nickname:", nickname);
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -102,7 +101,6 @@ export default function SignUp() {
     });
 
     if (error) {
-      console.log(error);
       setError("회원가입에 실패했습니다.");
       return;
     }
