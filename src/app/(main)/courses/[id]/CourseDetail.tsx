@@ -248,19 +248,21 @@ export default function CourseDetail({
       )}
 
       {/* 하단 고정 버튼 영역 */}
-      <div className="fixed bottom-24 left-0 right-0 px-4 flex gap-2">
-        <Link
-          href={`/map/${id}`}
-          className="flex-1 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
-        >
-          경로 보기
-        </Link>
-        <Link
-          href={`/map/${id}?transit=true`}
-          className="flex-1 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
-        >
-          교통수단 보기
-        </Link>
+      <div className="fixed bottom-24 left-0 right-0 px-4 flex flex-col gap-2">
+        <div className="flex gap-2">
+          <Link
+            href={`/map/${id}`}
+            className="flex-1 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
+          >
+            경로 보기
+          </Link>
+          <Link
+            href={`/map/${id}?transit=true`}
+            className="flex-1 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
+          >
+            교통수단 보기
+          </Link>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={handleShare}
