@@ -150,21 +150,24 @@ export default function CourseDetail({
     <main className="flex flex-col min-h-full">
       {/* 상단 헤더 */}
       <div className="p-4 border-b border-gray-100">
-        <div className="flex justify-between">
-          <div className="flex items-center gap-1">
-            <Image
-              src="/icons/orange-route.svg"
-              width={20}
-              height={20}
-              alt=""
-            />
-            <h1 className="text-[22px] font-bold">{course?.title}</h1>
-            <div className="flex items-center gap-1 text-[13px] text-gray-400">
-              <Image src="/icons/heart-filled.svg" alt="좋아요" width={14} height={14} />
-              <span>{likeCount}</span>
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex flex-col gap-1 flex-1 min-w-0">
+            <div className="flex items-center gap-1">
+              <Image
+                src="/icons/orange-route.svg"
+                width={20}
+                height={20}
+                alt=""
+                className="shrink-0"
+              />
+              <h1 className="text-[22px] font-bold">{course?.title}</h1>
+              <div className="flex items-center gap-1 text-[13px] text-gray-400 shrink-0">
+                <Image src="/icons/heart-filled.svg" alt="좋아요" width={14} height={14} />
+                <span>{likeCount}</span>
+              </div>
             </div>
             {course && course.user_id === user?.id && (
-              <>
+              <div className="flex items-center gap-1 pl-6">
                 <span className="text-[11px] leading-4.75 bg-[#EE6300] text-white rounded-full px-2 py-0.5">
                   내 코스
                 </span>
@@ -180,10 +183,10 @@ export default function CourseDetail({
                 >
                   삭제
                 </button>
-              </>
+              </div>
             )}
           </div>
-          <button onClick={() => router.back()} className="text-gray-400">
+          <button onClick={() => router.back()} className="text-gray-400 shrink-0">
             뒤로 가기
           </button>
         </div>
