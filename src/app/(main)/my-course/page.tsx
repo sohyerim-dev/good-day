@@ -212,6 +212,20 @@ export default function MyCourse() {
                 />
                 github.com/sohyerim-dev
               </a>
+              <a
+                href="https://sohyerim.kr/"
+                target="_blank"
+                className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-[#EE6300]"
+              >
+                <Image
+                  src="/icons/link.svg"
+                  alt=""
+                  width={14}
+                  height={14}
+                  className="opacity-40"
+                />
+                sohyerim.kr
+              </a>
             </div>
           </div>
         </div>
