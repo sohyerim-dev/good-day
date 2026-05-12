@@ -279,32 +279,41 @@ export default function Explore() {
                   <li key={courseId}>
                     <Link
                       href={`/courses/${courseId}`}
-                      className="block bg-gray-50 rounded-2xl p-4"
+                      className="group flex items-center justify-between bg-gray-50 rounded-2xl p-4"
                     >
-                      <span className="text-gray-400 text-[14px] mr-2">
-                        {courseInfo?.courses.profiles.username}
+                      <div className="flex flex-col gap-1 flex-1 min-w-0">
+                        <div>
+                          <span className="text-gray-400 text-[14px] mr-2">
+                            {courseInfo?.courses.profiles.username}
+                          </span>
+                          <span className="font-medium text-[15px]">
+                            {courseInfo?.courses.title}
+                          </span>
+                        </div>
+                        <p className="text-[12px] text-gray-400">
+                          {places
+                            .slice()
+                            // 현재 코스의 order 기준으로 정렬 (course_places[0]이 다른 코스 항목일 수 있으므로 find 사용)
+                            .sort((a, b) => {
+                              const aOrder =
+                                a.course_places.find(
+                                  (cp) => cp.course_id === courseId,
+                                )?.order ?? 0;
+                              const bOrder =
+                                b.course_places.find(
+                                  (cp) => cp.course_id === courseId,
+                                )?.order ?? 0;
+                              return aOrder - bOrder;
+                            })
+                            .map((p) => p.name)
+                            .join(" → ")}
+                        </p>
+                      </div>
+                      <span className="text-gray-300 group-hover:text-[#EE6300] shrink-0 ml-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="m9 18 6-6-6-6" />
+                        </svg>
                       </span>
-                      <span className="font-medium text-[15px]">
-                        {courseInfo?.courses.title}
-                      </span>
-                      <p className="text-[12px] text-gray-400">
-                        {places
-                          .slice()
-                          // 현재 코스의 order 기준으로 정렬 (course_places[0]이 다른 코스 항목일 수 있으므로 find 사용)
-                          .sort((a, b) => {
-                            const aOrder =
-                              a.course_places.find(
-                                (cp) => cp.course_id === courseId,
-                              )?.order ?? 0;
-                            const bOrder =
-                              b.course_places.find(
-                                (cp) => cp.course_id === courseId,
-                              )?.order ?? 0;
-                            return aOrder - bOrder;
-                          })
-                          .map((p) => p.name)
-                          .join(" → ")}
-                      </p>
                     </Link>
                   </li>
                 );
