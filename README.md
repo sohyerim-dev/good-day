@@ -13,7 +13,7 @@
 ![Supabase](https://img.shields.io/badge/Supabase-3ECF8E?style=flat-square&logo=supabase&logoColor=white)
 ![Vercel](https://img.shields.io/badge/Vercel-000000?style=flat-square&logo=vercel&logoColor=white)
 
-🔗 **배포 주소:** https://good-day-rose.vercel.app
+🔗 **배포 주소:** https://www.good-day-out.com
 
 **테스트 계정**
 

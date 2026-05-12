@@ -3,6 +3,7 @@ import "./globals.css";
 import AuthProvider from "@/components/AuthProvider";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.good-day-out.com"),
   title: {
     default: "굿데이 | 나만의 놀기 코스 플래너",
     template: "%s | 굿데이",
