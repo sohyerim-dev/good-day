@@ -40,6 +40,7 @@ export default function Hot() {
       {/* 헤더 */}
       <div className="p-4 border-b border-gray-100">
         <h1 className="text-[22px] font-bold">인기 코스</h1>
+        <p className="text-[13px] text-gray-400 mt-1">좋아요를 많이 받은 코스를 둘러보세요.</p>
       </div>
 
       {/* 목록 */}

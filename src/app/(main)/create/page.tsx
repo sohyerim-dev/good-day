@@ -1,7 +1,7 @@
 "use client";
 
 import { NaverPlace, SavedPlace } from "@/types/place";
-import { Fragment, useState } from "react";
+import { Fragment, useState, useRef } from "react";
 import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
@@ -41,6 +41,16 @@ export default function Create() {
   const [showSaved, setShowSaved] = useState(false);
   const [savedPlacesList, setSavedPlacesList] = useState<SavedPlace[]>([]);
 
+  // 토스트 메시지 상태 / 타이머 ref (중복 추가 시 하단에 2초간 표시)
+  const [toast, setToast] = useState("");
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function showToast(message: string) {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    setToast(message);
+    toastTimer.current = setTimeout(() => setToast(""), 2000);
+  }
+
   // 네이버 장소 검색 API 호출, 결과를 searchResults에 저장
   async function handleSearch() {
     if (!query.trim()) return;
@@ -54,6 +64,10 @@ export default function Create() {
 
   // 검색 결과에서 장소를 코스에 추가, 첫 추가 시 목록 섹션 표시
   function handleAddPlace(place: NaverPlace) {
+    if (selectedPlaces.some((p) => p.id === place.id)) {
+      showToast("이미 추가된 장소예요.");
+      return;
+    }
     setSelectedPlaces((prev) => [
       ...prev,
       { ...place, order: prev.length + 1 },
@@ -171,7 +185,15 @@ export default function Create() {
 
   return (
     <main className="p-4 flex flex-col gap-4 pb-32">
+      {toast && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-[13px] px-5 py-2.5 rounded-2xl shadow-lg whitespace-nowrap">
+          {toast}
+        </div>
+      )}
       <h1 className="text-[20px] text-center font-bold">코스 추가하기</h1>
+      <p className="text-[13px] text-gray-400 text-center -mt-2">
+        장소를 검색해서 추가하고, 드래그로 순서를 바꿔보세요.
+      </p>
 
       {/* 코스 정보 */}
       <label htmlFor="course-title" className="font-medium text-[18px]">
@@ -232,6 +254,9 @@ export default function Create() {
       >
         내 저장된 장소에서 추가
       </button>
+      <p className="text-[12px] text-gray-400 -mt-2">
+        코스 상세에서 저장해둔 장소를 바로 불러올 수 있어요.
+      </p>
       {/* 검색 결과 */}
       <ul className={searchActive ? "bg-gray-50 rounded-2xl p-4 w-full" : ""}>
         {searchResults.length !== 0 ? (
@@ -327,6 +352,7 @@ export default function Create() {
       </DndContext>
       <label className="flex items-center gap-2 cursor-pointer">
         <span className="font-medium">코스 공개</span>
+
         <input
           type="checkbox"
           checked={isPublic}
@@ -341,6 +367,9 @@ export default function Create() {
           />
         </div>
       </label>
+      <p className="text-[12px] text-gray-400 -mt-2">
+        공개로 설정하면 코스 탐색에서 다른 사용자에게 보여요.
+      </p>
       <button
         onClick={handleSave}
         disabled={!hasHydrated}

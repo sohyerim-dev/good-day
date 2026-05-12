@@ -31,7 +31,8 @@ export default function MyCourse() {
     <main className="flex flex-col min-h-full">
       {/* 유저 정보 */}
       <div className="p-4 border-b border-gray-100">
-        <h1 className="text-[22px] font-bold mb-3">마이코스</h1>
+        <h1 className="text-[22px] font-bold">마이코스</h1>
+        <p className="text-[13px] text-gray-400 mt-1 mb-3">내 취향대로 모은 코스와 장소를 확인해보세요.</p>
         <div className="bg-gray-50 rounded-2xl p-4">
           <p className="text-[12px] text-gray-400 mb-2">내 계정</p>
           {isEditing ? (

@@ -47,13 +47,18 @@ export default function Home() {
         </Link>
       </div>
 
+      <div className="w-full bg-gray-50 rounded-2xl px-5 py-4 mb-4 text-center">
+        <p className="text-gray-500 text-[14px] font-medium">나만의 코스를 만들어보세요</p>
+        <p className="text-gray-400 text-[12px] mt-1">
+          장소를 추가하고 순서를 정하면 여행 코스가 완성돼요.
+        </p>
+      </div>
+
       <h2 className="font-bold text-[18px] mb-3 self-start">나의 코스</h2>
 
       {courses.length === 0 ? (
         <div className="flex flex-col items-center w-full justify-center bg-gray-50 rounded-2xl p-10 gap-2">
-          <p className="text-gray-400 text-[14px]">
-            아직 등록한 코스가 없어요.
-          </p>
+          <p className="text-gray-400 text-[14px]">아직 등록한 코스가 없어요.</p>
           <Link
             href="/create"
             className="text-[#EE6300] text-[14px] font-medium"

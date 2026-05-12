@@ -29,6 +29,8 @@ export default function RoutePage({
   const [selectedSegment, setSelectedSegment] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  // 지도 위에 경로를 그리는 중인지 여부 (RouteRenderer가 onRouteData 호출 시 false로 변경)
+  const [routeLoading, setRouteLoading] = useState(true);
 
   // 해당 코스의 장소 목록 불러오기
   // course_places와 places 테이블을 JOIN해서 좌표, 이름 등을 한 번에 가져옴
@@ -110,6 +112,14 @@ export default function RoutePage({
         </div>
       )}
 
+      {/* 경로 로딩 오버레이 */}
+      {routeLoading && (
+        <div className="z-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl px-6 py-4 shadow-lg flex flex-col items-center gap-2">
+          <div className="w-6 h-6 border-4 border-[#EE6300] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[13px] text-gray-500">경로를 불러오는 중이에요</p>
+        </div>
+      )}
+
       {/* 범례 */}
       <div className="z-50 absolute bottom-8 left-4 bg-white rounded-2xl px-4 py-2 shadow text-[12px] flex flex-col gap-1">
         <div className="flex items-center gap-2">
@@ -132,7 +142,7 @@ export default function RoutePage({
         >
           <RouteRenderer
             places={places}
-            onRouteData={setRouteData}
+            onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
             selectedSegment={selectedSegment}
           />
         </Map>

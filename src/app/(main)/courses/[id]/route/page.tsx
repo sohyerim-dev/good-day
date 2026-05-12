@@ -23,6 +23,7 @@ export default function RoutePage({
   );
   const [routeData, setRouteData] = useState<RouteSegment[]>([]);
   const [selectedSegment, setSelectedSegment] = useState<number | null>(null);
+  const [routeLoading, setRouteLoading] = useState(true);
 
   useEffect(() => {
     supabase
@@ -82,6 +83,13 @@ export default function RoutePage({
         </div>
       )}
 
+      {routeLoading && (
+        <div className="z-50 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl px-6 py-4 shadow-lg flex flex-col items-center gap-2">
+          <div className="w-6 h-6 border-4 border-[#EE6300] border-t-transparent rounded-full animate-spin" />
+          <p className="text-[13px] text-gray-500">경로를 불러오는 중이에요</p>
+        </div>
+      )}
+
       <div className="z-50 absolute bottom-8 left-4 bg-white rounded-2xl px-4 py-2 shadow text-[12px] flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <div className="w-6 h-0.75 bg-[#EE6300]" />
@@ -102,7 +110,7 @@ export default function RoutePage({
         >
           <RouteRenderer
             places={places}
-            onRouteData={setRouteData}
+            onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
             selectedSegment={selectedSegment}
           />
         </Map>
