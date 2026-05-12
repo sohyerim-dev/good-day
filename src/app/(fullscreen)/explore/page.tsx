@@ -277,7 +277,11 @@ export default function Explore() {
                       {places[0].course_places[0].courses.title}
                     </span>
                     <p className="text-[12px] text-gray-400">
-                      {places.map((p) => p.name).join(" → ")}
+                      {places
+                        .slice()
+                        .sort((a, b) => a.course_places[0].order - b.course_places[0].order)
+                        .map((p) => p.name)
+                        .join(" → ")}
                     </p>
                   </Link>
                 </li>
