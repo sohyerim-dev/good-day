@@ -15,7 +15,10 @@ export default function MyCourse() {
   const router = useRouter();
 
   async function handleUsernameUpdate() {
-    await supabase.from("profiles").update({ username: editUsername }).eq("id", user?.id);
+    await supabase
+      .from("profiles")
+      .update({ username: editUsername })
+      .eq("id", user?.id);
     setUser({ ...user!, username: editUsername });
     setIsEditing(false);
   }
@@ -26,13 +29,14 @@ export default function MyCourse() {
     router.push("/login");
   }
 
-
   return (
     <main className="flex flex-col min-h-full">
       {/* 유저 정보 */}
       <div className="p-4 border-b border-gray-100">
         <h1 className="text-[22px] font-bold">마이코스</h1>
-        <p className="text-[13px] text-gray-400 mt-1 mb-3">내 취향대로 모은 코스와 장소를 확인해보세요.</p>
+        <p className="text-[13px] text-gray-400 mt-1 mb-3">
+          내 취향대로 모은 코스와 장소를 확인해보세요.
+        </p>
         <div className="bg-gray-50 rounded-2xl p-4">
           <p className="text-[12px] text-gray-400 mb-2">내 계정</p>
           {isEditing ? (
@@ -59,7 +63,10 @@ export default function MyCourse() {
                 {user?.username || "닉네임 없음"}
               </p>
               <button
-                onClick={() => { setEditUsername(user?.username ?? ""); setIsEditing(true); }}
+                onClick={() => {
+                  setEditUsername(user?.username ?? "");
+                  setIsEditing(true);
+                }}
                 className="border hover:bg-white hover:text-[#EE6300] text-[11px] text-white bg-[#EE6300] rounded-full leading-4.75 px-2 py-0.5"
               >
                 수정
@@ -199,20 +206,6 @@ export default function MyCourse() {
                 musik91@naver.com
               </a>
               <a
-                href="https://github.com/sohyerim-dev"
-                target="_blank"
-                className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-[#EE6300]"
-              >
-                <Image
-                  src="/icons/link.svg"
-                  alt=""
-                  width={14}
-                  height={14}
-                  className="opacity-40"
-                />
-                github.com/sohyerim-dev
-              </a>
-              <a
                 href="https://sohyerim.kr/"
                 target="_blank"
                 className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-[#EE6300]"
@@ -225,6 +218,20 @@ export default function MyCourse() {
                   className="opacity-40"
                 />
                 sohyerim.kr
+              </a>
+              <a
+                href="https://github.com/sohyerim-dev"
+                target="_blank"
+                className="flex items-center gap-2 text-[13px] text-gray-500 hover:text-[#EE6300]"
+              >
+                <Image
+                  src="/icons/link.svg"
+                  alt=""
+                  width={14}
+                  height={14}
+                  className="opacity-40"
+                />
+                github.com/sohyerim-dev
               </a>
             </div>
           </div>
