@@ -12,8 +12,8 @@ export default function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get("redirect") || "/";
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("good-day@test.com");
+  const [password, setPassword] = useState("goodday1234");
   const [error, setError] = useState("");
   const [autoLogin, setAutoLogin] = useState(false);
 
@@ -93,12 +93,14 @@ export default function LoginForm() {
         placeholder="이메일을 입력해주세요."
         className="mt-6"
         autoComplete="email"
+        defaultValue="good-day@test.com"
         onChange={(e) => setEmail(e.target.value)}
       />
       <LoginInput
         src="icons/password.svg"
         type="password"
         label="패스워드"
+        defaultValue="goodday1234"
         placeholder="패스워드를 입력해주세요."
         className="mt-2.5"
         autoComplete="current-password"
