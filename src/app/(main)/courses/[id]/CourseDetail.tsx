@@ -266,7 +266,7 @@ export default function CourseDetail({
         <div className="flex gap-2">
           <button
             onClick={handleShare}
-            className="relative flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3"
+            className="relative flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
           >
             <Image src="/icons/link.svg" alt="공유" width={24} height={24} />
             {copied && (
@@ -278,7 +278,7 @@ export default function CourseDetail({
           {course && course.user_id !== user?.id && (
             <>
             <button
-              className="flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3"
+              className="flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
               onClick={async () => {
                 if (liked) {
                   const { error } = await supabase
@@ -303,7 +303,7 @@ export default function CourseDetail({
               />
             </button>
             <button
-              className="flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3"
+              className="flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
               onClick={async () => {
                 if (bookmarked) {
                   const { error } = await supabase
