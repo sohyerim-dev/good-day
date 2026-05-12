@@ -22,6 +22,7 @@ export default function RoutePage({
     searchParams.get("transit") === "true",
   );
   const [routeData, setRouteData] = useState<RouteSegment[]>([]);
+  const [selectedSegment, setSelectedSegment] = useState<number | null>(null);
 
   useEffect(() => {
     supabase
@@ -53,6 +54,34 @@ export default function RoutePage({
           {showTransit ? "교통수단 닫기" : "교통수단 보기"}
         </button>
       </div>
+      {routeData.length > 0 && (
+        <div className="z-50 absolute top-16 left-0 right-0 flex gap-2 overflow-x-auto px-4 py-1 scrollbar-hide">
+          <button
+            onClick={() => setSelectedSegment(null)}
+            className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
+              selectedSegment === null
+                ? "bg-gray-800 text-white"
+                : "bg-white text-gray-700"
+            }`}
+          >
+            전체
+          </button>
+          {routeData.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setSelectedSegment(i)}
+              className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
+                selectedSegment === i
+                  ? "bg-[#EE6300] text-white"
+                  : "bg-white text-gray-700"
+              }`}
+            >
+              {i + 1}→{i + 2}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="z-50 absolute bottom-8 left-4 bg-white rounded-2xl px-4 py-2 shadow text-[12px] flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <div className="w-6 h-0.75 bg-[#EE6300]" />
@@ -71,7 +100,11 @@ export default function RoutePage({
           defaultZoom={12}
           mapTypeControl={false}
         >
-          <RouteRenderer places={places} onRouteData={setRouteData} />
+          <RouteRenderer
+            places={places}
+            onRouteData={setRouteData}
+            selectedSegment={selectedSegment}
+          />
         </Map>
       </APIProvider>
       {/* 바텀시트 */}
