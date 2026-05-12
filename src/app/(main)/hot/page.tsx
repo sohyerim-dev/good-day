@@ -6,10 +6,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+const PAGE_SIZE = 5;
+
 export default function Hot() {
   const [courses, setCourses] = useState<HotCourse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
   const supabase = createClient();
 
   useEffect(() => {
@@ -29,6 +32,9 @@ export default function Hot() {
       });
   }, []);
 
+  const totalPages = Math.ceil(courses.length / PAGE_SIZE);
+  const paginated = courses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
   return (
     <main className="flex flex-col min-h-full">
       {/* 헤더 */}
@@ -37,7 +43,7 @@ export default function Hot() {
       </div>
 
       {/* 목록 */}
-      <ul className="p-4 flex flex-col gap-3 pb-24">
+      <ul className="p-4 flex flex-col gap-3">
         {loading ? (
           [1, 2, 3].map((i) => (
             <div
@@ -50,43 +56,79 @@ export default function Hot() {
         ) : courses.length === 0 ? (
           <p className="text-gray-400 text-center py-10">인기 코스가 없어요</p>
         ) : (
-          courses.map((course, i) => (
-            <li key={course.id}>
-              <Link
-                href={`/courses/${course.id}`}
-                className="group block bg-gray-50 rounded-2xl p-4"
-              >
-                <div className="flex justify-between items-start">
-                  <div className="flex flex-col gap-1 flex-1">
-                    <p className="font-bold text-[16px]">
-                      <span className="text-[#EE6300] mr-1">{i + 1}.</span>
-                      {course.title}
-                    </p>
-                    <p className="text-[12px] text-gray-400">
-                      {course.profiles.username}
-                    </p>
-                    <p className="text-[12px] text-gray-500 mt-1">
-                      {course.course_places
-                        .sort((a, b) => a.order - b.order)
-                        .map((cp) => cp.places.name)
-                        .join(" → ")}
-                    </p>
+          paginated.map((course, i) => {
+            const rank = (page - 1) * PAGE_SIZE + i + 1;
+            return (
+              <li key={course.id}>
+                <Link
+                  href={`/courses/${course.id}`}
+                  className="group block bg-gray-50 rounded-2xl p-4"
+                >
+                  <div className="flex justify-between items-start">
+                    <div className="flex flex-col gap-1 flex-1">
+                      <p className="font-bold text-[16px]">
+                        <span className="text-[#EE6300] mr-1">{rank}.</span>
+                        {course.title}
+                      </p>
+                      <p className="text-[12px] text-gray-400">
+                        {course.profiles.username}
+                      </p>
+                      <p className="text-[12px] text-gray-500 mt-1">
+                        {course.course_places
+                          .sort((a, b) => a.order - b.order)
+                          .map((cp) => cp.places.name)
+                          .join(" → ")}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 text-[13px] text-gray-400 shrink-0 ml-3">
+                      <Image
+                        src="/icons/heart-filled.svg"
+                        alt="좋아요"
+                        width={14}
+                        height={14}
+                      />
+                      <span>{course.likes[0]?.count ?? 0}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-[13px] text-gray-400 shrink-0 ml-3">
-                    <Image
-                      src="/icons/heart-filled.svg"
-                      alt="좋아요"
-                      width={14}
-                      height={14}
-                    />
-                    <span>{course.likes[0]?.count ?? 0}</span>
-                  </div>
-                </div>
-              </Link>
-            </li>
-          ))
+                </Link>
+              </li>
+            );
+          })
         )}
       </ul>
+
+      {/* 페이지네이션 */}
+      {!loading && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 py-4 pb-28">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-3 py-1.5 rounded-xl text-[13px] bg-gray-100 text-gray-500 disabled:opacity-30 cursor-pointer disabled:cursor-default"
+          >
+            이전
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPage(p)}
+              className={`w-8 h-8 rounded-xl text-[13px] font-medium cursor-pointer ${
+                p === page
+                  ? "bg-[#EE6300] text-white"
+                  : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-3 py-1.5 rounded-xl text-[13px] bg-gray-100 text-gray-500 disabled:opacity-30 cursor-pointer disabled:cursor-default"
+          >
+            다음
+          </button>
+        </div>
+      )}
     </main>
   );
 }

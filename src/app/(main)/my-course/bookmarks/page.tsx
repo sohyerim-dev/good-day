@@ -7,10 +7,13 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+const PAGE_SIZE = 5;
+
 export default function Bookmarks() {
   const [bookmarks, setBookmarks] = useState<Course[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
   const supabase = createClient();
   const user = useUserStore((state) => state.user);
   const router = useRouter();
@@ -38,6 +41,9 @@ export default function Bookmarks() {
       .eq("course_id", courseId);
     setBookmarks((prev) => prev.filter((b) => b.id !== courseId));
   }
+
+  const totalPages = Math.ceil(bookmarks.length / PAGE_SIZE);
+  const paginated = bookmarks.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <main className="flex flex-col min-h-full">
@@ -68,7 +74,7 @@ export default function Bookmarks() {
             등록된 코스가 없어요
           </p>
         ) : (
-          bookmarks.map((bookmark) => (
+          paginated.map((bookmark) => (
             <div
               key={bookmark.id}
               className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
@@ -94,6 +100,35 @@ export default function Bookmarks() {
           ))
         )}
       </div>
+      {!loading && totalPages > 1 && (
+        <div className="flex justify-center items-center gap-2 py-4 pb-28">
+          <button
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={page === 1}
+            className="px-3 py-1.5 rounded-xl text-[13px] bg-gray-100 text-gray-500 disabled:opacity-30 cursor-pointer disabled:cursor-default"
+          >
+            이전
+          </button>
+          {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+            <button
+              key={p}
+              onClick={() => setPage(p)}
+              className={`w-8 h-8 rounded-xl text-[13px] font-medium cursor-pointer ${
+                p === page ? "bg-[#EE6300] text-white" : "bg-gray-100 text-gray-500"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={page === totalPages}
+            className="px-3 py-1.5 rounded-xl text-[13px] bg-gray-100 text-gray-500 disabled:opacity-30 cursor-pointer disabled:cursor-default"
+          >
+            다음
+          </button>
+        </div>
+      )}
     </main>
   );
 }

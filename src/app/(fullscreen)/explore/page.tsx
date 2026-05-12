@@ -38,7 +38,9 @@ export default function Explore() {
   );
   const [selected, setSelected] = useState<ExploreCoursePlace | null>(null);
   const [selectedCoursePlaces, setSelectedCoursePlaces] =
-    useState<{ order: number; places: { name: string; lat: number; lng: number } }[]>();
+    useState<
+      { order: number; places: { name: string; lat: number; lng: number } }[]
+    >();
   const [showCourses, setShowCourses] = useState(false);
   const [zoomLevel, setZoomLevel] = useState<number | undefined>();
   const [locationQuery, setLocationQuery] = useState("");
@@ -210,7 +212,10 @@ export default function Explore() {
               </h3>
             </div>
             <button
-              onClick={() => { setSelected(null); setSelectedCoursePlaces(undefined); }}
+              onClick={() => {
+                setSelected(null);
+                setSelectedCoursePlaces(undefined);
+              }}
               className="text-[14px] text-gray-400"
             >
               닫기
@@ -267,7 +272,9 @@ export default function Explore() {
             <ul className="flex flex-col gap-3">
               {Object.entries(placeGroup).map(([courseId, places]) => {
                 // 현재 courseId에 해당하는 course_places 항목을 찾아서 코스 정보(제목, 작성자) 추출
-                const courseInfo = places[0].course_places.find((cp) => cp.course_id === courseId);
+                const courseInfo = places[0].course_places.find(
+                  (cp) => cp.course_id === courseId,
+                );
                 return (
                   <li key={courseId}>
                     <Link
@@ -285,8 +292,14 @@ export default function Explore() {
                           .slice()
                           // 현재 코스의 order 기준으로 정렬 (course_places[0]이 다른 코스 항목일 수 있으므로 find 사용)
                           .sort((a, b) => {
-                            const aOrder = a.course_places.find((cp) => cp.course_id === courseId)?.order ?? 0;
-                            const bOrder = b.course_places.find((cp) => cp.course_id === courseId)?.order ?? 0;
+                            const aOrder =
+                              a.course_places.find(
+                                (cp) => cp.course_id === courseId,
+                              )?.order ?? 0;
+                            const bOrder =
+                              b.course_places.find(
+                                (cp) => cp.course_id === courseId,
+                              )?.order ?? 0;
                             return aOrder - bOrder;
                           })
                           .map((p) => p.name)
