@@ -60,6 +60,7 @@
 | --------- | ------------------------------------------- |
 | BaaS      | Supabase (Auth + PostgreSQL + RLS)          |
 | 지도      | Google Maps API (@vis.gl/react-google-maps) |
+| 경로 안내 | TMap API                                    |
 | 장소 검색 | 네이버 검색 API                             |
 | 지역 검색 | Google Geocoding API                        |
 | 배포      | Vercel                                      |
