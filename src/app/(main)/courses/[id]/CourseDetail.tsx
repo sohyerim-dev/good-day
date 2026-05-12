@@ -189,7 +189,7 @@ export default function CourseDetail({
               </div>
             )}
           </div>
-          <button onClick={() => router.back()} className="text-gray-400 shrink-0">
+          <button onClick={() => router.back()} className="text-gray-400 shrink-0 cursor-pointer hover:text-black">
             뒤로 가기
           </button>
         </div>

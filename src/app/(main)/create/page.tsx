@@ -384,7 +384,7 @@ export default function Create() {
               <h2 className="font-bold text-[18px]">내 저장 장소</h2>
               <button
                 onClick={() => setShowSaved(false)}
-                className="text-[14px] text-gray-400"
+                className="text-[14px] text-gray-400 cursor-pointer hover:text-black"
               >
                 닫기
               </button>

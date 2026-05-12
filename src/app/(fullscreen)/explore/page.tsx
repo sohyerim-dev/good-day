@@ -216,7 +216,7 @@ export default function Explore() {
                 setSelected(null);
                 setSelectedCoursePlaces(undefined);
               }}
-              className="text-[14px] text-gray-400"
+              className="text-[14px] text-gray-400 cursor-pointer hover:text-black"
             >
               닫기
             </button>
@@ -259,7 +259,7 @@ export default function Explore() {
             <h2 className="font-bold text-[18px]">이 지역 코스</h2>
             <button
               onClick={() => setShowCourses(false)}
-              className="text-[14px] text-gray-400"
+              className="text-[14px] text-gray-400 cursor-pointer hover:text-black"
             >
               닫기
             </button>

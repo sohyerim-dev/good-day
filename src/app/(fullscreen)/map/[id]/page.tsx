@@ -155,7 +155,7 @@ export default function RoutePage({
             <h2 className="font-bold text-[18px]">교통수단 정보</h2>
             <button
               onClick={() => setShowTransit(false)}
-              className="text-gray-400"
+              className="text-gray-400 cursor-pointer hover:text-black"
             >
               닫기
             </button>

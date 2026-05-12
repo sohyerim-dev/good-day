@@ -50,7 +50,7 @@ export default function SavedPlaces() {
         <h1 className="text-[22px] font-bold">저장된 장소</h1>
         <button
           onClick={() => router.back()}
-          className="text-gray-400 text-[14px] hover:text-black"
+          className="text-gray-400 text-[14px] cursor-pointer hover:text-black"
         >
           뒤로 가기
         </button>
