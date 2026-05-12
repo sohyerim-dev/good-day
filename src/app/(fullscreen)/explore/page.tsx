@@ -25,12 +25,13 @@ export default function Explore() {
     ExploreCoursePlace[]
   >([]);
   // 장소 배열을 코스 ID 기준으로 그룹화 { courseId: [place, place, ...] }
-  // 목록 보기에서 코스 단위로 렌더링하기 위해 사용
+  // 한 장소가 여러 코스에 속할 수 있으므로 course_places 전체를 순회해서 각 코스에 등록
   const placeGroup = exploreAllPlaces.reduce(
     (acc, p) => {
-      const courseId = p.course_places[0].course_id;
-      if (!acc[courseId]) acc[courseId] = [];
-      acc[courseId].push(p);
+      p.course_places.forEach((cp) => {
+        if (!acc[cp.course_id]) acc[cp.course_id] = [];
+        acc[cp.course_id].push(p);
+      });
       return acc;
     },
     {} as Record<string, ExploreCoursePlace[]>,
@@ -264,28 +265,37 @@ export default function Explore() {
             </p>
           ) : (
             <ul className="flex flex-col gap-3">
-              {Object.entries(placeGroup).map(([courseId, places]) => (
-                <li key={courseId}>
-                  <Link
-                    href={`/courses/${courseId}`}
-                    className="block bg-gray-50 rounded-2xl p-4"
-                  >
-                    <span className="text-gray-400 text-[14px] mr-2">
-                      {places[0].course_places[0].courses.profiles.username}
-                    </span>
-                    <span className="font-medium text-[15px]">
-                      {places[0].course_places[0].courses.title}
-                    </span>
-                    <p className="text-[12px] text-gray-400">
-                      {places
-                        .slice()
-                        .sort((a, b) => a.course_places[0].order - b.course_places[0].order)
-                        .map((p) => p.name)
-                        .join(" → ")}
-                    </p>
-                  </Link>
-                </li>
-              ))}
+              {Object.entries(placeGroup).map(([courseId, places]) => {
+                // 현재 courseId에 해당하는 course_places 항목을 찾아서 코스 정보(제목, 작성자) 추출
+                const courseInfo = places[0].course_places.find((cp) => cp.course_id === courseId);
+                return (
+                  <li key={courseId}>
+                    <Link
+                      href={`/courses/${courseId}`}
+                      className="block bg-gray-50 rounded-2xl p-4"
+                    >
+                      <span className="text-gray-400 text-[14px] mr-2">
+                        {courseInfo?.courses.profiles.username}
+                      </span>
+                      <span className="font-medium text-[15px]">
+                        {courseInfo?.courses.title}
+                      </span>
+                      <p className="text-[12px] text-gray-400">
+                        {places
+                          .slice()
+                          // 현재 코스의 order 기준으로 정렬 (course_places[0]이 다른 코스 항목일 수 있으므로 find 사용)
+                          .sort((a, b) => {
+                            const aOrder = a.course_places.find((cp) => cp.course_id === courseId)?.order ?? 0;
+                            const bOrder = b.course_places.find((cp) => cp.course_id === courseId)?.order ?? 0;
+                            return aOrder - bOrder;
+                          })
+                          .map((p) => p.name)
+                          .join(" → ")}
+                      </p>
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>
