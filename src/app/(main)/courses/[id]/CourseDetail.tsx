@@ -133,8 +133,9 @@ export default function CourseDetail({
     const url = `${window.location.origin}/courses/${id}`;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const kakao = (window as any).Kakao;
-    if (!kakao?.isInitialized()) kakao?.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
-    kakao?.Share.sendDefault({
+    if (!kakao) return;
+    if (!kakao.isInitialized()) kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
+    kakao.Share.sendDefault({
       objectType: "feed",
       content: {
         title: course?.title ?? "굿데이 코스",
@@ -181,7 +182,17 @@ export default function CourseDetail({
 
   return (
     <>
-    <Script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" strategy="lazyOnload" />
+    <Script
+      src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
+      strategy="afterInteractive"
+      onLoad={() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const kakao = (window as any).Kakao;
+        if (kakao && !kakao.isInitialized()) {
+          kakao.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
+        }
+      }}
+    />
     <main className="flex flex-col min-h-full">
       {/* 상단 헤더 */}
       <div className="p-4 border-b border-gray-100">
