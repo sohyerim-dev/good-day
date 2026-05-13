@@ -6,7 +6,8 @@ import { Course, CoursePlace } from "@/types/course";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Fragment, use, useEffect, useState } from "react";
+import { Fragment, use, useEffect, useRef, useState } from "react";
+import Script from "next/script";
 
 export default function CourseDetail({
   params,
@@ -27,6 +28,19 @@ export default function CourseDetail({
   const [placesError, setPlacesError] = useState("");
   const [loading, setLoading] = useState(true);
   const [savedPlaces, setSavedPlaces] = useState<Set<string>>(new Set());
+  const [showShareMenu, setShowShareMenu] = useState(false);
+  const shareMenuRef = useRef<HTMLDivElement>(null);
+
+  // 공유 메뉴 외부 클릭 시 닫기
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (shareMenuRef.current && !shareMenuRef.current.contains(e.target as Node)) {
+        setShowShareMenu(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -107,11 +121,30 @@ export default function CourseDetail({
     }
   }
 
-  async function handleShare() {
+  async function handleCopyUrl() {
     const url = `${window.location.origin}/courses/${id}`;
     await navigator.clipboard.writeText(url);
     setCopied(true);
+    setShowShareMenu(false);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleKakaoShare() {
+    const url = `${window.location.origin}/courses/${id}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const kakao = (window as any).Kakao;
+    if (!kakao?.isInitialized()) kakao?.init(process.env.NEXT_PUBLIC_KAKAO_JS_KEY);
+    kakao?.Share.sendDefault({
+      objectType: "feed",
+      content: {
+        title: course?.title ?? "굿데이 코스",
+        description: course?.description ?? "나만의 놀기 코스 플래너, 굿데이",
+        imageUrl: `${window.location.origin}/images/og-image.png`,
+        link: { mobileWebUrl: url, webUrl: url },
+      },
+      buttons: [{ title: "코스 보기", link: { mobileWebUrl: url, webUrl: url } }],
+    });
+    setShowShareMenu(false);
   }
 
   async function handleDeleteCourse() {
@@ -147,6 +180,8 @@ export default function CourseDetail({
     );
 
   return (
+    <>
+    <Script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" strategy="lazyOnload" />
     <main className="flex flex-col min-h-full">
       {/* 상단 헤더 */}
       <div className="p-4 border-b border-gray-100">
@@ -264,17 +299,35 @@ export default function CourseDetail({
           </Link>
         </div>
         <div className="flex gap-2">
-          <button
-            onClick={handleShare}
-            className="relative flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
-          >
-            <Image src="/icons/link.svg" alt="공유" width={24} height={24} />
+          <div ref={shareMenuRef} className="relative flex-1">
+            <button
+              onClick={() => setShowShareMenu((v) => !v)}
+              className="w-full flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
+            >
+              <Image src="/icons/link.svg" alt="공유" width={24} height={24} />
+            </button>
             {copied && (
-              <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-[11px] rounded px-2 py-1 whitespace-nowrap">
+              <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-700 text-white text-[11px] rounded px-2 py-1 whitespace-nowrap z-10">
                 복사됨
               </span>
             )}
-          </button>
+            {showShareMenu && (
+              <div className="absolute bottom-14 left-0 bg-white rounded-2xl shadow-lg overflow-hidden z-10 w-36">
+                <button
+                  onClick={handleCopyUrl}
+                  className="w-full px-4 py-3 text-[13px] text-left hover:bg-gray-50 cursor-pointer"
+                >
+                  🔗 URL 복사
+                </button>
+                <button
+                  onClick={handleKakaoShare}
+                  className="w-full px-4 py-3 text-[13px] text-left hover:bg-gray-50 cursor-pointer border-t border-gray-100"
+                >
+                  💬 카카오톡 공유
+                </button>
+              </div>
+            )}
+          </div>
           {course && course.user_id !== user?.id && (
             <>
             <button
@@ -336,5 +389,6 @@ export default function CourseDetail({
         </div>
       </div>
     </main>
+    </>
   );
 }
