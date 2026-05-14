@@ -252,6 +252,22 @@ Google Maps 기반으로 코스 장소들 간의 도보 또는 대중교통 경�
 
 **해결** Supabase SELECT 정책에 `anon` 역할 추가 (`ALTER POLICY ... TO authenticated, anon`)
 
+### 모바일에서 드래그 앤 드롭 순서 변경 불가
+
+**증상** 코스 추가·편집 화면에서 장소 순서를 드래그로 변경하려 하면 스크롤만 발생하고 드래그가 동작하지 않음. 드래그 핸들(이미지)을 길게 누르면 이미지가 새 탭으로 열리는 현상도 발생
+
+**원인**
+- `@dnd-kit/core`는 기본적으로 마우스 이벤트를 처리하는 `PointerSensor`만 사용하는데, 모바일의 터치 이벤트는 스크롤과 동일한 방식으로 인식되어 구분하지 못함
+- 드래그 핸들 영역에 이미지(`<img>`)가 있으면 모바일 브라우저가 길게 누르는 동작을 "이미지 저장/새 탭 열기" 팝업으로 먼저 가로챔
+- CSS `touch-action`이 설정되지 않으면 드래그가 시작된 이후에도 브라우저가 해당 터치를 스크롤로 재해석해 드래그가 중단됨
+
+**해결**
+- `DndContext`에 `TouchSensor`를 추가해 터치 이벤트를 별도로 처리하고, `activationConstraint`로 `delay: 250`(250ms 이상 길게 눌러야 드래그 시작), `tolerance: 5`(5px 이내 미세한 손 떨림은 드래그 취소로 보지 않음) 설정
+- 드래그 핸들 요소에 `touch-action: none` 적용 — 이 CSS 속성은 브라우저에게 "이 영역의 터치는 스크롤에 쓰지 말고 JavaScript가 처리하게 넘겨라"고 지시함
+- 이미지 요소에 `draggable={false}`(HTML 기본 드래그 비활성화), `pointer-events: none`(터치 이벤트를 이미지가 아닌 부모 요소에서 받도록 처리) 적용
+- `onContextMenu` preventDefault 적용 — Android에서 길게 누를 때 뜨는 컨텍스트 메뉴 차단
+- `-webkit-touch-callout: none` 적용 — iOS Safari 전용 CSS 속성으로, 링크나 이미지를 길게 눌렀을 때 나타나는 "새 탭으로 열기 / 이미지 저장" 팝업을 비활성화함 (표준 CSS에는 없고 Safari에서만 동작)
+
 ---
 
 ## 페이지 구조
