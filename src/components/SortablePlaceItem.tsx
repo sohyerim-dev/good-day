@@ -21,8 +21,10 @@ export default function SortablePlaceItem({ place, onRemove }: Props) {
   return (
     <li ref={setNodeRef} style={style} className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 mb-2">
       <div className="flex items-center gap-2">
-        <span {...attributes} {...listeners} className="cursor-grab">
-          <Image src="/icons/drag.svg" alt="드래그" width={24} height={24} />
+        {/* onContextMenu 차단: 모바일에서 꾹 누를 때 브라우저 이미지 메뉴가 뜨는 것을 방지 */}
+        <span {...attributes} {...listeners} className="cursor-grab" onContextMenu={(e) => e.preventDefault()}>
+          {/* draggable={false}: 이미지 자체의 드래그(새탭 열기) 동작 비활성화 */}
+          <Image src="/icons/drag.svg" alt="드래그" width={24} height={24} draggable={false} />
         </span>
         <span className="font-medium text-[14px]">
           <span className="text-[#EE6300] font-bold mr-1">{place.order}.</span>
