@@ -2,7 +2,15 @@
 
 import { NaverPlace, SavedPlace } from "@/types/place";
 import { Fragment, use, useEffect, useState } from "react";
-import { DndContext, closestCenter, DragEndEvent } from "@dnd-kit/core";
+import {
+  DndContext,
+  closestCenter,
+  DragEndEvent,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  TouchSensor,
+} from "@dnd-kit/core";
 import {
   SortableContext,
   verticalListSortingStrategy,
@@ -24,6 +32,17 @@ export default function EditCourse({
   const hasHydrated = useUserStore((state) => state.hasHydrated);
   const router = useRouter();
   const supabase = createClient();
+
+  // 모바일에서 터치 드래그 시 스크롤과 충돌하지 않도록 TouchSensor에 delay/tolerance 설정
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,    // 250ms 꾹 눌러야 드래그 시작 (짧은 탭은 스크롤로 처리됨)
+        tolerance: 5,  // 5px 이내 미세한 손가락 흔들림은 드래그로 인식하지 않음
+      },
+    })
+  );
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -318,7 +337,7 @@ export default function EditCourse({
           className={placeActive ? "ml-2" : "hidden"}
         />
       </div>
-      <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
           items={selectedPlaces.map((p) => p.id)}
           strategy={verticalListSortingStrategy}
