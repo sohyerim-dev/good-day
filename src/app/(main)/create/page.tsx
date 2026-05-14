@@ -27,13 +27,12 @@ export default function Create() {
   const router = useRouter();
   const supabase = createClient();
 
-  // 모바일에서 터치 드래그 시 스크롤과 충돌하지 않도록 TouchSensor에 delay/tolerance 설정
   const sensors = useSensors(
     useSensor(PointerSensor),
     useSensor(TouchSensor, {
       activationConstraint: {
-        delay: 250,    // 250ms 꾹 눌러야 드래그 시작 (짧은 탭은 스크롤로 처리됨)
-        tolerance: 5,  // 5px 이내 미세한 손가락 흔들림은 드래그로 인식하지 않음
+        delay: 250,
+        tolerance: 5,
       },
     })
   );
