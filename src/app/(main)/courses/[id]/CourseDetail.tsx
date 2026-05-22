@@ -1,5 +1,6 @@
 "use client";
 
+import AlertModal from "@/components/ui/AlertModal";
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
 import { Course, CoursePlace } from "@/types/course";
@@ -30,6 +31,8 @@ export default function CourseDetail({
   const [savedPlaces, setSavedPlaces] = useState<Set<string>>(new Set());
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
+  // 비로그인 상태에서 로그인 필요 기능 클릭 시 표시
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
   // 공유 메뉴 외부 클릭 시 닫기
   useEffect(() => {
@@ -42,8 +45,8 @@ export default function CourseDetail({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // 비로그인 포함 누구나 볼 수 있는 공개 데이터
   useEffect(() => {
-    if (!user?.id) return;
     supabase
       .from("courses")
       .select("*")
@@ -64,11 +67,16 @@ export default function CourseDetail({
         if (data) setPlaces(data);
         if (!data || error) setPlacesError("장소 목록을 불러올 수 없어요");
       });
+  }, [id]);
+
+  // 로그인한 사용자에게만 필요한 데이터 (좋아요 여부, 북마크 여부, 저장된 장소)
+  useEffect(() => {
+    if (!user?.id) return;
 
     supabase
       .from("likes")
       .select("id")
-      .eq("user_id", user?.id)
+      .eq("user_id", user.id)
       .eq("course_id", id)
       .maybeSingle()
       .then(({ data }) => setLiked(!!data));
@@ -82,7 +90,7 @@ export default function CourseDetail({
     supabase
       .from("bookmarks")
       .select("id")
-      .eq("user_id", user?.id)
+      .eq("user_id", user.id)
       .eq("course_id", id)
       .maybeSingle()
       .then(({ data }) => setBookmarked(!!data));
@@ -90,7 +98,7 @@ export default function CourseDetail({
     supabase
       .from("saved_places")
       .select("place_id")
-      .eq("user_id", user?.id)
+      .eq("user_id", user.id)
       .then(({ data }) => {
         if (data) setSavedPlaces(new Set(data.map((d) => d.place_id)));
       });
@@ -182,6 +190,13 @@ export default function CourseDetail({
 
   return (
     <>
+    {showLoginPrompt && (
+      <AlertModal
+        message="로그인 후 이용할 수 있어요"
+        onClose={() => setShowLoginPrompt(false)}
+        onConfirm={() => router.push("/login")}
+      />
+    )}
     <Script
       src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
       strategy="afterInteractive"
@@ -269,8 +284,9 @@ export default function CourseDetail({
                   >
                     네이버 플레이스
                   </a>
+                  {/* 저장은 로그인 후에만 가능 */}
                   <button
-                    onClick={() => handleSavePlace(p.places.id)}
+                    onClick={() => user ? handleSavePlace(p.places.id) : setShowLoginPrompt(true)}
                     className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer hover:bg-[#EE6300] hover:text-white"
                   >
                     {savedPlaces.has(p.places.id) ? "저장됨" : "저장"}
@@ -295,19 +311,20 @@ export default function CourseDetail({
 
       {/* 하단 고정 버튼 영역 */}
       <div className="fixed bottom-24 left-0 right-0 px-4 flex flex-col gap-2">
+        {/* 경로/교통수단은 로그인 후에만 접근 가능 */}
         <div className="flex gap-2">
-          <Link
-            href={`/map/${id}`}
+          <button
+            onClick={() => user ? router.push(`/map/${id}`) : setShowLoginPrompt(true)}
             className="flex-1 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
           >
             경로 보기
-          </Link>
-          <Link
-            href={`/map/${id}?transit=true`}
+          </button>
+          <button
+            onClick={() => user ? router.push(`/map/${id}?transit=true`) : setShowLoginPrompt(true)}
             className="flex-1 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
           >
             교통수단 보기
-          </Link>
+          </button>
         </div>
         <div className="flex gap-2">
           <div ref={shareMenuRef} className="relative flex-1">
