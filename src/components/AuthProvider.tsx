@@ -18,8 +18,10 @@ export default function AuthProvider({
   const setHasHydrated = useUserStore((state) => state.setHasHydrated);
 
   useEffect(() => {
-    // 로그인/회원가입 페이지는 인증 체크 불필요
-    if (pathname === "/login" || pathname === "/signup") return;
+    // 로그인/회원가입 페이지, 코스 상세 페이지는 인증 체크 불필요
+    // /courses/[id]/edit 등 하위 경로는 여전히 로그인 필요
+    const isPublicCoursePage = /^\/courses\/[^/]+$/.test(pathname);
+    if (pathname === "/login" || pathname === "/signup" || isPublicCoursePage) return;
     const supabase = createClient();
 
     supabase.auth.getUser().then(async ({ data: { user } }) => {
