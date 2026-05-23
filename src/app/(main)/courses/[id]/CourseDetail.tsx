@@ -293,7 +293,7 @@ export default function CourseDetail({
                 value={memoInput}
                 onChange={(e) => setMemoInput(e.target.value)}
                 placeholder="메모를 입력하세요"
-                className="w-full bg-gray-50 rounded-2xl p-4 text-[14px] focus:outline-[#EE6300] resize-none h-32"
+                className="w-full bg-gray-50 rounded-2xl p-4 text-[16px] focus:outline-[#EE6300] resize-none h-32"
               />
               <div className="flex gap-2 mt-3">
                 {memos[memoModal.placeId] && (
