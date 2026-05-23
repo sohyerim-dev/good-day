@@ -240,9 +240,14 @@ export default function Create() {
       />
 
       {/* 장소 검색 */}
-      <label htmlFor="place-search" className="font-medium text-[18px]">
-        장소 검색
-      </label>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="place-search" className="font-medium text-[18px]">
+          장소 검색
+        </label>
+        <p className="text-[12px] text-gray-300">
+          결과가 없으면 장소명을 더 구체적으로 입력해보세요. (예: 블루보틀 → 성수동 블루보틀)
+        </p>
+      </div>
       <div className="flex gap-2">
         <input
           id="place-search"
@@ -278,9 +283,6 @@ export default function Create() {
       </button>
       <p className="text-[12px] text-gray-400 -mt-2">
         코스 상세에서 저장해둔 장소를 바로 불러올 수 있어요.
-      </p>
-      <p className="text-[12px] text-gray-300 -mt-2">
-        결과가 없으면 장소명을 더 구체적으로 입력해보세요. (예: 블루보틀 → 성수동 블루보틀)
       </p>
       {/* 검색 결과 */}
       <ul className={searchActive ? "bg-gray-50 rounded-2xl p-4 w-full" : ""}>
