@@ -10,6 +10,7 @@ const PAGE_SIZE = 5;
 
 export default function Home() {
   const user = useUserStore((state) => state.user);
+  const hasHydrated = useUserStore((state) => state.hasHydrated);
   const [courses, setCourses] = useState<Course[]>([]);
   const [page, setPage] = useState(1);
 
@@ -27,6 +28,29 @@ export default function Home() {
   }, [user]);
   const totalPages = Math.ceil(courses.length / PAGE_SIZE);
   const paginated = courses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  if (!hasHydrated) return null;
+
+  if (!user) {
+    return (
+      <main className="p-4 flex flex-col items-center">
+        <h1 className="sr-only">메인 페이지</h1>
+        <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" className="mb-4" />
+        <div className="w-full bg-gray-50 rounded-2xl px-5 py-8 mt-4 flex flex-col items-center gap-3 text-center">
+          <p className="font-bold text-[18px]">나만의 놀기 코스 플래너</p>
+          <p className="text-gray-400 text-[14px] leading-relaxed">
+            장소를 추가하고 순서를 정하면<br />여행 코스가 완성돼요.
+          </p>
+          <Link
+            href="/login"
+            className="mt-2 bg-[#EE6300] text-white text-[15px] font-medium rounded-2xl px-6 py-3 w-full text-center"
+          >
+            로그인하고 시작하기
+          </Link>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="p-4 flex flex-col items-center">

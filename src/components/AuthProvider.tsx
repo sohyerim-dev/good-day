@@ -22,14 +22,17 @@ export default function AuthProvider({
     if (pathname === "/login" || pathname === "/signup") return;
 
     // /courses/[id]/edit 등 하위 경로는 여전히 로그인 필요
-    const isPublicCoursePage = /^\/courses\/[^/]+$/.test(pathname);
+    const isPublicPage =
+      pathname === "/" ||
+      pathname === "/hot" ||
+      pathname === "/explore" ||
+      /^\/courses\/[^/]+$/.test(pathname);
     const supabase = createClient();
 
     supabase.auth.getUser().then(async ({ data: { user } }) => {
       if (!user) {
-        // 공개 코스 페이지는 비로그인도 허용 — 리다이렉트 없이 hydrated만 처리
         setHasHydrated(true);
-        if (!isPublicCoursePage) {
+        if (!isPublicPage) {
           router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
         }
         return;
@@ -42,7 +45,7 @@ export default function AuthProvider({
       if (autoLogin === "false" && !activeSession) {
         supabase.auth.signOut();
         setHasHydrated(true);
-        if (!isPublicCoursePage) {
+        if (!isPublicPage) {
           router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
         }
         return;
