@@ -36,7 +36,7 @@ export default function Home() {
       <main className="p-4 flex flex-col items-center">
         <h1 className="sr-only">메인 페이지</h1>
         <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" className="mb-2" />
-        <Link href="/about" className="text-[13px] text-gray-400 hover:text-[#EE6300] mb-4">
+        <Link href="/about" className="text-[13px] text-gray-400 hover:text-[#EE6300] mb-4 self-start">
           굿데이 소개
         </Link>
         <div className="w-full bg-gray-50 rounded-2xl px-5 py-8 mt-4 flex flex-col items-center gap-3 text-center">
@@ -65,7 +65,7 @@ export default function Home() {
         alt="굿데이"
         className="mb-2"
       />
-      <Link href="/about" className="text-[13px] text-gray-400 hover:text-[#EE6300] mb-4">
+      <Link href="/about" className="text-[13px] text-gray-400 hover:text-[#EE6300] mb-4 self-start">
         굿데이 소개
       </Link>
       <div className="flex justify-end items-center w-full mb-4">
