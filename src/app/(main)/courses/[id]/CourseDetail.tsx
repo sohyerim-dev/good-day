@@ -183,21 +183,22 @@ export default function CourseDetail({
     const trimmed = memo.trim();
     if (!trimmed) {
       if (!schedules[placeId]) {
-        await supabase.from("user_course_schedules").delete()
+        const { error } = await supabase.from("user_course_schedules").delete()
           .eq("user_id", user.id).eq("course_id", id).eq("place_id", placeId);
+        if (!error) setMemos((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
       } else {
-        await supabase.from("user_course_schedules").upsert(
-          { user_id: user.id, course_id: id, place_id: placeId, memo: null },
+        const { error } = await supabase.from("user_course_schedules").upsert(
+          { user_id: user.id, course_id: id, place_id: placeId, time_memo: schedules[placeId], memo: null },
           { onConflict: "user_id,course_id,place_id" },
         );
+        if (!error) setMemos((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
       }
-      setMemos((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
     } else {
-      await supabase.from("user_course_schedules").upsert(
-        { user_id: user.id, course_id: id, place_id: placeId, memo: trimmed },
+      const { error } = await supabase.from("user_course_schedules").upsert(
+        { user_id: user.id, course_id: id, place_id: placeId, time_memo: schedules[placeId] ?? "", memo: trimmed },
         { onConflict: "user_id,course_id,place_id" },
       );
-      setMemos((prev) => ({ ...prev, [placeId]: trimmed }));
+      if (!error) setMemos((prev) => ({ ...prev, [placeId]: trimmed }));
     }
   }
 
@@ -286,28 +287,36 @@ export default function CourseDetail({
             <h2 className="font-bold text-[16px]">{memoModal.placeName}</h2>
             <button onClick={() => setMemoModal(null)} className="text-gray-400 hover:text-black text-[13px] cursor-pointer">닫기</button>
           </div>
-          <textarea
-            value={memoInput}
-            onChange={(e) => setMemoInput(e.target.value)}
-            placeholder="메모를 입력하세요"
-            className="w-full bg-gray-50 rounded-2xl p-4 text-[14px] focus:outline-[#EE6300] resize-none h-32"
-          />
-          <div className="flex gap-2 mt-3">
-            {memos[memoModal.placeId] && (
-              <button
-                onClick={async () => { await handleSaveMemo(memoModal.placeId, ""); setMemoModal(null); }}
-                className="flex-1 border border-red-300 text-red-400 rounded-2xl py-3 text-[14px] cursor-pointer"
-              >
-                삭제
-              </button>
-            )}
-            <button
-              onClick={async () => { await handleSaveMemo(memoModal.placeId, memoInput); setMemoModal(null); }}
-              className="flex-1 bg-[#EE6300] text-white rounded-2xl py-3 text-[14px] font-medium cursor-pointer"
-            >
-              저장
-            </button>
-          </div>
+          {course?.user_id === user?.id ? (
+            <>
+              <textarea
+                value={memoInput}
+                onChange={(e) => setMemoInput(e.target.value)}
+                placeholder="메모를 입력하세요"
+                className="w-full bg-gray-50 rounded-2xl p-4 text-[14px] focus:outline-[#EE6300] resize-none h-32"
+              />
+              <div className="flex gap-2 mt-3">
+                {memos[memoModal.placeId] && (
+                  <button
+                    onClick={async () => { await handleSaveMemo(memoModal.placeId, ""); setMemoModal(null); }}
+                    className="flex-1 border border-red-300 text-red-400 rounded-2xl py-3 text-[14px] cursor-pointer"
+                  >
+                    삭제
+                  </button>
+                )}
+                <button
+                  onClick={async () => { await handleSaveMemo(memoModal.placeId, memoInput); setMemoModal(null); }}
+                  className="flex-1 bg-[#EE6300] text-white rounded-2xl py-3 text-[14px] font-medium cursor-pointer"
+                >
+                  저장
+                </button>
+              </div>
+            </>
+          ) : (
+            <p className="bg-gray-50 rounded-2xl p-4 text-[14px] text-gray-700 whitespace-pre-wrap min-h-20">
+              {memos[memoModal.placeId]}
+            </p>
+          )}
         </div>
       </div>
     )}
@@ -425,10 +434,15 @@ export default function CourseDetail({
                         {memos[p.places.id] ? "메모 보기" : "메모 추가"}
                       </button>
                     ) : (
-                      <span className="text-[12px] text-gray-400">📝</span>
-                    )}
-                    {memos[p.places.id] && (
-                      <span className="text-[12px] text-gray-500 line-clamp-1">{memos[p.places.id]}</span>
+                      <button
+                        onClick={() => {
+                          setMemoInput(memos[p.places.id] ?? "");
+                          setMemoModal({ placeId: p.places.id, placeName: p.places.name });
+                        }}
+                        className="text-[12px] text-gray-500 border border-gray-300 rounded-xl px-3 py-1 cursor-pointer hover:border-[#EE6300] hover:text-[#EE6300] shrink-0"
+                      >
+                        메모 보기
+                      </button>
                     )}
                   </div>
                 )}
