@@ -72,7 +72,7 @@ export default function Hot() {
                         {course.title}
                       </p>
                       <p className="text-[12px] text-gray-400">
-                        {course.profiles.username}
+                        {course.profiles?.username}
                       </p>
                       <p className="text-[12px] text-gray-500 mt-1">
                         {course.course_places

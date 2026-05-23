@@ -221,7 +221,7 @@ export default function Explore() {
                 {selected.course_places[0].courses.title}
               </h2>
               <h3 className="text-[14px] text-gray-400 ml-2">
-                {selected.course_places[0].courses.profiles.username}
+                {selected.course_places[0].courses.profiles?.username}
               </h3>
             </div>
             <button
@@ -297,7 +297,7 @@ export default function Explore() {
                       <div className="flex flex-col gap-1 flex-1 min-w-0">
                         <div>
                           <span className="text-gray-400 text-[14px] mr-2">
-                            {courseInfo?.courses.profiles.username}
+                            {courseInfo?.courses.profiles?.username}
                           </span>
                           <span className="font-medium text-[15px]">
                             {courseInfo?.courses.title}
