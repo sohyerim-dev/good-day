@@ -49,8 +49,6 @@ export default function EditCourse({
 
   const [query, setQuery] = useState("");
   const [searchResults, setSearchResults] = useState<NaverPlace[]>([]);
-  const [searchStart, setSearchStart] = useState(1);
-  const [hasMore, setHasMore] = useState(false);
 
   const [selectedPlaces, setSelectedPlaces] = useState<
     (NaverPlace & { order: number })[]
@@ -102,26 +100,11 @@ export default function EditCourse({
   async function handleSearch() {
     if (!query.trim()) return;
     const res = await fetch(
-      `/api/search-places?query=${encodeURIComponent(query.trim())}&start=1`,
+      `/api/search-places?query=${encodeURIComponent(query.trim())}`,
     );
     const data = await res.json();
-    const items = data.items ?? [];
-    setSearchResults(items);
-    setSearchStart(1);
-    setHasMore(items.length === 5);
+    setSearchResults(data.items ?? []);
     setSearchActive(true);
-  }
-
-  async function handleLoadMore() {
-    const nextStart = searchStart + 5;
-    const res = await fetch(
-      `/api/search-places?query=${encodeURIComponent(query.trim())}&start=${nextStart}`,
-    );
-    const data = await res.json();
-    const items = data.items ?? [];
-    setSearchResults((prev) => [...prev, ...items]);
-    setSearchStart(nextStart);
-    setHasMore(items.length === 5);
   }
 
   function handleAddPlace(place: NaverPlace) {
@@ -133,8 +116,6 @@ export default function EditCourse({
     setSearchResults([]);
     setSearchActive(false);
     setQuery("");
-    setSearchStart(1);
-    setHasMore(false);
     if (placeActive === false) {
       setPlaceActive(true);
     }
@@ -337,15 +318,7 @@ export default function EditCourse({
             검색 결과가 없습니다.
           </li>
         )}
-        <li className={searchActive ? "flex justify-between items-center mt-1" : "hidden"}>
-          {hasMore ? (
-            <button
-              onClick={handleLoadMore}
-              className="text-[12px] text-[#EE6300] font-medium hover:underline"
-            >
-              더보기
-            </button>
-          ) : <span />}
+        <li className={searchActive ? "flex justify-end mt-1" : "hidden"}>
           <button
             onClick={() => setSearchActive(false)}
             className="text-[12px] text-gray-400 hover:text-black"
