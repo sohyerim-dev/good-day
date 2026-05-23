@@ -245,9 +245,14 @@ export default function EditCourse({
         onChange={(e) => setDescription(e.target.value)}
       />
 
-      <label htmlFor="place-search" className="font-medium text-[18px]">
-        장소 검색
-      </label>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="place-search" className="font-medium text-[18px]">
+          장소 검색
+        </label>
+        <p className="text-[12px] text-gray-300">
+          결과가 없으면 장소명을 더 구체적으로 입력해보세요. (예: 블루보틀 → 성수동 블루보틀)
+        </p>
+      </div>
       <div className="flex gap-2">
         <input
           id="place-search"
@@ -281,9 +286,6 @@ export default function EditCourse({
       >
         내 저장된 장소에서 추가
       </button>
-      <p className="text-[12px] text-gray-300 -mt-2">
-        결과가 없으면 장소명을 더 구체적으로 입력해보세요. (예: 블루보틀 → 성수동 블루보틀)
-      </p>
       <ul className={searchActive ? "bg-gray-50 rounded-2xl p-4 w-full" : ""}>
         {searchResults.length !== 0 ? (
           searchResults.map((place: NaverPlace, index: number) => (
