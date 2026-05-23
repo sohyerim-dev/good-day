@@ -194,7 +194,7 @@ export default function CourseDetail({
       <AlertModal
         message="로그인 후 이용할 수 있어요"
         onClose={() => setShowLoginPrompt(false)}
-        onConfirm={() => router.push("/login")}
+        onConfirm={() => router.push(`/login?redirect=${encodeURIComponent(`/courses/${id}`)}`)}
       />
     )}
     <Script
