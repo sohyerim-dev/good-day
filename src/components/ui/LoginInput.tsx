@@ -53,7 +53,7 @@ export default function LoginInput({
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         onChange={onChange}
-        className={`border outline-none rounded-2xl h-12 w-68 pl-12 pr-6 pt-3.5 pb-3.25 text-[14px] border-[#9CA3AF] ${focused ? "border-[#EE6300]" : "border-[#9CA3AF]"}`}
+        className={`border outline-none rounded-2xl h-12 w-68 pl-12 pr-6 pt-3.5 pb-3.25 text-[16px] border-[#9CA3AF] ${focused ? "border-[#EE6300]" : "border-[#9CA3AF]"}`}
       />
     </div>
   );
