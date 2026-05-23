@@ -375,7 +375,7 @@ export default function CourseDetail({
                           시간 추가
                           <input
                             type="time"
-                            onChange={(e) => {
+                            onBlur={(e) => {
                               if (e.target.value) {
                                 setSchedules((prev) => ({ ...prev, [p.places.id]: e.target.value }));
                                 handleSaveTime(p.places.id, e.target.value);
