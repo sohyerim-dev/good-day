@@ -2,6 +2,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
 import { Course } from "@/types/course";
+import InstallPrompt from "@/components/InstallPrompt";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -33,7 +34,7 @@ export default function Home() {
 
   if (!user) {
     return (
-      <main className="p-4 flex flex-col items-center">
+      <main className="p-4 flex flex-col items-center relative">
         <h1 className="sr-only">메인 페이지</h1>
         <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" className="mb-2" />
         <Link href="/about" className="text-[13px] text-gray-400 border border-gray-200 rounded-2xl px-3 py-1.5 hover:border-[#EE6300] hover:text-[#EE6300] mb-4 self-start">
@@ -51,6 +52,7 @@ export default function Home() {
             로그인하고 시작하기
           </Link>
         </div>
+        <InstallPrompt />
       </main>
     );
   }
