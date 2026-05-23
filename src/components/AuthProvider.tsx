@@ -26,7 +26,8 @@ export default function AuthProvider({
       pathname === "/" ||
       pathname === "/hot" ||
       pathname === "/explore" ||
-      /^\/courses\/[^/]+$/.test(pathname);
+      /^\/courses\/[^/]+$/.test(pathname) ||
+      /^\/map\/[^/]+/.test(pathname);
     const supabase = createClient();
 
     supabase.auth.getUser().then(async ({ data: { user } }) => {
