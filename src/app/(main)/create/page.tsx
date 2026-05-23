@@ -245,7 +245,7 @@ export default function Create() {
           장소 검색
         </label>
         <p className="text-[12px] text-gray-300">
-          결과가 없으면 장소명을 더 구체적으로 입력해보세요. (예: 블루보틀 → 성수동 블루보틀)
+          결과가 없으면 장소명을 더 구체적으로 입력해보세요.<br />(예: 블루보틀 → 성수동 블루보틀)
         </p>
       </div>
       <div className="flex gap-2">
