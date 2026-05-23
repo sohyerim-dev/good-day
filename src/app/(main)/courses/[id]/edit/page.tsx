@@ -308,14 +308,9 @@ export default function EditCourse({
             </li>
           ))
         ) : (
-          <li
-            className={
-              searchActive
-                ? "text-[14px] text-gray-400 text-center py-2"
-                : "hidden"
-            }
-          >
-            검색 결과가 없습니다.
+          <li className={searchActive ? "flex flex-col items-center gap-1 py-3" : "hidden"}>
+            <span className="text-[14px] text-gray-400">검색 결과가 없어요.</span>
+            <span className="text-[12px] text-gray-300">장소명을 더 구체적으로 입력해보세요. (예: 성수 카페 → 성수동 블루보틀)</span>
           </li>
         )}
         <li className={searchActive ? "flex justify-end mt-1" : "hidden"}>
