@@ -58,7 +58,7 @@ export default function Home() {
   }
 
   return (
-    <main className="p-4 flex flex-col items-center">
+    <main className="p-4 flex flex-col items-center relative">
       <h1 className="sr-only">메인 페이지</h1>
       <Image
         src="/images/logo.svg"
@@ -84,6 +84,7 @@ export default function Home() {
           장소를 추가하고 순서를 정하면 여행 코스가 완성돼요.
         </p>
       </div>
+      <InstallPrompt />
 
       <h2 className="font-bold text-[18px] mb-3 self-start">나의 코스</h2>
 
