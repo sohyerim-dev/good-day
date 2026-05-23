@@ -479,7 +479,7 @@ export default function CourseDetail({
                 ⓘ
               </button>
               {showInfoTooltip && (
-                <div className="absolute bottom-10 right-0 bg-gray-800 text-white text-[12px] rounded-2xl px-4 py-3 w-52 z-20 shadow-lg">
+                <div className="absolute bottom-10 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-[12px] rounded-2xl px-4 py-3 w-52 z-20 shadow-lg">
                   <p className="mb-1.5">❤️ <span className="font-medium">좋아요</span> — 코스가 마음에 들면 눌러보세요. 인기 코스 순위에 반영돼요.</p>
                   <p>🔖 <span className="font-medium">저장</span> — 마이코스 &gt; 북마크에 저장돼요.</p>
                   <button
