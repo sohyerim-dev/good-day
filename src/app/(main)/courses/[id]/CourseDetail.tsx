@@ -34,6 +34,7 @@ export default function CourseDetail({
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
+  const [includeSchedule, setIncludeSchedule] = useState(true);
 
   // ?u=userId 파라미터가 있으면 해당 유저의 일정을 표시, 없으면 내 일정
   const searchParams = useSearchParams();
@@ -174,7 +175,7 @@ export default function CourseDetail({
   function getShareUrl() {
     const base = `${window.location.origin}/courses/${id}`;
     const hasSchedule = isScheduleEditable && Object.keys(schedules).length > 0;
-    return hasSchedule ? `${base}?u=${user?.id}` : base;
+    return hasSchedule && includeSchedule ? `${base}?u=${user?.id}` : base;
   }
 
   async function handleCopyUrl() {
@@ -441,7 +442,18 @@ export default function CourseDetail({
               </span>
             )}
             {showShareMenu && (
-              <div className="absolute bottom-14 left-0 bg-white rounded-2xl shadow-lg overflow-hidden z-10 w-36">
+              <div className="absolute bottom-14 left-0 bg-white rounded-2xl shadow-lg overflow-hidden z-10 w-44">
+                {isScheduleEditable && Object.keys(schedules).length > 0 && (
+                  <label className="flex items-center gap-2 px-4 py-3 text-[13px] cursor-pointer hover:bg-gray-50 border-b border-gray-100">
+                    <input
+                      type="checkbox"
+                      checked={includeSchedule}
+                      onChange={(e) => setIncludeSchedule(e.target.checked)}
+                      className="accent-[#EE6300]"
+                    />
+                    시간 메모 포함
+                  </label>
+                )}
                 <button
                   onClick={handleCopyUrl}
                   className="w-full px-4 py-3 text-[13px] text-left hover:bg-gray-50 cursor-pointer"
