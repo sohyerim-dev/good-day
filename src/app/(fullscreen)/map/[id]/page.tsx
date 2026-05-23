@@ -131,10 +131,12 @@ export default function RoutePage({
             <span>교통수단 경로</span>
           </div>
         )}
-        <div className="flex items-center gap-2">
-          <div className="w-6 border-t-2 border-dashed border-gray-400" />
-          <span>도보 경로</span>
-        </div>
+        {!isTransitMode && (
+          <div className="flex items-center gap-2">
+            <div className="w-6 border-t-2 border-dashed border-gray-400" />
+            <span>도보 경로</span>
+          </div>
+        )}
       </div>
 
       <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
@@ -150,7 +152,7 @@ export default function RoutePage({
             onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
             selectedSegment={selectedSegment}
             showTransit={isTransitMode}
-            showWalk={true}
+            showWalk={!isTransitMode}
           />
         </Map>
       </APIProvider>
