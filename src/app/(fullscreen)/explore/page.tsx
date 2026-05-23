@@ -215,12 +215,12 @@ export default function Explore() {
       </APIProvider>
       {selected && (
         <div className="z-50 absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
-          <div className="flex justify-between items-center mb-4">
-            <div className="flex items-center">
-              <h2 className="font-bold text-[18px]">
+          <div className="flex justify-between items-start mb-4 gap-3">
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <h2 className="font-bold text-[18px] leading-tight">
                 {selected.course_places[0].courses.title}
               </h2>
-              <h3 className="text-[14px] text-gray-400 ml-2">
+              <h3 className="text-[13px] text-gray-400">
                 {selected.course_places[0].courses.profiles?.username}
               </h3>
             </div>
@@ -229,7 +229,7 @@ export default function Explore() {
                 setSelected(null);
                 setSelectedCoursePlaces(undefined);
               }}
-              className="text-[14px] text-gray-400 cursor-pointer hover:text-black"
+              className="text-[14px] text-gray-400 cursor-pointer hover:text-black shrink-0"
             >
               닫기
             </button>
