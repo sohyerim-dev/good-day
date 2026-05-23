@@ -7,8 +7,9 @@ export async function GET(req: NextRequest) {
   if (!query) return NextResponse.json({ items: [] });
 
   // 브라우저 대신 서버에서 네이버 API 호출 (CORS 우회)
+  const start = req.nextUrl.searchParams.get("start") ?? "1";
   const res = await fetch(
-    `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent(query)}&display=10`,
+    `https://openapi.naver.com/v1/search/local.json?query=${encodeURIComponent(query)}&display=5&start=${start}`,
     {
       headers: {
         // .env.local의 값으로 네이버 API 인증
