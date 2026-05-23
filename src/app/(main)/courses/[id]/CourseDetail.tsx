@@ -6,7 +6,7 @@ import { useUserStore } from "@/store/userStore";
 import { Course, CoursePlace } from "@/types/course";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, use, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 
@@ -31,8 +31,13 @@ export default function CourseDetail({
   const [savedPlaces, setSavedPlaces] = useState<Set<string>>(new Set());
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
-  // 비로그인 상태에서 로그인 필요 기능 클릭 시 표시
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+
+  // ?u=userId 파라미터가 있으면 해당 유저의 일정을 표시, 없으면 내 일정
+  const searchParams = useSearchParams();
+  const scheduleOwnerId = searchParams.get("u") ?? user?.id ?? null;
+  const isScheduleEditable = !!user && !!scheduleOwnerId && user.id === scheduleOwnerId;
+  const [schedules, setSchedules] = useState<Record<string, string>>({}); // place_id → time_memo
 
   // 공유 메뉴 외부 클릭 시 닫기
   useEffect(() => {
@@ -68,6 +73,24 @@ export default function CourseDetail({
         if (!data || error) setPlacesError("장소 목록을 불러올 수 없어요");
       });
   }, [id]);
+
+  // scheduleOwnerId 기준으로 일정 불러오기 (내 일정 또는 공유받은 일정)
+  useEffect(() => {
+    if (!scheduleOwnerId) return;
+    supabase
+      .from("user_course_schedules")
+      .select("place_id, time_memo")
+      .eq("user_id", scheduleOwnerId)
+      .eq("course_id", id)
+      .then(({ data }) => {
+        if (!data) return;
+        const map: Record<string, string> = {};
+        data.forEach((s: { place_id: string; time_memo: string }) => {
+          map[s.place_id] = s.time_memo;
+        });
+        setSchedules(map);
+      });
+  }, [id, scheduleOwnerId]);
 
   // 로그인한 사용자에게만 필요한 데이터 (좋아요 여부, 북마크 여부, 저장된 장소)
   useEffect(() => {
@@ -129,16 +152,38 @@ export default function CourseDetail({
     }
   }
 
+  // 시간 메모 저장: 값이 있으면 upsert, 없으면 삭제
+  async function handleSaveTime(placeId: string, time: string) {
+    if (!user || !isScheduleEditable) return;
+    if (!time) {
+      await supabase.from("user_course_schedules").delete()
+        .eq("user_id", user.id).eq("course_id", id).eq("place_id", placeId);
+      setSchedules((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
+    } else {
+      await supabase.from("user_course_schedules").upsert(
+        { user_id: user.id, course_id: id, place_id: placeId, time_memo: time },
+        { onConflict: "user_id,course_id,place_id" },
+      );
+      setSchedules((prev) => ({ ...prev, [placeId]: time }));
+    }
+  }
+
+  // 내 일정이 있으면 ?u=내id 포함한 URL 반환
+  function getShareUrl() {
+    const base = `${window.location.origin}/courses/${id}`;
+    const hasSchedule = isScheduleEditable && Object.keys(schedules).length > 0;
+    return hasSchedule ? `${base}?u=${user?.id}` : base;
+  }
+
   async function handleCopyUrl() {
-    const url = `${window.location.origin}/courses/${id}`;
-    await navigator.clipboard.writeText(url);
+    await navigator.clipboard.writeText(getShareUrl());
     setCopied(true);
     setShowShareMenu(false);
     setTimeout(() => setCopied(false), 2000);
   }
 
   function handleKakaoShare() {
-    const url = `${window.location.origin}/courses/${id}`;
+    const url = getShareUrl();
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const kakao = (window as any).Kakao;
     if (!kakao) return;
@@ -155,6 +200,7 @@ export default function CourseDetail({
     });
     setShowShareMenu(false);
   }
+
 
   async function handleDeleteCourse() {
     if (!confirm("코스를 삭제할까요?")) return;
@@ -267,35 +313,57 @@ export default function CourseDetail({
             <Fragment key={p.id}>
               <li
                 key={p.id}
-                className="flex items-start justify-between bg-gray-50 rounded-2xl p-4"
+                className="flex flex-col bg-gray-50 rounded-2xl p-4 gap-2"
               >
-                <div className="flex flex-col gap-1 flex-1 min-w-0 mr-2">
-                  <span className="font-medium">
-                    <span className="text-[#EE6300] mr-2">{p.order}.</span>
-                    {p.places.name}
-                  </span>
-                  <span className="text-[12px] text-gray-400">
-                    {p.places.address}
-                  </span>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <a
-                    href={p.places.naver_url}
-                    target="_blank"
-                    className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 hover:bg-[#EE6300] hover:text-white"
-                  >
-                    네이버 플레이스
-                  </a>
-                  {/* 비로그인 시 저장 버튼 숨김 */}
-                  {user && (
-                    <button
-                      onClick={() => handleSavePlace(p.places.id)}
-                      className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer hover:bg-[#EE6300] hover:text-white"
+                <div className="flex items-start justify-between">
+                  <div className="flex flex-col gap-1 flex-1 min-w-0 mr-2">
+                    <span className="font-medium">
+                      <span className="text-[#EE6300] mr-2">{p.order}.</span>
+                      {p.places.name}
+                    </span>
+                    <span className="text-[12px] text-gray-400">
+                      {p.places.address}
+                    </span>
+                  </div>
+                  <div className="flex gap-2 shrink-0">
+                    <a
+                      href={p.places.naver_url}
+                      target="_blank"
+                      className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 hover:bg-[#EE6300] hover:text-white"
                     >
-                      {savedPlaces.has(p.places.id) ? "저장됨" : "저장"}
-                    </button>
-                  )}
+                      네이버 플레이스
+                    </a>
+                    {user && (
+                      <button
+                        onClick={() => handleSavePlace(p.places.id)}
+                        className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer hover:bg-[#EE6300] hover:text-white"
+                      >
+                        {savedPlaces.has(p.places.id) ? "저장됨" : "저장"}
+                      </button>
+                    )}
+                  </div>
                 </div>
+                {/* 시간 메모: 내 일정이면 편집 가능, 공유받은 일정이면 읽기 전용, 없으면 숨김 */}
+                {(isScheduleEditable || schedules[p.places.id]) && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                    <span className="text-[12px] text-gray-400">🕐</span>
+                    {isScheduleEditable ? (
+                      <input
+                        type="time"
+                        value={schedules[p.places.id] ?? ""}
+                        onChange={(e) =>
+                          setSchedules((prev) => ({ ...prev, [p.places.id]: e.target.value }))
+                        }
+                        onBlur={(e) => handleSaveTime(p.places.id, e.target.value)}
+                        className="text-[16px] text-[#EE6300] bg-transparent focus:outline-none"
+                      />
+                    ) : (
+                      <span className="text-[13px] text-[#EE6300]">
+                        {schedules[p.places.id]}
+                      </span>
+                    )}
+                  </div>
+                )}
               </li>
               {i !== places.length - 1 && (
                 <li>
