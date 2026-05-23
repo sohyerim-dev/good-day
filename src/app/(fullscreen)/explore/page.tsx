@@ -114,7 +114,7 @@ export default function Explore() {
     setZoomLevel(15);
   }
   return (
-    <main className="relative h-dvh overflow-hidden">
+    <main className="relative h-screen overflow-hidden">
       <button
         onClick={() => router.back()}
         className="top-4 left-4 absolute z-50 bg-white rounded-2xl px-4 py-2 shadow text-[16px] font-medium cursor-pointer text-[#EE6300] hover:text-black"
@@ -175,7 +175,7 @@ export default function Explore() {
         <Map
           clickableIcons={false}
           mapId="DEMO_MAP_ID"
-          style={{ width: "100%", height: "100dvh" }}
+          style={{ width: "100%", height: "100vh" }}
           // 첫 페이지 화면 - 현재 위치 기반으로 지도 보여주기
           defaultCenter={{ lat: 37.5, lng: 127 }}
           defaultZoom={12}
