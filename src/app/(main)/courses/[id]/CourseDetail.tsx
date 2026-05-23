@@ -35,6 +35,10 @@ export default function CourseDetail({
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
   const [includeSchedule, setIncludeSchedule] = useState(true);
+  const [memos, setMemos] = useState<Record<string, string>>({}); // place_id → memo
+  const [includeMemo, setIncludeMemo] = useState(true);
+  const [memoModal, setMemoModal] = useState<{ placeId: string; placeName: string } | null>(null);
+  const [memoInput, setMemoInput] = useState("");
 
   // ?u=userId 파라미터가 있으면 해당 유저의 일정을 표시, 없으면 내 일정
   const searchParams = useSearchParams();
@@ -82,16 +86,19 @@ export default function CourseDetail({
     if (!scheduleOwnerId) return;
     supabase
       .from("user_course_schedules")
-      .select("place_id, time_memo")
+      .select("place_id, time_memo, memo")
       .eq("user_id", scheduleOwnerId)
       .eq("course_id", id)
       .then(({ data }) => {
         if (!data) return;
-        const map: Record<string, string> = {};
-        data.forEach((s: { place_id: string; time_memo: string }) => {
-          map[s.place_id] = s.time_memo;
+        const timeMap: Record<string, string> = {};
+        const memoMap: Record<string, string> = {};
+        data.forEach((s: { place_id: string; time_memo: string; memo: string }) => {
+          if (s.time_memo) timeMap[s.place_id] = s.time_memo;
+          if (s.memo) memoMap[s.place_id] = s.memo;
         });
-        setSchedules(map);
+        setSchedules(timeMap);
+        setMemos(memoMap);
       });
   }, [id, scheduleOwnerId]);
 
@@ -171,11 +178,36 @@ export default function CourseDetail({
     }
   }
 
-  // 내 일정이 있으면 ?u=내id 포함한 URL 반환
+  async function handleSaveMemo(placeId: string, memo: string) {
+    if (!user || !isScheduleEditable) return;
+    const trimmed = memo.trim();
+    if (!trimmed) {
+      if (!schedules[placeId]) {
+        await supabase.from("user_course_schedules").delete()
+          .eq("user_id", user.id).eq("course_id", id).eq("place_id", placeId);
+      } else {
+        await supabase.from("user_course_schedules").upsert(
+          { user_id: user.id, course_id: id, place_id: placeId, memo: null },
+          { onConflict: "user_id,course_id,place_id" },
+        );
+      }
+      setMemos((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
+    } else {
+      await supabase.from("user_course_schedules").upsert(
+        { user_id: user.id, course_id: id, place_id: placeId, memo: trimmed },
+        { onConflict: "user_id,course_id,place_id" },
+      );
+      setMemos((prev) => ({ ...prev, [placeId]: trimmed }));
+    }
+  }
+
+  // 내 일정/메모가 있으면 ?u=내id 포함한 URL 반환
   function getShareUrl() {
     const base = `${window.location.origin}/courses/${id}`;
     const hasSchedule = isScheduleEditable && Object.keys(schedules).length > 0;
-    return hasSchedule && includeSchedule ? `${base}?u=${user?.id}` : base;
+    const hasMemo = isScheduleEditable && Object.keys(memos).length > 0;
+    const shouldInclude = (hasSchedule && includeSchedule) || (hasMemo && includeMemo);
+    return shouldInclude ? `${base}?u=${user?.id}` : base;
   }
 
   async function handleCopyUrl() {
@@ -245,6 +277,39 @@ export default function CourseDetail({
         onClose={() => setShowLoginPrompt(false)}
         onConfirm={() => router.push(`/login?redirect=${encodeURIComponent(`/courses/${id}`)}`)}
       />
+    )}
+    {memoModal && (
+      <div className="fixed inset-0 z-50 flex items-end">
+        <div className="fixed inset-0 bg-black/30" onClick={() => setMemoModal(null)} />
+        <div className="relative z-10 w-full bg-white rounded-t-3xl p-6 pb-10">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="font-bold text-[16px]">{memoModal.placeName}</h2>
+            <button onClick={() => setMemoModal(null)} className="text-gray-400 hover:text-black text-[13px] cursor-pointer">닫기</button>
+          </div>
+          <textarea
+            value={memoInput}
+            onChange={(e) => setMemoInput(e.target.value)}
+            placeholder="메모를 입력하세요"
+            className="w-full bg-gray-50 rounded-2xl p-4 text-[14px] focus:outline-[#EE6300] resize-none h-32"
+          />
+          <div className="flex gap-2 mt-3">
+            {memos[memoModal.placeId] && (
+              <button
+                onClick={async () => { await handleSaveMemo(memoModal.placeId, ""); setMemoModal(null); }}
+                className="flex-1 border border-red-300 text-red-400 rounded-2xl py-3 text-[14px] cursor-pointer"
+              >
+                삭제
+              </button>
+            )}
+            <button
+              onClick={async () => { await handleSaveMemo(memoModal.placeId, memoInput); setMemoModal(null); }}
+              className="flex-1 bg-[#EE6300] text-white rounded-2xl py-3 text-[14px] font-medium cursor-pointer"
+            >
+              저장
+            </button>
+          </div>
+        </div>
+      </div>
     )}
     <Script
       src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js"
@@ -346,6 +411,27 @@ export default function CourseDetail({
                     )}
                   </div>
                 </div>
+                {/* 메모: 내 코스이면 편집 가능, 공유받은 경우 읽기 전용, 없으면 숨김 */}
+                {(course?.user_id === user?.id || memos[p.places.id]) && (
+                  <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
+                    {course?.user_id === user?.id ? (
+                      <button
+                        onClick={() => {
+                          setMemoInput(memos[p.places.id] ?? "");
+                          setMemoModal({ placeId: p.places.id, placeName: p.places.name });
+                        }}
+                        className="text-[12px] text-gray-500 border border-gray-300 rounded-xl px-3 py-1 cursor-pointer hover:border-[#EE6300] hover:text-[#EE6300] shrink-0"
+                      >
+                        {memos[p.places.id] ? "메모 보기" : "메모 추가"}
+                      </button>
+                    ) : (
+                      <span className="text-[12px] text-gray-400">📝</span>
+                    )}
+                    {memos[p.places.id] && (
+                      <span className="text-[12px] text-gray-500 line-clamp-1">{memos[p.places.id]}</span>
+                    )}
+                  </div>
+                )}
                 {/* 시간 메모: 내 일정이면 편집 가능, 공유받은 일정이면 읽기 전용, 없으면 숨김 */}
                 {(isScheduleEditable || schedules[p.places.id]) && (
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
@@ -452,6 +538,17 @@ export default function CourseDetail({
                       className="accent-[#EE6300]"
                     />
                     시간 메모 포함
+                  </label>
+                )}
+                {isScheduleEditable && Object.keys(memos).length > 0 && (
+                  <label className="flex items-center gap-2 px-4 py-3 text-[13px] cursor-pointer hover:bg-gray-50 border-b border-gray-100">
+                    <input
+                      type="checkbox"
+                      checked={includeMemo}
+                      onChange={(e) => setIncludeMemo(e.target.checked)}
+                      className="accent-[#EE6300]"
+                    />
+                    메모 포함
                   </label>
                 )}
                 <button
