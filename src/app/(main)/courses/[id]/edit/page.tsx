@@ -282,7 +282,7 @@ export default function EditCourse({
         내 저장된 장소에서 추가
       </button>
       <p className="text-[12px] text-gray-300 -mt-2">
-        결과가 없으면 장소명을 더 구체적으로 입력해보세요. (예: 성수 카페 → 성수동 블루보틀)
+        결과가 없으면 장소명을 더 구체적으로 입력해보세요. (예: 블루보틀 → 성수동 블루보틀)
       </p>
       <ul className={searchActive ? "bg-gray-50 rounded-2xl p-4 w-full" : ""}>
         {searchResults.length !== 0 ? (
