@@ -4,13 +4,16 @@ import { useUserStore } from "@/store/userStore";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 export default function MyCourse() {
   const user = useUserStore((state) => state.user);
   const setUser = useUserStore((state) => state.setUser);
   const [isEditing, setIsEditing] = useState(false);
   const [editUsername, setEditUsername] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteInput, setDeleteInput] = useState("");
+  const deleteInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const router = useRouter();
 
@@ -21,6 +24,20 @@ export default function MyCourse() {
       .eq("id", user?.id);
     setUser({ ...user!, username: editUsername });
     setIsEditing(false);
+  }
+
+  async function handleDeleteAccount() {
+    const { error } = await supabase.auth.signOut();
+    if (error) return;
+
+    await fetch("/api/delete-account", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: user?.id }),
+    });
+
+    setUser(null);
+    router.push("/login");
   }
 
   async function handleLogout() {
@@ -170,7 +187,7 @@ export default function MyCourse() {
       </div>
 
       <div className="mt-auto">
-        {/* 로그아웃 */}
+        {/* 로그아웃 / 회원탈퇴 */}
         <div className="p-4 border-t border-gray-100 flex flex-col gap-2">
           <button
             onClick={handleLogout}
@@ -178,7 +195,54 @@ export default function MyCourse() {
           >
             로그아웃
           </button>
+          <button
+            onClick={() => { setDeleteInput(""); setShowDeleteModal(true); setTimeout(() => deleteInputRef.current?.focus(), 50); }}
+            className="text-left text-[14px] text-red-400 cursor-pointer py-2 hover:text-red-600"
+          >
+            회원탈퇴
+          </button>
         </div>
+
+        {/* 회원탈퇴 확인 모달 */}
+        {showDeleteModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+            onClick={() => setShowDeleteModal(false)}
+          >
+            <div
+              className="bg-white rounded-xl mx-6 w-full max-w-sm"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-6 py-8 flex flex-col gap-4">
+                <p className="text-[15px] font-semibold text-center">정말 탈퇴하시겠어요?</p>
+                <p className="text-[13px] text-gray-400 text-center">
+                  코스, 북마크 등 모든 데이터가 삭제되며 복구할 수 없어요.
+                </p>
+                {/* "탈퇴" 입력 확인 */}
+                <input
+                  ref={deleteInputRef}
+                  value={deleteInput}
+                  onChange={(e) => setDeleteInput(e.target.value)}
+                  placeholder='"탈퇴" 입력'
+                  className="border border-gray-200 rounded-xl px-4 py-3 text-[14px] focus:outline-[#EE6300]"
+                />
+                <button
+                  onClick={handleDeleteAccount}
+                  disabled={deleteInput !== "탈퇴"}
+                  className="w-full bg-red-500 text-white rounded-xl py-3 font-semibold text-[14px] disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  탈퇴하기
+                </button>
+                <button
+                  onClick={() => setShowDeleteModal(false)}
+                  className="text-[13px] text-gray-400 text-center hover:text-black"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* 개발자 정보 */}
         <div className="px-4 pb-24 pt-4 border-t border-gray-100">
