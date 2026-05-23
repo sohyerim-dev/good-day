@@ -35,6 +35,11 @@ export default function Home() {
     return (
       <main className="p-4 flex flex-col items-center">
         <h1 className="sr-only">메인 페이지</h1>
+        <div className="flex justify-start w-full mb-4">
+          <Link href="/about" className="text-[13px] text-gray-400 hover:text-[#EE6300]">
+            굿데이 소개
+          </Link>
+        </div>
         <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" className="mb-4" />
         <div className="w-full bg-gray-50 rounded-2xl px-5 py-8 mt-4 flex flex-col items-center gap-3 text-center">
           <p className="font-bold text-[18px]">나만의 놀기 코스 플래너</p>
