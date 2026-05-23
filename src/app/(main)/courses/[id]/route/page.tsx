@@ -24,6 +24,8 @@ export default function RoutePage({
   const [routeData, setRouteData] = useState<RouteSegment[]>([]);
   const [selectedSegment, setSelectedSegment] = useState<number | null>(null);
   const [routeLoading, setRouteLoading] = useState(true);
+  const [showTransitRoute, setShowTransitRoute] = useState(true);
+  const [showWalkRoute, setShowWalkRoute] = useState(true);
 
   useEffect(() => {
     supabase
@@ -56,31 +58,51 @@ export default function RoutePage({
         </button>
       </div>
       {routeData.length > 0 && (
-        <div className="z-50 absolute top-16 left-0 right-0 flex gap-2 overflow-x-auto px-4 py-1 scrollbar-hide">
-          <button
-            onClick={() => setSelectedSegment(null)}
-            className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
-              selectedSegment === null
-                ? "bg-gray-800 text-white"
-                : "bg-white text-gray-700"
-            }`}
-          >
-            전체
-          </button>
-          {routeData.map((_, i) => (
+        <>
+          <div className="z-50 absolute top-16 left-0 right-0 flex gap-2 overflow-x-auto px-4 py-1 scrollbar-hide">
             <button
-              key={i}
-              onClick={() => setSelectedSegment(i)}
+              onClick={() => setSelectedSegment(null)}
               className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
-                selectedSegment === i
-                  ? "bg-[#EE6300] text-white"
+                selectedSegment === null
+                  ? "bg-gray-800 text-white"
                   : "bg-white text-gray-700"
               }`}
             >
-              {i + 1}→{i + 2}
+              전체
             </button>
-          ))}
-        </div>
+            {routeData.map((_, i) => (
+              <button
+                key={i}
+                onClick={() => setSelectedSegment(i)}
+                className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
+                  selectedSegment === i
+                    ? "bg-[#EE6300] text-white"
+                    : "bg-white text-gray-700"
+                }`}
+              >
+                {i + 1}→{i + 2}
+              </button>
+            ))}
+          </div>
+          <div className="z-50 absolute top-28 left-4 flex gap-2">
+            <button
+              onClick={() => setShowTransitRoute((v) => !v)}
+              className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
+                showTransitRoute ? "bg-gray-700 text-white" : "bg-white text-gray-400"
+              }`}
+            >
+              교통수단 경로
+            </button>
+            <button
+              onClick={() => setShowWalkRoute((v) => !v)}
+              className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
+                showWalkRoute ? "bg-gray-700 text-white" : "bg-white text-gray-400"
+              }`}
+            >
+              도보 경로
+            </button>
+          </div>
+        </>
       )}
 
       {routeLoading && (
@@ -112,6 +134,8 @@ export default function RoutePage({
             places={places}
             onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
             selectedSegment={selectedSegment}
+            showTransit={showTransitRoute}
+            showWalk={showWalkRoute}
           />
         </Map>
       </APIProvider>
