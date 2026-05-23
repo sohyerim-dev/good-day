@@ -90,6 +90,8 @@ export default function Create() {
       ...prev,
       { ...place, order: prev.length + 1 },
     ]);
+    // 추가 후 검색 결과 닫아서 코스 목록 바로 확인 가능하게 함
+    setSearchResults([]);
     if (placeActive === false) {
       setPlaceActive(true);
     }
