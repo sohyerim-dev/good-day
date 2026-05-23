@@ -33,6 +33,7 @@ export default function CourseDetail({
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
   // ?u=userId 파라미터가 있으면 해당 유저의 일정을 표시, 없으면 내 일정
   const searchParams = useSearchParams();
@@ -458,6 +459,26 @@ export default function CourseDetail({
           </div>
           {user && course && course.user_id !== user?.id && (
             <>
+            <div className="relative flex items-center">
+              <button
+                onClick={() => setShowInfoTooltip((v) => !v)}
+                className="w-7 h-7 flex items-center justify-center text-gray-400 text-[13px] rounded-full hover:bg-gray-100 cursor-pointer"
+              >
+                ⓘ
+              </button>
+              {showInfoTooltip && (
+                <div className="absolute bottom-10 right-0 bg-gray-800 text-white text-[12px] rounded-2xl px-4 py-3 w-52 z-20 shadow-lg">
+                  <p className="mb-1.5">❤️ <span className="font-medium">좋아요</span> — 코스가 마음에 들면 눌러보세요. 인기 코스 순위에 반영돼요.</p>
+                  <p>🔖 <span className="font-medium">저장</span> — 마이코스 &gt; 북마크에 저장돼요.</p>
+                  <button
+                    onClick={() => setShowInfoTooltip(false)}
+                    className="absolute top-2 right-3 text-gray-400 hover:text-white text-[11px]"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               className="flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
               onClick={async () => {
