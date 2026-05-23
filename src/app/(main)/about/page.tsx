@@ -33,10 +33,6 @@ export default function About() {
               date: "2026.05.24",
               text: "코스 추가・수정 시 경로 미리보기 기능 추가",
             },
-            {
-              date: "2026.05.24",
-              text: "홈 화면에 추가 기능 지원 (PWA) — 앱처럼 설치해서 사용할 수 있어요",
-            },
           ].map((item, i) => (
             <div
               key={i}
