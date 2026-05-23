@@ -284,13 +284,15 @@ export default function CourseDetail({
                   >
                     네이버 플레이스
                   </a>
-                  {/* 저장은 로그인 후에만 가능 */}
-                  <button
-                    onClick={() => user ? handleSavePlace(p.places.id) : setShowLoginPrompt(true)}
-                    className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer hover:bg-[#EE6300] hover:text-white"
-                  >
-                    {savedPlaces.has(p.places.id) ? "저장됨" : "저장"}
-                  </button>
+                  {/* 비로그인 시 저장 버튼 숨김 */}
+                  {user && (
+                    <button
+                      onClick={() => handleSavePlace(p.places.id)}
+                      className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer hover:bg-[#EE6300] hover:text-white"
+                    >
+                      {savedPlaces.has(p.places.id) ? "저장됨" : "저장"}
+                    </button>
+                  )}
                 </div>
               </li>
               {i !== places.length - 1 && (
