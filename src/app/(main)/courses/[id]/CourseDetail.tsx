@@ -250,9 +250,11 @@ export default function CourseDetail({
               </div>
             )}
           </div>
-          <button onClick={() => router.back()} className="text-gray-400 shrink-0 cursor-pointer hover:text-black">
-            뒤로 가기
-          </button>
+          {user && (
+            <button onClick={() => router.back()} className="text-gray-400 shrink-0 cursor-pointer hover:text-black">
+              뒤로 가기
+            </button>
+          )}
         </div>
       </div>
 
@@ -358,7 +360,7 @@ export default function CourseDetail({
               </div>
             )}
           </div>
-          {course && course.user_id !== user?.id && (
+          {user && course && course.user_id !== user?.id && (
             <>
             <button
               className="flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
