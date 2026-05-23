@@ -64,7 +64,7 @@ export default function RoutePage({
       </main>
     );
   return (
-    <main className="relative h-screen overflow-hidden max-h-svh">
+    <main className="relative h-dvh overflow-hidden">
       <div className="z-50 absolute top-4 left-4 right-4 flex justify-between">
         <button
           onClick={() => router.back()}
@@ -150,7 +150,7 @@ export default function RoutePage({
       <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
         <Map
           mapId="DEMO_MAP_ID"
-          style={{ width: "100%", height: "100vh" }}
+          style={{ width: "100%", height: "100dvh" }}
           defaultCenter={{ lat: 37.5, lng: 127 }}
           defaultZoom={12}
           mapTypeControl={false}
