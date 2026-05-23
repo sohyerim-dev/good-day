@@ -425,7 +425,7 @@ export default function CourseDetail({
             onClick={() => router.push(`/map/${id}?transit=true`)}
             className="flex-1 bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
           >
-            교통수단 보기
+            교통수단・경로 보기
           </button>
         </div>
         <div className="flex gap-2">

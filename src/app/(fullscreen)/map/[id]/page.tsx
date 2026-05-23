@@ -32,8 +32,6 @@ export default function RoutePage({
   // 지도 위에 경로를 그리는 중인지 여부 (RouteRenderer가 onRouteData 호출 시 false로 변경)
   const [routeLoading, setRouteLoading] = useState(true);
   const isTransitMode = searchParams.get("transit") === "true";
-  const [showTransitRoute, setShowTransitRoute] = useState(isTransitMode);
-  const [showWalkRoute, setShowWalkRoute] = useState(!isTransitMode);
 
   // 해당 코스의 장소 목록 불러오기
   // course_places와 places 테이블을 JOIN해서 좌표, 이름 등을 한 번에 가져옴
@@ -74,14 +72,16 @@ export default function RoutePage({
         >
           뒤로 가기
         </button>
-        <button
-          onClick={() => setShowTransit(!showTransit)}
-          className={`rounded-2xl px-4 py-2 shadow text-[16px] font-medium cursor-pointer ${
-            showTransit ? "bg-gray-800 text-white" : "bg-[#EE6300] text-white"
-          }`}
-        >
-          {showTransit ? "교통수단 닫기" : "교통수단 보기"}
-        </button>
+        {isTransitMode && (
+          <button
+            onClick={() => setShowTransit(!showTransit)}
+            className={`rounded-2xl px-4 py-2 shadow text-[16px] font-medium cursor-pointer ${
+              showTransit ? "bg-gray-800 text-white" : "bg-[#EE6300] text-white"
+            }`}
+          >
+            {showTransit ? "교통수단 닫기" : "교통수단 보기"}
+          </button>
+        )}
       </div>
 
       {/* 구간 선택 버튼: 경로 데이터가 로드된 후에만 표시 */}
@@ -112,25 +112,6 @@ export default function RoutePage({
               </button>
             ))}
           </div>
-          {/* 경로 유형 토글: 교통수단/도보 각각 독립적으로 켜고 끄기 */}
-          <div className="z-50 absolute top-28 left-4 flex gap-2">
-            <button
-              onClick={() => setShowTransitRoute((v) => !v)}
-              className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
-                showTransitRoute ? "bg-gray-700 text-white" : "bg-white text-gray-400"
-              }`}
-            >
-              교통수단 경로
-            </button>
-            <button
-              onClick={() => setShowWalkRoute((v) => !v)}
-              className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
-                showWalkRoute ? "bg-gray-700 text-white" : "bg-white text-gray-400"
-              }`}
-            >
-              도보 경로
-            </button>
-          </div>
         </>
       )}
 
@@ -144,10 +125,12 @@ export default function RoutePage({
 
       {/* 범례 */}
       <div className="z-50 absolute bottom-8 left-4 bg-white rounded-2xl px-4 py-2 shadow text-[12px] flex flex-col gap-1">
-        <div className="flex items-center gap-2">
-          <div className="w-6 h-0.75 bg-gray-700 rounded" />
-          <span>교통수단 경로</span>
-        </div>
+        {isTransitMode && (
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-0.75 bg-gray-700 rounded" />
+            <span>교통수단 경로</span>
+          </div>
+        )}
         <div className="flex items-center gap-2">
           <div className="w-6 border-t-2 border-dashed border-gray-400" />
           <span>도보 경로</span>
@@ -166,8 +149,8 @@ export default function RoutePage({
             places={places}
             onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
             selectedSegment={selectedSegment}
-            showTransit={showTransitRoute}
-            showWalk={showWalkRoute}
+            showTransit={isTransitMode}
+            showWalk={true}
           />
         </Map>
       </APIProvider>
