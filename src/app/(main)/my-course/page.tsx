@@ -300,6 +300,21 @@ export default function MyCourse() {
             </div>
           </div>
         </div>
+
+        {/* 서비스 이용 피드백 */}
+        <div className="px-4 pb-24 pt-4 border-t border-gray-100">
+          <h2 className="text-[16px] font-bold mb-3">서비스 피드백</h2>
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSd4014fVb2wvYh3bIzOZT457wDgi7bhMc8XEC_StU9koix6GQ/viewform?usp=header"
+            target="_blank"
+            className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 hover:bg-gray-100"
+          >
+            <span className="text-[14px] font-medium">서비스 이용 피드백 남기기</span>
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-300">
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </a>
+        </div>
       </div>
     </main>
   );
