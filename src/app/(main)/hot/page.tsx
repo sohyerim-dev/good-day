@@ -24,9 +24,9 @@ export default function Hot() {
       .eq("is_public", true)
       .then(({ data, error }) => {
         if (error) setError("인기 코스를 불러올 수 없어요");
-        const sorted = (data ?? []).sort(
-          (a, b) => (b.likes[0]?.count ?? 0) - (a.likes[0]?.count ?? 0),
-        );
+        const sorted = (data ?? [])
+          .filter((c) => (c.likes[0]?.count ?? 0) > 0)
+          .sort((a, b) => (b.likes[0]?.count ?? 0) - (a.likes[0]?.count ?? 0));
         setCourses(sorted);
         setLoading(false);
       });
