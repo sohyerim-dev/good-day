@@ -123,7 +123,7 @@ export default function RouteRenderer({ places, onRouteData, selectedSegment, sh
         // 대중교통 실선 polyline 생성
         const transitPolyline = new google.maps.Polyline({
           path,
-          map,
+          map: showTransit ? map : null,
           strokeColor: color,
           strokeWeight: 4,
         });
@@ -134,7 +134,7 @@ export default function RouteRenderer({ places, onRouteData, selectedSegment, sh
           // 도보 점선 polyline 생성
           const walkPolyline = new google.maps.Polyline({
             path: data.walkPath,
-            map,
+            map: showWalk ? map : null,
             strokeColor: color,
             strokeWeight: 2,
             strokeOpacity: 0,
