@@ -136,7 +136,7 @@ export default function Create() {
     const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
     setTitle(courseTitle);
 
-    if (selectedPlaces.length === 0) return;
+    if (selectedPlaces.length < 2) return;
 
     // places 테이블에 upsert
     const { data: placesData, error: placesError } = await supabase
@@ -393,11 +393,16 @@ export default function Create() {
       </p>
       <button
         onClick={handleSave}
-        disabled={!hasHydrated}
+        disabled={!hasHydrated || selectedPlaces.length < 2}
         className="bg-[#EE6300] border hover:border-[#EE6300] hover:bg-white hover:text-[#EE6300] mt-2 rounded-2xl p-5 w-full cursor-pointer text-white disabled:opacity-50 disabled:cursor-not-allowed"
       >
         저장
       </button>
+      {selectedPlaces.length < 2 && (
+        <p className="text-[12px] text-gray-400 text-center -mt-2">
+          장소를 2개 이상 추가해야 코스를 저장할 수 있어요.
+        </p>
+      )}
       {showSaved && (
         <div className="fixed inset-x-0 top-0 bottom-20 z-9999 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
