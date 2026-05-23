@@ -265,9 +265,9 @@ export default function CourseDetail({
             <Fragment key={p.id}>
               <li
                 key={p.id}
-                className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
+                className="flex items-start justify-between bg-gray-50 rounded-2xl p-4"
               >
-                <div className="flex flex-col gap-1">
+                <div className="flex flex-col gap-1 flex-1 min-w-0 mr-2">
                   <span className="font-medium">
                     <span className="text-[#EE6300] mr-2">{p.order}.</span>
                     {p.places.name}
