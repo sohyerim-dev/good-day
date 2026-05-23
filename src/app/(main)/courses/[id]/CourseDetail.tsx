@@ -348,16 +348,44 @@ export default function CourseDetail({
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
                     <span className="text-[12px] text-gray-400">🕐</span>
                     {isScheduleEditable ? (
-                      <input
-                        type="time"
-                        value={schedules[p.places.id] ?? ""}
-                        onChange={(e) =>
-                          setSchedules((prev) => ({ ...prev, [p.places.id]: e.target.value }))
-                        }
-                        onBlur={(e) => handleSaveTime(p.places.id, e.target.value)}
-                        className="text-[16px] text-[#EE6300] bg-transparent focus:outline-none"
-                      />
+                      schedules[p.places.id] ? (
+                        // 시간 있음: 수정 가능한 input + 삭제 버튼
+                        <>
+                          <input
+                            type="time"
+                            value={schedules[p.places.id]}
+                            onChange={(e) =>
+                              setSchedules((prev) => ({ ...prev, [p.places.id]: e.target.value }))
+                            }
+                            onBlur={(e) => handleSaveTime(p.places.id, e.target.value)}
+                            className="text-[16px] text-[#EE6300] bg-transparent focus:outline-none"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => handleSaveTime(p.places.id, "")}
+                            className="text-gray-300 hover:text-gray-500 cursor-pointer text-[16px] leading-none"
+                          >
+                            ✕
+                          </button>
+                        </>
+                      ) : (
+                        // 시간 없음: "시간 추가" 안내 문구 탭하면 picker 열림
+                        <label className="relative flex items-center gap-1 cursor-pointer text-[13px] text-gray-400">
+                          시간 추가
+                          <input
+                            type="time"
+                            onChange={(e) => {
+                              if (e.target.value) {
+                                setSchedules((prev) => ({ ...prev, [p.places.id]: e.target.value }));
+                                handleSaveTime(p.places.id, e.target.value);
+                              }
+                            }}
+                            className="absolute inset-0 opacity-0 cursor-pointer"
+                          />
+                        </label>
+                      )
                     ) : (
+                      // 공유받은 일정: 읽기 전용
                       <span className="text-[13px] text-[#EE6300]">
                         {schedules[p.places.id]}
                       </span>
