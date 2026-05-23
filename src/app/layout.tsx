@@ -16,6 +16,9 @@ export const metadata: Metadata = {
   },
   verification: {
     google: "tLq7bUO1kTb4vvpGb6eZcQmIPPZbpTYuj6nkzDszpBc",
+    other: {
+      "naver-site-verification": "f27f717d92d8b7244b9e9fa1f62dac3031310ad9",
+    },
   },
   openGraph: {
     title: "굿데이 | 나만의 놀기 코스 플래너",
