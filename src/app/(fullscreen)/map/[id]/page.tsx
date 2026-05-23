@@ -31,8 +31,9 @@ export default function RoutePage({
   const [loading, setLoading] = useState(true);
   // 지도 위에 경로를 그리는 중인지 여부 (RouteRenderer가 onRouteData 호출 시 false로 변경)
   const [routeLoading, setRouteLoading] = useState(true);
-  const [showTransitRoute, setShowTransitRoute] = useState(true);
-  const [showWalkRoute, setShowWalkRoute] = useState(true);
+  const isTransitMode = searchParams.get("transit") === "true";
+  const [showTransitRoute, setShowTransitRoute] = useState(isTransitMode);
+  const [showWalkRoute, setShowWalkRoute] = useState(!isTransitMode);
 
   // 해당 코스의 장소 목록 불러오기
   // course_places와 places 테이블을 JOIN해서 좌표, 이름 등을 한 번에 가져옴
