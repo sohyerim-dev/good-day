@@ -36,7 +36,7 @@ export default function Create() {
         delay: 250,
         tolerance: 5,
       },
-    })
+    }),
   );
 
   // 코스 제목, 설명, 공개 여부
@@ -136,7 +136,9 @@ export default function Create() {
       hour: "2-digit",
       minute: "2-digit",
     });
-    const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
+    const courseTitle =
+      title.trim() ||
+      `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
     setTitle(courseTitle);
 
     if (selectedPlaces.length < 2) return;
@@ -248,7 +250,9 @@ export default function Create() {
           장소 검색
         </label>
         <p className="text-[12px] text-gray-300">
-          결과가 없으면 장소명을 더 구체적으로 입력해보세요.<br />(예: 블루보틀 → 성수동 블루보틀)
+          원하는 결과가 없으면 장소명을 더 구체적으로 입력해보세요.
+          <br />
+          (예: 블루보틀 → 성수동 블루보틀)
         </p>
       </div>
       <div className="flex gap-2">
@@ -314,7 +318,13 @@ export default function Create() {
             </li>
           ))
         ) : (
-          <li className={searchActive ? "text-[14px] text-gray-400 text-center py-2" : "hidden"}>
+          <li
+            className={
+              searchActive
+                ? "text-[14px] text-gray-400 text-center py-2"
+                : "hidden"
+            }
+          >
             검색 결과가 없어요.
           </li>
         )}
@@ -350,7 +360,11 @@ export default function Create() {
           경로 미리보기
         </button>
       )}
-      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+      >
         <SortableContext
           items={selectedPlaces.map((p) => p.id)}
           strategy={verticalListSortingStrategy}
@@ -415,38 +429,49 @@ export default function Create() {
           장소를 2개 이상 추가해야 코스를 저장할 수 있어요.
         </p>
       )}
-      {showPreview && (() => {
-        const previewPlaces = selectedPlaces.map((p) => ({
-          order: p.order,
-          places: { name: p.title, lat: Number(p.mapy) / 10000000, lng: Number(p.mapx) / 10000000 },
-        }));
-        const previewCenter = {
-          lat: previewPlaces.reduce((s, p) => s + p.places.lat, 0) / previewPlaces.length,
-          lng: previewPlaces.reduce((s, p) => s + p.places.lng, 0) / previewPlaces.length,
-        };
-        return (
-          <div className="fixed inset-0 z-50">
-            <button
-              onClick={() => setShowPreview(false)}
-              className="absolute top-4 left-4 z-10 bg-white rounded-2xl px-4 py-2 shadow text-[14px] font-medium cursor-pointer text-[#EE6300]"
-            >
-              닫기
-            </button>
-            <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
-              <Map
-                mapId="DEMO_MAP_ID"
-                style={{ width: "100%", height: "100dvh" }}
-                defaultCenter={previewCenter}
-                defaultZoom={13}
-                mapTypeControl={false}
-                clickableIcons={false}
+      {showPreview &&
+        (() => {
+          const previewPlaces = selectedPlaces.map((p) => ({
+            order: p.order,
+            places: {
+              name: p.title,
+              lat: Number(p.mapy) / 10000000,
+              lng: Number(p.mapx) / 10000000,
+            },
+          }));
+          const previewCenter = {
+            lat:
+              previewPlaces.reduce((s, p) => s + p.places.lat, 0) /
+              previewPlaces.length,
+            lng:
+              previewPlaces.reduce((s, p) => s + p.places.lng, 0) /
+              previewPlaces.length,
+          };
+          return (
+            <div className="fixed inset-0 z-50">
+              <button
+                onClick={() => setShowPreview(false)}
+                className="absolute top-4 left-4 z-10 bg-white rounded-2xl px-4 py-2 shadow text-[14px] font-medium cursor-pointer text-[#EE6300]"
               >
-                <CoursePreviewRenderer places={previewPlaces} />
-              </Map>
-            </APIProvider>
-          </div>
-        );
-      })()}
+                닫기
+              </button>
+              <APIProvider
+                apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
+              >
+                <Map
+                  mapId="DEMO_MAP_ID"
+                  style={{ width: "100%", height: "100dvh" }}
+                  defaultCenter={previewCenter}
+                  defaultZoom={13}
+                  mapTypeControl={false}
+                  clickableIcons={false}
+                >
+                  <CoursePreviewRenderer places={previewPlaces} />
+                </Map>
+              </APIProvider>
+            </div>
+          );
+        })()}
       {showSaved && (
         <div className="fixed inset-x-0 top-0 bottom-20 z-9999 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
