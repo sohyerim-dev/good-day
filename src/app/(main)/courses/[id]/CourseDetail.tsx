@@ -31,8 +31,8 @@ export default function CourseDetail({
   const [savedPlaces, setSavedPlaces] = useState<Set<string>>(new Set());
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
-  // 비로그인 상태에서 로그인 필요 기능 클릭 시 표시
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showInfoTooltip, setShowInfoTooltip] = useState(false);
 
   // 공유 메뉴 외부 클릭 시 닫기
   useEffect(() => {
@@ -359,6 +359,26 @@ export default function CourseDetail({
           </div>
           {user && course && course.user_id !== user?.id && (
             <>
+            <div className="relative flex items-center">
+              <button
+                onClick={() => setShowInfoTooltip((v) => !v)}
+                className="w-7 h-7 flex items-center justify-center text-gray-400 text-[13px] rounded-full hover:bg-gray-100 cursor-pointer"
+              >
+                ⓘ
+              </button>
+              {showInfoTooltip && (
+                <div className="absolute bottom-10 right-0 bg-gray-800 text-white text-[12px] rounded-2xl px-4 py-3 w-52 z-20 shadow-lg">
+                  <p className="mb-1.5">❤️ <span className="font-medium">좋아요</span> — 코스가 마음에 들면 눌러보세요. 인기 코스 순위에 반영돼요.</p>
+                  <p>🔖 <span className="font-medium">저장</span> — 마이코스 &gt; 북마크에 저장돼요.</p>
+                  <button
+                    onClick={() => setShowInfoTooltip(false)}
+                    className="absolute top-2 right-3 text-gray-400 hover:text-white text-[11px]"
+                  >
+                    ✕
+                  </button>
+                </div>
+              )}
+            </div>
             <button
               className="flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
               onClick={async () => {
