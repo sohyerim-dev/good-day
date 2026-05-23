@@ -63,22 +63,23 @@ export default function Explore() {
     // 지도 영역(bounds)이 설정된 후에만 조회
     if (!neLat || !neLng || !swLat || !swLng) return;
 
-    // 공개 코스 또는 본인 코스만 표시 (비공개 코스는 작성자 본인에게만 노출)
-    const isVisible = (cp: { courses: { is_public: boolean; user_id: string } }) =>
-      cp.courses.is_public || cp.courses.user_id === user?.id;
+    // 공개 코스 또는 본인 코스만 표시 + 장소 2개 이상인 코스만 노출
+    const isVisible = (cp: { courses: { is_public: boolean; user_id: string; course_places?: { count: number }[] } }) =>
+      (cp.courses.is_public || cp.courses.user_id === user?.id) &&
+      (cp.courses.course_places?.[0]?.count ?? 0) >= 2;
 
     // 마커용: 현재 지도 영역 내에서 코스의 첫 번째 장소(order=1)만 가져옴
     // 코스 시작점에만 마커를 표시해 지도가 복잡해지지 않게 함
     supabase
       .from("places")
-      .select("*, course_places!inner(*, courses!inner(*, profiles(username)))")
+      .select("*, course_places!inner(*, courses!inner(*, profiles(username), course_places(count)))")
       .gte("lat", swLat)
       .lte("lat", neLat)
       .gte("lng", swLng)
       .lte("lng", neLng)
       .then(({ data }) => {
         const filtered = data?.filter((p) =>
-          p.course_places.some((cp: { order: number; courses: { is_public: boolean; user_id: string } }) =>
+          p.course_places.some((cp: { order: number; courses: { is_public: boolean; user_id: string; course_places?: { count: number }[] } }) =>
             cp.order === 1 && isVisible(cp)
           ),
         );
@@ -88,13 +89,13 @@ export default function Explore() {
     // 목록용: 현재 지도 영역 내 모든 장소를 가져와서 코스 단위로 그룹화에 사용
     supabase
       .from("places")
-      .select("*, course_places!inner(*, courses!inner(*, profiles(username)))")
+      .select("*, course_places!inner(*, courses!inner(*, profiles(username), course_places(count)))")
       .gte("lat", swLat)
       .lte("lat", neLat)
       .gte("lng", swLng)
       .lte("lng", neLng)
       .then(({ data }) => {
-        // 비공개 코스 장소는 제외 (본인 코스는 유지)
+        // 비공개 코스 장소 및 장소 1개 코스는 제외 (본인 코스는 유지)
         const filtered = data?.map((p) => ({
           ...p,
           course_places: p.course_places.filter(isVisible),
