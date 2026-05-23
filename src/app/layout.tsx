@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icons/favicon.svg",
   },
+  verification: {
+    google: "tLq7bUO1kTb4vvpGb6eZcQmIPPZbpTYuj6nkzDszpBc",
+  },
   openGraph: {
     title: "굿데이 | 나만의 놀기 코스 플래너",
     description:
