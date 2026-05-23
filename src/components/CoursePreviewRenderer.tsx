@@ -47,6 +47,10 @@ export default function CoursePreviewRenderer({ places }: Props) {
       map,
     });
 
+    const bounds = new mapsLib.LatLngBounds();
+    places.forEach((cp) => bounds.extend({ lat: cp.places.lat, lng: cp.places.lng }));
+    map.fitBounds(bounds, 60);
+
     return () => {
       markers.forEach((m) => (m.map = null));
       polyline.setMap(null);
