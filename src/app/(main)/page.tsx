@@ -62,7 +62,13 @@ export default function Home() {
         alt="굿데이"
         className="mb-4"
       />
-      <div className="flex justify-end w-full mb-4">
+      <div className="flex justify-between items-center w-full mb-4">
+        <Link
+          href="/about"
+          className="text-[13px] text-gray-400 hover:text-[#EE6300]"
+        >
+          굿데이 소개
+        </Link>
         <Link
           href="/create"
           className="bg-[#EE6300] text-white text-[14px] rounded-2xl px-4 py-2 cursor-pointer border border-[#EE6300] hover:bg-white hover:text-[#EE6300]"
