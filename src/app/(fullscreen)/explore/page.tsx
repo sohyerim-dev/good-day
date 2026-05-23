@@ -3,6 +3,7 @@ import CoursePreviewRenderer from "@/components/CoursePreviewRenderer";
 import LocationSetter from "@/components/LocationSetter";
 import MarkerRenderer from "@/components/MarkerRenderer";
 import { createClient } from "@/lib/supabase/client";
+import { useUserStore } from "@/store/userStore";
 import { ExploreCoursePlace } from "@/types/place";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
 import Link from "next/link";
@@ -15,6 +16,7 @@ export default function Explore() {
 
   const router = useRouter();
   const supabase = createClient();
+  const user = useUserStore((state) => state.user);
   const [neLat, setNeLat] = useState<number>();
   const [neLng, setNeLng] = useState<number>();
   const [swLat, setSwLat] = useState<number>();
@@ -61,18 +63,24 @@ export default function Explore() {
     // 지도 영역(bounds)이 설정된 후에만 조회
     if (!neLat || !neLng || !swLat || !swLng) return;
 
+    // 공개 코스 또는 본인 코스만 표시 (비공개 코스는 작성자 본인에게만 노출)
+    const isVisible = (cp: { courses: { is_public: boolean; user_id: string } }) =>
+      cp.courses.is_public || cp.courses.user_id === user?.id;
+
     // 마커용: 현재 지도 영역 내에서 코스의 첫 번째 장소(order=1)만 가져옴
     // 코스 시작점에만 마커를 표시해 지도가 복잡해지지 않게 함
     supabase
       .from("places")
-      .select("*, course_places!inner(*, courses(*, profiles(username)))")
+      .select("*, course_places!inner(*, courses!inner(*, profiles(username)))")
       .gte("lat", swLat)
       .lte("lat", neLat)
       .gte("lng", swLng)
       .lte("lng", neLng)
       .then(({ data }) => {
         const filtered = data?.filter((p) =>
-          p.course_places.some((cp: { order: number }) => cp.order === 1),
+          p.course_places.some((cp: { order: number; courses: { is_public: boolean; user_id: string } }) =>
+            cp.order === 1 && isVisible(cp)
+          ),
         );
         setExplorePlaces(filtered ?? []);
       });
@@ -80,13 +88,18 @@ export default function Explore() {
     // 목록용: 현재 지도 영역 내 모든 장소를 가져와서 코스 단위로 그룹화에 사용
     supabase
       .from("places")
-      .select("*, course_places!inner(*, courses(*, profiles(username)))")
+      .select("*, course_places!inner(*, courses!inner(*, profiles(username)))")
       .gte("lat", swLat)
       .lte("lat", neLat)
       .gte("lng", swLng)
       .lte("lng", neLng)
       .then(({ data }) => {
-        setExploreAllPlaces(data ?? []);
+        // 비공개 코스 장소는 제외 (본인 코스는 유지)
+        const filtered = data?.map((p) => ({
+          ...p,
+          course_places: p.course_places.filter(isVisible),
+        })).filter((p) => p.course_places.length > 0);
+        setExploreAllPlaces(filtered ?? []);
       });
   }, [swLat, neLat, swLng, neLng]);
 
