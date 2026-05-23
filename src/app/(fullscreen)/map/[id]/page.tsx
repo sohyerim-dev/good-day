@@ -72,16 +72,24 @@ export default function RoutePage({
         >
           뒤로 가기
         </button>
-        {isTransitMode && (
+        <div className="flex gap-2">
           <button
-            onClick={() => setShowTransit(!showTransit)}
-            className={`rounded-2xl px-4 py-2 shadow text-[16px] font-medium cursor-pointer ${
-              showTransit ? "bg-gray-800 text-white" : "bg-[#EE6300] text-white"
-            }`}
+            onClick={() => router.push(isTransitMode ? `/map/${id}` : `/map/${id}?transit=true`)}
+            className="bg-[#EE6300] text-white rounded-2xl px-4 py-2 shadow text-[14px] font-medium cursor-pointer"
           >
-            {showTransit ? "교통수단 닫기" : "교통수단 보기"}
+            {isTransitMode ? "도보 경로 보기" : "교통수단・경로 보기"}
           </button>
-        )}
+          {isTransitMode && (
+            <button
+              onClick={() => setShowTransit(!showTransit)}
+              className={`rounded-2xl px-4 py-2 shadow text-[14px] font-medium cursor-pointer ${
+                showTransit ? "bg-gray-800 text-white" : "bg-white text-gray-700"
+              }`}
+            >
+              {showTransit ? "교통수단 닫기" : "교통수단 보기"}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* 구간 선택 버튼: 경로 데이터가 로드된 후에만 표시 */}
