@@ -10,37 +10,36 @@ interface Props {
   onRouteData: (data: RouteSegment[]) => void;
   // null이면 전체 구간 표시, 숫자(0, 1, 2...)면 해당 구간만 표시
   selectedSegment: number | null;
+  showTransit: boolean;
+  showWalk: boolean;
 }
 
 // 컴포넌트 안에 넣으면 리렌더링될 때마다 배열이 새로 만들어지기 때문에 밖에 둬서 한 번만 만들어지고 재사용
 const ROUTE_COLORS = ["#EE6300", "#2563EB", "#16A34A", "#9333EA", "#DC2626"];
 
 // 지도 위에 마커, 대중교통 경로(실선), 도보 경로(점선)를 그리는 컴포넌트
-export default function RouteRenderer({ places, onRouteData, selectedSegment }: Props) {
+export default function RouteRenderer({ places, onRouteData, selectedSegment, showTransit, showWalk }: Props) {
   const map = useMap(); // 현재 렌더링된 Google Map 인스턴스
   const geometryLib = useMapsLibrary("geometry"); // 폴리라인 좌표 디코딩용 라이브러리
   const markerLib = useMapsLibrary("marker"); // AdvancedMarkerElement(마커 찍는 객체) 사용을 위한 라이브러리
   const mapsLib = useMapsLibrary("maps"); // Polyline, LatLngBounds 사용을 위한 라이브러리
 
-  // 구간 인덱스(0, 1, 2...) → 해당 구간의 Polyline 배열로 관리하는 ref
+  // 구간 인덱스(0, 1, 2...) → 교통수단/도보 Polyline을 분리해서 관리하는 ref
   // ref를 쓰는 이유: state로 관리하면 변경 시 리렌더링이 발생해 지도가 다시 그려지기 때문
   // key: 구간 인덱스 (0 = 1→2번 장소, 1 = 2→3번 장소, ...)
-  // value: 해당 구간의 polyline 배열 (대중교통 실선 + 도보 점선 포함)
-  const segmentPolylinesRef = useRef<Record<number, google.maps.Polyline[]>>({});
+  const segmentPolylinesRef = useRef<Record<number, { transit: google.maps.Polyline[]; walk: google.maps.Polyline[] }>>({});
 
-  // selectedSegment가 바뀔 때마다 해당 구간만 보이고 나머지는 숨김
-  // 버튼으로 구간을 선택하면 이 effect가 실행됨
+  // selectedSegment / showTransit / showWalk 변경 시 각 폴리라인 가시성 업데이트
   useEffect(() => {
     if (!map) return;
 
-    Object.entries(segmentPolylinesRef.current).forEach(([key, plines]) => {
+    Object.entries(segmentPolylinesRef.current).forEach(([key, { transit, walk }]) => {
       const segIdx = parseInt(key);
-      // selectedSegment가 null이면 전체 보여주고, 아니면 선택된 구간만 보여줌
-      const shouldShow = selectedSegment === null || selectedSegment === segIdx;
-      // setMap(map)이면 지도에 표시, setMap(null)이면 지도에서 숨김
-      plines.forEach((p) => p.setMap(shouldShow ? map : null));
+      const segVisible = selectedSegment === null || selectedSegment === segIdx;
+      transit.forEach((p) => p.setMap(segVisible && showTransit ? map : null));
+      walk.forEach((p) => p.setMap(segVisible && showWalk ? map : null));
     });
-  }, [selectedSegment, map]);
+  }, [selectedSegment, showTransit, showWalk, map]);
 
   // 장소 목록이 바뀌거나 지도/라이브러리가 로드되면 경로를 새로 그림
   useEffect(() => {
@@ -113,19 +112,15 @@ export default function RouteRenderer({ places, onRouteData, selectedSegment }: 
           walkDuration: data.walkDuration,
         });
 
-        // 구간별 polyline 저장소 초기화
-        segmentPolylinesRef.current[i] = [];
+        // 구간별 polyline 저장소 초기화 (교통수단/도보 분리)
+        segmentPolylinesRef.current[i] = { transit: [], walk: [] };
 
         if (!encoded) return;
 
         const color = ROUTE_COLORS[i % ROUTE_COLORS.length];
         const path = geometryLib?.encoding.decodePath(encoded);
 
-        // 구간 선택 버튼은 routeData가 로드된 후에만 나타나므로
-        // 첫 렌더링 시 selectedSegment는 항상 null (전체 표시)
-        // → 모든 구간을 처음부터 표시 상태로 생성
-
-        // 대중교통 실선 polyline 생성 및 구간별 저장소에 등록
+        // 대중교통 실선 polyline 생성
         const transitPolyline = new google.maps.Polyline({
           path,
           map,
@@ -133,10 +128,10 @@ export default function RouteRenderer({ places, onRouteData, selectedSegment }: 
           strokeWeight: 4,
         });
         polylines.push(transitPolyline);
-        segmentPolylinesRef.current[i].push(transitPolyline);
+        segmentPolylinesRef.current[i].transit.push(transitPolyline);
 
         if (data.walkPath?.length > 1) {
-          // 도보 점선 polyline 생성 및 구간별 저장소에 등록
+          // 도보 점선 polyline 생성
           const walkPolyline = new google.maps.Polyline({
             path: data.walkPath,
             map,
@@ -152,7 +147,7 @@ export default function RouteRenderer({ places, onRouteData, selectedSegment }: 
             ],
           });
           polylines.push(walkPolyline);
-          segmentPolylinesRef.current[i].push(walkPolyline);
+          segmentPolylinesRef.current[i].walk.push(walkPolyline);
         }
       });
 
