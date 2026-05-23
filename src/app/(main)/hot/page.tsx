@@ -75,7 +75,7 @@ export default function Hot() {
                         {course.profiles?.username}
                       </p>
                       <p className="text-[12px] text-gray-500 mt-1">
-                        {course.course_places
+                        {(course.course_places ?? [])
                           .sort((a, b) => a.order - b.order)
                           .map((cp) => cp.places.name)
                           .join(" → ")}
