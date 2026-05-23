@@ -4,7 +4,7 @@ import AuthProvider from "@/components/AuthProvider";
 import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.good-day-out.com"),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.good-day-go-out.co.kr"),
   title: {
     default: "굿데이 | 나만의 놀기 코스 플래너",
     template: "%s | 굿데이",
