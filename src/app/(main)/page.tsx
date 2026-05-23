@@ -35,12 +35,10 @@ export default function Home() {
     return (
       <main className="p-4 flex flex-col items-center">
         <h1 className="sr-only">메인 페이지</h1>
-        <div className="flex justify-start w-full mb-4">
-          <Link href="/about" className="text-[13px] text-gray-400 hover:text-[#EE6300]">
-            굿데이 소개
-          </Link>
-        </div>
-        <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" className="mb-4" />
+        <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" className="mb-2" />
+        <Link href="/about" className="text-[13px] text-gray-400 hover:text-[#EE6300] mb-4">
+          굿데이 소개
+        </Link>
         <div className="w-full bg-gray-50 rounded-2xl px-5 py-8 mt-4 flex flex-col items-center gap-3 text-center">
           <p className="font-bold text-[18px]">나만의 놀기 코스 플래너</p>
           <p className="text-gray-400 text-[14px] leading-relaxed">
@@ -65,15 +63,12 @@ export default function Home() {
         width={65}
         height={89.5}
         alt="굿데이"
-        className="mb-4"
+        className="mb-2"
       />
-      <div className="flex justify-between items-center w-full mb-4">
-        <Link
-          href="/about"
-          className="text-[13px] text-gray-400 hover:text-[#EE6300]"
-        >
-          굿데이 소개
-        </Link>
+      <Link href="/about" className="text-[13px] text-gray-400 hover:text-[#EE6300] mb-4">
+        굿데이 소개
+      </Link>
+      <div className="flex justify-end items-center w-full mb-4">
         <Link
           href="/create"
           className="bg-[#EE6300] text-white text-[14px] rounded-2xl px-4 py-2 cursor-pointer border border-[#EE6300] hover:bg-white hover:text-[#EE6300]"
@@ -81,7 +76,6 @@ export default function Home() {
           + 코스 추가하기
         </Link>
       </div>
-
       <div className="w-full bg-gray-50 rounded-2xl px-5 py-4 mb-4 text-center">
         <p className="text-gray-500 text-[14px] font-medium">나만의 코스를 만들어보세요</p>
         <p className="text-gray-400 text-[12px] mt-1">
