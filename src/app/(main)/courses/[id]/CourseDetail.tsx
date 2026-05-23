@@ -17,6 +17,7 @@ export default function CourseDetail({
 }) {
   const { id } = use(params);
   const user = useUserStore((state) => state.user);
+  const hasHydrated = useUserStore((state) => state.hasHydrated);
   const supabase = createClient();
   const [error, setError] = useState("");
   const [course, setCourse] = useState<Course | null>(null);
@@ -208,7 +209,7 @@ export default function CourseDetail({
     router.push("/");
   }
 
-  if (loading)
+  if (loading || !hasHydrated)
     return (
       <main className="flex flex-col min-h-full">
         <div className="p-4 border-b border-gray-100 animate-pulse">
