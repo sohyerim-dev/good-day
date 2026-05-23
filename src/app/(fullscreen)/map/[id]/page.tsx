@@ -205,25 +205,23 @@ export default function RoutePage({
                           <div className="w-2 h-2 rounded-full bg-[#EE6300] mt-1" />
                           <div className="w-px h-6 bg-gray-200" />
                         </div>
-                        <div className="text-[12px]">
-                          <span className="text-gray-700 font-medium">
-                            🚌 {step.transitDetails?.transitLine?.name}
+                        <div className="text-[12px] flex flex-col gap-0.5">
+                          {/* 노선 종류 + 번호 */}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="text-gray-700 font-medium">
+                              🚌 {step.transitDetails?.transitLine?.name}
+                            </span>
                             {step.transitDetails?.transitLine?.nameShort && (
-                              <span className="ml-1 text-gray-400">
-                                ({step.transitDetails.transitLine.nameShort})
+                              <span className="bg-gray-200 text-gray-600 rounded px-1.5 py-0.5 text-[11px] font-medium">
+                                {step.transitDetails.transitLine.nameShort}
                               </span>
                             )}
-                          </span>
-                          <span className="text-gray-400 ml-2">
-                            {
-                              step.transitDetails?.stopDetails?.departureStop
-                                ?.name
-                            }{" "}
-                            →{" "}
-                            {
-                              step.transitDetails?.stopDetails?.arrivalStop
-                                ?.name
-                            }
+                          </div>
+                          {/* 승차 → 하차 정류장 */}
+                          <span className="text-gray-400 leading-relaxed">
+                            {step.transitDetails?.stopDetails?.departureStop?.name}
+                            {" → "}
+                            {step.transitDetails?.stopDetails?.arrivalStop?.name}
                           </span>
                         </div>
                       </div>
