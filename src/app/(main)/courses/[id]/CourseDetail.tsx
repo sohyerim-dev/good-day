@@ -420,10 +420,10 @@ export default function CourseDetail({
                     )}
                   </div>
                 </div>
-                {/* 메모: 내 코스이면 편집 가능, 공유받은 경우 읽기 전용, 없으면 숨김 */}
-                {(course?.user_id === user?.id || memos[p.places.id]) && (
+                {/* 메모: 내 코스 또는 북마크한 코스면 편집 가능, 공유받은 경우 읽기 전용, 없으면 숨김 */}
+                {(((course?.user_id === user?.id || bookmarked) && isScheduleEditable) || memos[p.places.id]) && (
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
-                    {course?.user_id === user?.id ? (
+                    {isScheduleEditable ? (
                       <button
                         onClick={() => {
                           setMemoInput(memos[p.places.id] ?? "");
@@ -446,8 +446,8 @@ export default function CourseDetail({
                     )}
                   </div>
                 )}
-                {/* 시간 메모: 내 일정이면 편집 가능, 공유받은 일정이면 읽기 전용, 없으면 숨김 */}
-                {(isScheduleEditable || schedules[p.places.id]) && (
+                {/* 시간 메모: 내 코스 또는 북마크한 코스면 편집 가능, 공유받은 일정이면 읽기 전용, 없으면 숨김 */}
+                {(((course?.user_id === user?.id || bookmarked) && isScheduleEditable) || schedules[p.places.id]) && (
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
                     <span className="text-[12px] text-gray-400">🕐</span>
                     {isScheduleEditable ? (
