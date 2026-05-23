@@ -18,6 +18,7 @@ export default function SignUp() {
   const [privacy, setPrivacy] = useState(false);
 
   const [emailChecked, setEmailChecked] = useState(false);
+  const [nicknameChecked, setNicknameChecked] = useState(false);
   const [error, setError] = useState("");
 
   const [success, setSuccess] = useState(false);
@@ -45,6 +46,24 @@ export default function SignUp() {
       setEmailChecked(true);
     }
   }
+  async function handleCheckNickname() {
+    if (!nickname) {
+      setError("닉네임을 입력해주세요.");
+      return;
+    }
+    const { data } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("username", nickname)
+      .single();
+
+    if (data) {
+      setError("이미 사용 중인 닉네임입니다.");
+    } else {
+      setNicknameChecked(true);
+    }
+  }
+
   async function handleSubmit(
     e: React.FormEvent<HTMLFormElement> | SubmitEvent,
   ) {
@@ -86,6 +105,10 @@ export default function SignUp() {
     }
     if (!nickname) {
       setError("닉네임을 입력해주세요.");
+      return;
+    }
+    if (!nicknameChecked) {
+      setError("닉네임 중복 확인을 해주세요.");
       return;
     }
 
@@ -177,8 +200,21 @@ export default function SignUp() {
         label="닉네임"
         placeholder="닉네임을 입력해주세요."
         className="mt-5"
-        onChange={(e) => setNickname(e.target.value)}
+        onChange={(e) => {
+          setNickname(e.target.value);
+          setNicknameChecked(false);
+        }}
       />
+      <button
+        type="button"
+        className="mt-5 w-70 bg-[#EE6300] h-12 rounded-2xl text-white hover:cursor-pointer hover:bg-white hover:text-[#EE6300] hover:border hover:border-[#EE6300] focus:outline-amber-950"
+        onClick={handleCheckNickname}
+      >
+        닉네임 중복확인
+      </button>
+      {nicknameChecked && (
+        <p className="text-[13px]">사용 가능한 닉네임입니다.</p>
+      )}
       <fieldset className="w-full border rounded-2xl p-5 mt-5">
         <legend className="sr-only">약관 동의</legend>
         <Terms
