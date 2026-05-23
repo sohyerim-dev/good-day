@@ -17,10 +17,12 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import SortablePlaceItem from "@/components/SortablePlaceItem";
+import CoursePreviewRenderer from "@/components/CoursePreviewRenderer";
 import Image from "next/image";
 import { useUserStore } from "@/store/userStore";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { APIProvider, Map } from "@vis.gl/react-google-maps";
 export default function Create() {
   const user = useUserStore((state) => state.user);
   const hasHydrated = useUserStore((state) => state.hasHydrated);
@@ -58,6 +60,7 @@ export default function Create() {
   // 내 저장 장소 바텀시트 표시 여부 / 저장된 장소 목록
   const [showSaved, setShowSaved] = useState(false);
   const [savedPlacesList, setSavedPlacesList] = useState<SavedPlace[]>([]);
+  const [showPreview, setShowPreview] = useState(false);
 
   // 토스트 메시지 상태 / 타이머 ref (중복 추가 시 하단에 2초간 표시)
   const [toast, setToast] = useState("");
@@ -338,6 +341,15 @@ export default function Create() {
           className={placeActive ? "ml-2" : "hidden"}
         />
       </div>
+      {selectedPlaces.length >= 2 && (
+        <button
+          type="button"
+          onClick={() => setShowPreview(true)}
+          className="border border-[#EE6300] text-[#EE6300] hover:bg-[#EE6300] hover:text-white rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
+        >
+          경로 미리보기
+        </button>
+      )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
           items={selectedPlaces.map((p) => p.id)}
@@ -403,6 +415,38 @@ export default function Create() {
           장소를 2개 이상 추가해야 코스를 저장할 수 있어요.
         </p>
       )}
+      {showPreview && (() => {
+        const previewPlaces = selectedPlaces.map((p) => ({
+          order: p.order,
+          places: { name: p.title, lat: Number(p.mapy) / 10000000, lng: Number(p.mapx) / 10000000 },
+        }));
+        const previewCenter = {
+          lat: previewPlaces.reduce((s, p) => s + p.places.lat, 0) / previewPlaces.length,
+          lng: previewPlaces.reduce((s, p) => s + p.places.lng, 0) / previewPlaces.length,
+        };
+        return (
+          <div className="fixed inset-0 z-50">
+            <button
+              onClick={() => setShowPreview(false)}
+              className="absolute top-4 left-4 z-10 bg-white rounded-2xl px-4 py-2 shadow text-[14px] font-medium cursor-pointer text-[#EE6300]"
+            >
+              닫기
+            </button>
+            <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+              <Map
+                mapId="DEMO_MAP_ID"
+                style={{ width: "100%", height: "100dvh" }}
+                defaultCenter={previewCenter}
+                defaultZoom={13}
+                mapTypeControl={false}
+                clickableIcons={false}
+              >
+                <CoursePreviewRenderer places={previewPlaces} />
+              </Map>
+            </APIProvider>
+          </div>
+        );
+      })()}
       {showSaved && (
         <div className="fixed inset-x-0 top-0 bottom-20 z-9999 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
