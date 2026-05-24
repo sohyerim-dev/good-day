@@ -59,7 +59,7 @@ export default function About() {
             <div key={item.step}>
               <div className="bg-gray-50 rounded-2xl p-4 flex flex-col gap-3">
                 <div>
-                  <p className="text-[13px] font-bold text-[#EE6300] mb-1">{item.step}. {item.title}</p>
+                  <p className="text-[16px] font-bold text-[#EE6300] mb-1">{item.step}. {item.title}</p>
                   <p className="text-[13px] text-gray-500 leading-relaxed whitespace-pre-line">{item.desc}</p>
                 </div>
                 <div className="flex gap-2 flex-wrap">
