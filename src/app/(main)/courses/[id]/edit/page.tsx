@@ -62,6 +62,7 @@ export default function EditCourse({
   const [showSaved, setShowSaved] = useState(false);
   const [savedPlacesList, setSavedPlacesList] = useState<SavedPlace[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [region, setRegion] = useState<"domestic" | "global">("domestic");
 
   // 기존 코스 데이터 로드
   useEffect(() => {
@@ -89,10 +90,12 @@ export default function EditCourse({
           title: cp.places.name,
           address: cp.places.address,
           roadAddress: cp.places.address,
-          mapx: String(cp.places.lng * 10000000),
-          mapy: String(cp.places.lat * 10000000),
-          link: cp.places.naver_url,
-          naverPlaceUrl: cp.places.naver_url,
+          mapx: String(Math.round(cp.places.lng * 10000000)),
+          mapy: String(Math.round(cp.places.lat * 10000000)),
+          link: cp.places.naver_url ?? "",
+          naverPlaceUrl: cp.places.naver_url ?? "",
+          google_place_id: cp.places.google_place_id ?? undefined,
+          source: (cp.places.google_place_id ? "google" : "naver") as "naver" | "google",
           order: cp.order,
         }));
         setSelectedPlaces(asNaverPlaces);
@@ -102,9 +105,10 @@ export default function EditCourse({
 
   async function handleSearch() {
     if (!query.trim()) return;
-    const res = await fetch(
-      `/api/search-places?query=${encodeURIComponent(query.trim())}`,
-    );
+    const endpoint = region === "global"
+      ? `/api/search-places-global?query=${encodeURIComponent(query.trim())}`
+      : `/api/search-places?query=${encodeURIComponent(query.trim())}`;
+    const res = await fetch(endpoint);
     const data = await res.json();
     setSearchResults(data.items ?? []);
     setSearchActive(true);
@@ -158,27 +162,51 @@ export default function EditCourse({
     const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
     setTitle(courseTitle);
 
-    // places upsert
-    const { data: placesData, error: placesError } = await supabase
-      .from("places")
-      .upsert(
-        selectedPlaces.map((p) => ({
-          name: p.title,
-          address: p.roadAddress || p.address,
-          lat: Number(p.mapy) / 10000000,
-          lng: Number(p.mapx) / 10000000,
-          naver_url: p.naverPlaceUrl,
-        })),
-        { onConflict: "naver_url" },
-      )
-      .select();
+    // 국내/해외 분리 upsert
+    const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id);
+    const googlePlaces = selectedPlaces.filter((p) => !!p.google_place_id);
+    const placeIdMap: Record<string, string> = {};
 
-    if (placesError || !placesData) return;
+    if (naverPlaces.length > 0) {
+      const { data, error } = await supabase
+        .from("places")
+        .upsert(
+          naverPlaces.map((p) => ({
+            name: p.title,
+            address: p.roadAddress || p.address,
+            lat: Number(p.mapy) / 10000000,
+            lng: Number(p.mapx) / 10000000,
+            naver_url: p.naverPlaceUrl,
+          })),
+          { onConflict: "naver_url" },
+        )
+        .select();
+      if (error || !data) return;
+      data.forEach((d) => { if (d.naver_url) placeIdMap[d.naver_url] = d.id; });
+    }
 
-    const course_lat =
-      placesData.reduce((sum, p) => sum + p.lat, 0) / placesData.length;
-    const course_lng =
-      placesData.reduce((sum, p) => sum + p.lng, 0) / placesData.length;
+    if (googlePlaces.length > 0) {
+      const { data, error } = await supabase
+        .from("places")
+        .upsert(
+          googlePlaces.map((p) => ({
+            name: p.title,
+            address: p.roadAddress || p.address,
+            lat: Number(p.mapy) / 10000000,
+            lng: Number(p.mapx) / 10000000,
+            google_place_id: p.google_place_id,
+          })),
+          { onConflict: "google_place_id" },
+        )
+        .select();
+      if (error || !data) return;
+      data.forEach((d) => { if (d.google_place_id) placeIdMap[d.google_place_id] = d.id; });
+    }
+
+    const lats = selectedPlaces.map((p) => Number(p.mapy) / 10000000);
+    const lngs = selectedPlaces.map((p) => Number(p.mapx) / 10000000);
+    const course_lat = lats.reduce((s, v) => s + v, 0) / lats.length;
+    const course_lng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
 
     // courses update
     const { error: courseError } = await supabase
@@ -198,10 +226,10 @@ export default function EditCourse({
     await supabase.from("course_places").delete().eq("course_id", id);
 
     await supabase.from("course_places").insert(
-      placesData.map((place, i) => ({
+      selectedPlaces.map((p) => ({
         course_id: id,
-        place_id: place.id,
-        order: selectedPlaces[i].order,
+        place_id: placeIdMap[p.google_place_id ?? p.naverPlaceUrl],
+        order: p.order,
       })),
     );
 
@@ -252,8 +280,26 @@ export default function EditCourse({
         <label htmlFor="place-search" className="font-medium text-[18px]">
           장소 검색
         </label>
+        <div className="flex gap-1 mt-1">
+          <button
+            type="button"
+            onClick={() => { setRegion("domestic"); setSearchResults([]); setSearchActive(false); }}
+            className={`text-[13px] rounded-xl px-3 py-1 cursor-pointer ${region === "domestic" ? "bg-[#EE6300] text-white" : "bg-gray-100 text-gray-500"}`}
+          >
+            국내
+          </button>
+          <button
+            type="button"
+            onClick={() => { setRegion("global"); setSearchResults([]); setSearchActive(false); }}
+            className={`text-[13px] rounded-xl px-3 py-1 cursor-pointer ${region === "global" ? "bg-[#EE6300] text-white" : "bg-gray-100 text-gray-500"}`}
+          >
+            해외
+          </button>
+        </div>
         <p className="text-[12px] text-gray-300">
-          결과가 없으면 장소명을 더 구체적으로 입력해보세요.<br />(예: 블루보틀 → 성수동 블루보틀)
+          {region === "domestic"
+            ? <>결과가 없으면 장소명을 더 구체적으로 입력해보세요.<br />(예: 블루보틀 → 성수동 블루보틀)</>
+            : <>현지어나 영어로 검색하면 더 정확해요.<br />(예: Eiffel Tower, 東京タワー)</>}
         </p>
       </div>
       <div className="flex gap-2">

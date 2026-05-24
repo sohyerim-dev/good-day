@@ -197,12 +197,24 @@ export default function RoutePage({
                     </span>
                   )}
                 </p>
-                {segment?.steps?.map((step, j) => {
+                {segment?.steps
+                  // 연속된 WALK 스텝 합치기
+                  ?.reduce((acc: typeof segment.steps, step) => {
+                    const last = acc[acc.length - 1];
+                    if (step.travelMode === "WALK" && last?.travelMode === "WALK") {
+                      const prevSec = parseInt(last.staticDuration?.replace("s", "") ?? "0");
+                      const curSec = parseInt(step.staticDuration?.replace("s", "") ?? "0");
+                      acc[acc.length - 1] = { ...last, staticDuration: `${prevSec + curSec}s` };
+                      return acc;
+                    }
+                    return [...acc, step];
+                  }, [])
+                  .map((step, j) => {
                   if (step.travelMode === "WALK") {
                     const walkMinutes = Math.round(
-                      parseInt(step.staticDuration?.replace("s", "") ?? "0") /
-                        60,
+                      parseInt(step.staticDuration?.replace("s", "") ?? "0") / 60,
                     );
+                    if (walkMinutes === 0) return null;
                     return (
                       <div key={j} className="flex items-start gap-3 mb-2">
                         <div className="flex flex-col items-center">
@@ -245,7 +257,8 @@ export default function RoutePage({
                     );
                   }
                   return null;
-                })}
+                })
+                }
               </div>
             );
           })}

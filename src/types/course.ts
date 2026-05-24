@@ -17,13 +17,13 @@ export interface CoursePlace {
   id: string; // course_places 테이블의 ID
   order: number; // 방문 순서
   places: {
-    // JOIN된 places 테이블 데이터
-    id: string; // 장소 ID
-    name: string; // 장소명
-    address: string; // 주소
-    lat: number; // 좌표
-    lng: number; // 상과 동일
-    naver_url: string; // 네이버 플레이스 URL
+    id: string;
+    name: string;
+    address: string;
+    lat: number;
+    lng: number;
+    naver_url: string | null;
+    google_place_id?: string | null;
   };
 }
 

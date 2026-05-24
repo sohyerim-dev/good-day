@@ -84,56 +84,58 @@ export default function RouteRenderer({ places, onRouteData, selectedSegment, sh
     const segments: RouteSegment[] = [];
 
     async function fetchRoute() {
-      // 모든 구간 경로를 동시에 병렬 요청
-      // Promise.all을 쓰는 이유: for 루프로 순차 fetch 시 React Strict Mode 이중 실행 + cleanup 타이밍 문제로 마지막 구간만 표시되는 버그가 있었음
+      // 교통수단 경로와 도보 경로를 각각 별도 요청으로 병렬 처리
       const results = await Promise.all(
-        Array.from({ length: places.length - 1 }, (_, i) =>
-          fetch("/api/route-directions", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              places: [
-                { lat: places[i].places.lat, lng: places[i].places.lng },
-                { lat: places[i + 1].places.lat, lng: places[i + 1].places.lng },
-              ],
-            }),
-          }).then((r) => r.json()),
-        ),
+        Array.from({ length: places.length - 1 }, (_, i) => {
+          const segPlaces = [
+            { lat: places[i].places.lat, lng: places[i].places.lng },
+            { lat: places[i + 1].places.lat, lng: places[i + 1].places.lng },
+          ];
+          const isGlobal = !places[i].places.naver_url || !places[i + 1].places.naver_url;
+          return Promise.all([
+            fetch("/api/route-directions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ places: segPlaces, mode: "transit" }),
+            }).then((r) => r.json()),
+            fetch("/api/route-directions", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ places: segPlaces, mode: "walk", isGlobal }),
+            }).then((r) => r.json()),
+          ]);
+        }),
       );
 
-      // cleanup이 실행된 후에 도착한 응답은 무시 (컴포넌트 언마운트 등)
       if (cancelled) return;
 
-      results.forEach((data, i) => {
-        const encoded = data.routes?.[0]?.polyline?.encodedPolyline;
+      results.forEach(([transitData, walkData], i) => {
+        const encoded = transitData.routes?.[0]?.polyline?.encodedPolyline;
 
         segments.push({
-          ...data.routes?.[0]?.legs?.[0],
-          walkDuration: data.walkDuration,
+          ...transitData.routes?.[0]?.legs?.[0],
+          walkDuration: walkData.walkDuration,
         });
 
-        // 구간별 polyline 저장소 초기화 (교통수단/도보 분리)
         segmentPolylinesRef.current[i] = { transit: [], walk: [] };
 
-        if (!encoded) return;
-
         const color = ROUTE_COLORS[i % ROUTE_COLORS.length];
-        const path = geometryLib?.encoding.decodePath(encoded);
 
-        // 대중교통 실선 polyline 생성
-        const transitPolyline = new google.maps.Polyline({
-          path,
-          map: showTransit ? map : null,
-          strokeColor: color,
-          strokeWeight: 4,
-        });
-        polylines.push(transitPolyline);
-        segmentPolylinesRef.current[i].transit.push(transitPolyline);
+        if (encoded) {
+          const path = geometryLib?.encoding.decodePath(encoded);
+          const transitPolyline = new google.maps.Polyline({
+            path,
+            map: showTransit ? map : null,
+            strokeColor: color,
+            strokeWeight: 4,
+          });
+          polylines.push(transitPolyline);
+          segmentPolylinesRef.current[i].transit.push(transitPolyline);
+        }
 
-        if (data.walkPath?.length > 1) {
-          // 도보 점선 polyline 생성
+        if (walkData.walkPath?.length > 1) {
           const walkPolyline = new google.maps.Polyline({
-            path: data.walkPath,
+            path: walkData.walkPath,
             map: showWalk ? map : null,
             strokeColor: color,
             strokeWeight: 2,

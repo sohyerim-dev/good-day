@@ -77,7 +77,7 @@ export default function CourseDetail({
 
     supabase
       .from("course_places")
-      .select("*, places(*)")
+      .select("*, places(id, name, address, lat, lng, naver_url, google_place_id)")
       .eq("course_id", id)
       .order("order")
       .then(({ data, error }) => {
@@ -436,13 +436,23 @@ export default function CourseDetail({
                     </span>
                   </div>
                   <div className="flex gap-2 shrink-0">
-                    <a
-                      href={p.places.naver_url}
-                      target="_blank"
-                      className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 hover:bg-[#EE6300] hover:text-white"
-                    >
-                      네이버 플레이스
-                    </a>
+                    {p.places.naver_url ? (
+                      <a
+                        href={p.places.naver_url}
+                        target="_blank"
+                        className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 hover:bg-[#EE6300] hover:text-white"
+                      >
+                        네이버 플레이스
+                      </a>
+                    ) : p.places.google_place_id ? (
+                      <a
+                        href={`https://www.google.com/maps/search/?api=1&query_place_id=${p.places.google_place_id}`}
+                        target="_blank"
+                        className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 hover:bg-[#EE6300] hover:text-white"
+                      >
+                        Google Maps
+                      </a>
+                    ) : null}
                     {user && (
                       <button
                         onClick={() => handleSavePlace(p.places.id)}

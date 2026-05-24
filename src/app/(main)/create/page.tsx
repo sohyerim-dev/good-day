@@ -61,6 +61,7 @@ export default function Create() {
   const [showSaved, setShowSaved] = useState(false);
   const [savedPlacesList, setSavedPlacesList] = useState<SavedPlace[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [region, setRegion] = useState<"domestic" | "global">("domestic");
 
   // 토스트 메시지 상태 / 타이머 ref (중복 추가 시 하단에 2초간 표시)
   const [toast, setToast] = useState("");
@@ -72,12 +73,12 @@ export default function Create() {
     toastTimer.current = setTimeout(() => setToast(""), 2000);
   }
 
-  // 네이버 장소 검색 API 호출, 결과를 searchResults에 저장
   async function handleSearch() {
     if (!query.trim()) return;
-    const res = await fetch(
-      `/api/search-places?query=${encodeURIComponent(query.trim())}`,
-    );
+    const endpoint = region === "global"
+      ? `/api/search-places-global?query=${encodeURIComponent(query.trim())}`
+      : `/api/search-places?query=${encodeURIComponent(query.trim())}`;
+    const res = await fetch(endpoint);
     const data = await res.json();
     setSearchResults(data.items ?? []);
     setSearchActive(true);
@@ -143,28 +144,52 @@ export default function Create() {
 
     if (selectedPlaces.length < 2) return;
 
-    // places 테이블에 upsert
-    const { data: placesData, error: placesError } = await supabase
-      .from("places")
-      .upsert(
-        selectedPlaces.map((p) => ({
-          name: p.title,
-          address: p.roadAddress || p.address,
-          lat: Number(p.mapy) / 10000000,
-          lng: Number(p.mapx) / 10000000,
-          naver_url: p.naverPlaceUrl,
-        })),
-        { onConflict: "naver_url" },
-      )
-      .select();
+    // 국내/해외 분리 upsert
+    const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id);
+    const googlePlaces = selectedPlaces.filter((p) => !!p.google_place_id);
+    const placeIdMap: Record<string, string> = {};
 
-    if (placesError || !placesData) return;
+    if (naverPlaces.length > 0) {
+      const { data, error } = await supabase
+        .from("places")
+        .upsert(
+          naverPlaces.map((p) => ({
+            name: p.title,
+            address: p.roadAddress || p.address,
+            lat: Number(p.mapy) / 10000000,
+            lng: Number(p.mapx) / 10000000,
+            naver_url: p.naverPlaceUrl,
+          })),
+          { onConflict: "naver_url" },
+        )
+        .select();
+      if (error || !data) return;
+      data.forEach((d) => { if (d.naver_url) placeIdMap[d.naver_url] = d.id; });
+    }
+
+    if (googlePlaces.length > 0) {
+      const { data, error } = await supabase
+        .from("places")
+        .upsert(
+          googlePlaces.map((p) => ({
+            name: p.title,
+            address: p.roadAddress || p.address,
+            lat: Number(p.mapy) / 10000000,
+            lng: Number(p.mapx) / 10000000,
+            google_place_id: p.google_place_id,
+          })),
+          { onConflict: "google_place_id" },
+        )
+        .select();
+      if (error || !data) return;
+      data.forEach((d) => { if (d.google_place_id) placeIdMap[d.google_place_id] = d.id; });
+    }
 
     // 중심 좌표 계산
-    const course_lat =
-      placesData.reduce((sum, p) => sum + p.lat, 0) / placesData.length;
-    const course_lng =
-      placesData.reduce((sum, p) => sum + p.lng, 0) / placesData.length;
+    const lats = selectedPlaces.map((p) => Number(p.mapy) / 10000000);
+    const lngs = selectedPlaces.map((p) => Number(p.mapx) / 10000000);
+    const course_lat = lats.reduce((s, v) => s + v, 0) / lats.length;
+    const course_lng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
 
     // courses 테이블에 insert
     const { data: courseData, error: courseError } = await supabase
@@ -184,10 +209,10 @@ export default function Create() {
 
     // course_places 테이블에 insert
     await supabase.from("course_places").insert(
-      placesData.map((place, i) => ({
+      selectedPlaces.map((p) => ({
         course_id: courseData.id,
-        place_id: place.id,
-        order: selectedPlaces[i].order,
+        place_id: placeIdMap[p.google_place_id ?? p.naverPlaceUrl],
+        order: p.order,
       })),
     );
 
@@ -249,10 +274,26 @@ export default function Create() {
         <label htmlFor="place-search" className="font-medium text-[18px]">
           장소 검색
         </label>
+        <div className="flex gap-1 mt-1">
+          <button
+            type="button"
+            onClick={() => { setRegion("domestic"); setSearchResults([]); setSearchActive(false); }}
+            className={`text-[13px] rounded-xl px-3 py-1 cursor-pointer ${region === "domestic" ? "bg-[#EE6300] text-white" : "bg-gray-100 text-gray-500"}`}
+          >
+            국내
+          </button>
+          <button
+            type="button"
+            onClick={() => { setRegion("global"); setSearchResults([]); setSearchActive(false); }}
+            className={`text-[13px] rounded-xl px-3 py-1 cursor-pointer ${region === "global" ? "bg-[#EE6300] text-white" : "bg-gray-100 text-gray-500"}`}
+          >
+            해외
+          </button>
+        </div>
         <p className="text-[12px] text-gray-300">
-          원하는 결과가 없으면 장소명을 더 구체적으로 입력해보세요.
-          <br />
-          (예: 블루보틀 → 성수동 블루보틀)
+          {region === "domestic"
+            ? <>원하는 결과가 없으면 장소명을 더 구체적으로 입력해보세요.<br />(예: 블루보틀 → 성수동 블루보틀)</>
+            : <>현지어나 영어로 검색하면 더 정확해요.<br />(예: Eiffel Tower, 東京タワー)</>}
         </p>
       </div>
       <div className="flex gap-2">
