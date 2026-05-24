@@ -36,6 +36,15 @@ export default function Home() {
       <main className="p-4 flex flex-col items-center">
         <h1 className="sr-only">메인 페이지</h1>
         <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" className="mb-4" />
+        <a
+          href="https://www.good-day-go-out.co.kr"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="w-full flex items-center justify-between bg-[#EE6300]/10 border border-[#EE6300]/30 rounded-2xl px-5 py-3 mb-2 text-[13px] text-[#EE6300] font-medium hover:bg-[#EE6300]/20 transition"
+        >
+          <span>🔗 서비스 바로가기 · good-day-go-out.co.kr</span>
+          <span>→</span>
+        </a>
         <div className="w-full bg-gray-50 rounded-2xl px-5 py-8 mt-4 flex flex-col items-center gap-3 text-center">
           <p className="font-bold text-[18px]">나만의 놀기 코스 플래너</p>
           <p className="text-gray-400 text-[14px] leading-relaxed">
