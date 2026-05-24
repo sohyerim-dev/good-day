@@ -39,4 +39,12 @@ export interface SavedPlace {
   lat: number;
   lng: number;
   naver_url: string;
+  collection_id?: string | null;
+}
+
+export interface PlaceCollection {
+  id: string;
+  user_id: string;
+  name: string;
+  created_at: string;
 }

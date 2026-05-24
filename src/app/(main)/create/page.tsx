@@ -1,7 +1,7 @@
 "use client";
 
-import { NaverPlace, SavedPlace } from "@/types/place";
-import { Fragment, useState, useRef } from "react";
+import { NaverPlace, PlaceCollection, SavedPlace } from "@/types/place";
+import { Fragment, useState, useRef, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -60,6 +60,13 @@ export default function Create() {
   // 내 저장 장소 바텀시트 표시 여부 / 저장된 장소 목록
   const [showSaved, setShowSaved] = useState(false);
   const [savedPlacesList, setSavedPlacesList] = useState<SavedPlace[]>([]);
+  const [savedPlacesHasMore, setSavedPlacesHasMore] = useState(false);
+  const [collections, setCollections] = useState<PlaceCollection[]>([]);
+  const [activeCollection, setActiveCollection] = useState<string | null>(null);
+  const [savingPlace, setSavingPlace] = useState<NaverPlace | null>(null);
+  const SAVED_PAGE_SIZE = 10;
+  // 이미 저장된 장소 키(naver_url 또는 google_place_id) 목록 - 검색 결과에서 저장 여부 표시용
+  const [savedPlaceKeys, setSavedPlaceKeys] = useState<Set<string>>(new Set());
   const [showPreview, setShowPreview] = useState(false);
   const [region, setRegion] = useState<"domestic" | "global">("domestic");
 
@@ -71,6 +78,79 @@ export default function Create() {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(message);
     toastTimer.current = setTimeout(() => setToast(""), 2000);
+  }
+
+  // 마운트 시 저장된 장소 키 + 컬렉션 로드
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("saved_places").select("places(naver_url, google_place_id)").eq("user_id", user.id)
+      .then(({ data }) => {
+        const keys = new Set<string>();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        data?.forEach((d: any) => {
+          const p = Array.isArray(d.places) ? d.places[0] : d.places;
+          if (p?.naver_url) keys.add(p.naver_url);
+          if (p?.google_place_id) keys.add(p.google_place_id);
+        });
+        setSavedPlaceKeys(keys);
+      });
+    supabase.from("collections").select("*").eq("user_id", user.id).order("created_at")
+      .then(({ data }) => setCollections(data ?? []));
+  }, [user]);
+
+  function loadSavedPlaces(collection: string | null, offset: number) {
+    let q = supabase
+      .from("saved_places")
+      .select("*, places(*)")
+      .eq("user_id", user?.id)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + SAVED_PAGE_SIZE - 1);
+    if (collection === "__none__") q = q.is("collection_id", null);
+    else if (collection !== null) q = (q as typeof q).eq("collection_id", collection);
+    q.then(({ data }) => {
+      const items = data?.map((d) => ({ ...d.places, collection_id: d.collection_id })) ?? [];
+      if (offset === 0) setSavedPlacesList(items);
+      else setSavedPlacesList((prev) => [...prev, ...items]);
+      setSavedPlacesHasMore(items.length === SAVED_PAGE_SIZE);
+    });
+  }
+
+  async function handleSavePlace(place: NaverPlace, collectionId: string | null = null) {
+    if (!user) return;
+    const isGlobal = !!place.google_place_id;
+    const key = isGlobal ? place.google_place_id! : place.naverPlaceUrl;
+    if (savedPlaceKeys.has(key)) return;
+    const placeData = {
+      name: place.title,
+      address: place.roadAddress || place.address,
+      lat: parseInt(place.mapy) / 10000000,
+      lng: parseInt(place.mapx) / 10000000,
+      naver_url: isGlobal ? null : place.naverPlaceUrl,
+      google_place_id: isGlobal ? place.google_place_id : null,
+    };
+    const matchCol = isGlobal ? "google_place_id" : "naver_url";
+    const matchVal = isGlobal ? place.google_place_id : place.naverPlaceUrl;
+    const { data: existing } = await supabase
+      .from("places")
+      .select("id")
+      .eq(matchCol, matchVal)
+      .single();
+    let placeId = existing?.id;
+    if (!placeId) {
+      const { data: inserted } = await supabase
+        .from("places")
+        .insert(placeData)
+        .select("id")
+        .single();
+      if (!inserted) return;
+      placeId = inserted.id;
+    }
+    await supabase.from("saved_places").insert(
+      { user_id: user.id, place_id: placeId, collection_id: collectionId },
+    );
+    setSavedPlaceKeys((prev) => new Set(prev).add(key));
+    setSavingPlace(null);
+    showToast("장소를 저장했어요.");
   }
 
   async function handleSearch() {
@@ -316,14 +396,9 @@ export default function Create() {
       </div>
       <button
         onClick={() => {
-          supabase
-            .from("saved_places")
-            .select("*, places(*)")
-            .eq("user_id", user?.id)
-            .then(({ data }) => {
-              setSavedPlacesList(data?.map((d) => d.places) ?? []);
-              setShowSaved(true);
-            });
+          setActiveCollection(null);
+          loadSavedPlaces(null, 0);
+          setShowSaved(true);
         }}
         className="border hover:bg-[#EE6300] hover:text-white border-[#EE6300] text-[#EE6300] rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
       >
@@ -350,12 +425,36 @@ export default function Create() {
                   {place.roadAddress || place.address}
                 </span>
               </div>
-              <button
-                onClick={() => handleAddPlace(place)}
-                className="text-[12px] hover:bg-[#EE6300] hover:text-white text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer shrink-0"
-              >
-                추가
-              </button>
+              <div className="flex gap-1.5 shrink-0">
+                {(() => {
+                  const isGlobal = !!place.google_place_id;
+                  const key = isGlobal ? place.google_place_id! : place.naverPlaceUrl;
+                  const isSaved = savedPlaceKeys.has(key);
+                  return (
+                    <button
+                      onClick={() => {
+                        if (isSaved) return;
+                        if (collections.length > 0) setSavingPlace(place);
+                        else handleSavePlace(place, null);
+                      }}
+                      disabled={isSaved}
+                      className={`text-[12px] rounded-xl px-2 py-1 shrink-0 ${
+                        isSaved
+                          ? "text-gray-400 border border-gray-200 cursor-default"
+                          : "text-gray-500 border border-gray-300 hover:border-[#EE6300] hover:text-[#EE6300] cursor-pointer"
+                      }`}
+                    >
+                      {isSaved ? "저장됨" : "저장"}
+                    </button>
+                  );
+                })()}
+                <button
+                  onClick={() => handleAddPlace(place)}
+                  className="text-[12px] hover:bg-[#EE6300] hover:text-white text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer shrink-0"
+                >
+                  추가
+                </button>
+              </div>
             </li>
           ))
         ) : (
@@ -516,7 +615,7 @@ export default function Create() {
       {showSaved && (
         <div className="fixed inset-x-0 top-0 bottom-20 z-9999 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-3">
               <h2 className="font-bold text-[18px]">내 저장 장소</h2>
               <button
                 onClick={() => setShowSaved(false)}
@@ -525,6 +624,26 @@ export default function Create() {
                 닫기
               </button>
             </div>
+            {/* 폴더 탭 */}
+            {collections.length > 0 && (
+              <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-3 -mx-1 px-1">
+                <button
+                  onClick={() => { setActiveCollection(null); loadSavedPlaces(null, 0); }}
+                  className={`shrink-0 rounded-2xl px-3 py-1 text-[12px] font-medium border cursor-pointer ${activeCollection === null ? "bg-gray-800 text-white border-gray-800" : "bg-white text-gray-500 border-gray-200"}`}
+                >
+                  전체
+                </button>
+                {collections.map((col) => (
+                  <button
+                    key={col.id}
+                    onClick={() => { setActiveCollection(col.id); loadSavedPlaces(col.id, 0); }}
+                    className={`shrink-0 rounded-2xl px-3 py-1 text-[12px] font-medium border cursor-pointer ${activeCollection === col.id ? "bg-[#EE6300] text-white border-[#EE6300]" : "bg-white text-gray-500 border-gray-200"}`}
+                  >
+                    {col.name}
+                  </button>
+                ))}
+              </div>
+            )}
             {savedPlacesList.length === 0 ? (
               <p className="text-gray-400 text-center py-4">
                 저장된 장소가 없어요
@@ -555,8 +674,45 @@ export default function Create() {
                     </button>
                   </li>
                 ))}
+                {savedPlacesHasMore && (
+                  <li className="flex justify-center pt-1">
+                    <button
+                      onClick={() => loadSavedPlaces(activeCollection, savedPlacesList.length)}
+                      className="text-[13px] text-[#EE6300] cursor-pointer hover:underline"
+                    >
+                      더보기
+                    </button>
+                  </li>
+                )}
               </ul>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 폴더 선택 바텀시트 (저장 시) */}
+      {savingPlace && (
+        <div className="fixed inset-0 z-9999 flex items-end justify-center bg-black/30">
+          <div className="bg-white rounded-t-3xl p-6 w-full max-w-lg flex flex-col gap-3">
+            <div className="flex justify-between items-center mb-1">
+              <h2 className="font-bold text-[16px]">어느 폴더에 저장할까요?</h2>
+              <button onClick={() => setSavingPlace(null)} className="text-gray-400 cursor-pointer hover:text-black text-[14px]">취소</button>
+            </div>
+            <button
+              onClick={() => handleSavePlace(savingPlace, null)}
+              className="text-left px-4 py-3 rounded-2xl text-[14px] bg-gray-50 text-gray-700 cursor-pointer hover:bg-[#EE6300]/10 hover:text-[#EE6300]"
+            >
+              미분류
+            </button>
+            {collections.map((col) => (
+              <button
+                key={col.id}
+                onClick={() => handleSavePlace(savingPlace, col.id)}
+                className="text-left px-4 py-3 rounded-2xl text-[14px] bg-gray-50 text-gray-700 cursor-pointer hover:bg-[#EE6300]/10 hover:text-[#EE6300]"
+              >
+                {col.name}
+              </button>
+            ))}
           </div>
         </div>
       )}
