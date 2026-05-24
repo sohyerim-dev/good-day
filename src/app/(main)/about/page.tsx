@@ -12,11 +12,11 @@ export default function About() {
           <Image src="/images/logo.svg" width={56} height={77} alt="굿데이" />
         </div>
         <p className="text-[14px] text-gray-500 leading-relaxed text-center mt-2">
-          계획형 인간 J들을 위한{" "}
-          <strong className="font-bold">나만의 놀기 코스 플래너</strong>예요.
-          <br />
-          장소를 추가하고 순서를 정하면 여행 코스가 완성되고, 친구에게 공유도 할
-          수 있답니다.
+          약속 전에 항상 동선을 미리 짜던 경험에서 시작한 서비스입니다.
+          <br /><br />
+          계획형 인간 J들을 위한 <strong className="font-bold">놀기 코스 플래너</strong>로,<br />
+          장소를 추가하고 순서를 정해 여행 코스를 만들 수 있습니다.<br />
+          친구와 함께 코스를 편집하거나 공유하며 여행 계획을 완성할 수 있어요.
         </p>
       </div>
 
