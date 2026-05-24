@@ -16,7 +16,7 @@ function decodePolyline(encoded: string): { lat: number; lng: number }[] {
 }
 
 export async function POST(req: NextRequest) {
-  const { places, isGlobal, mode } = await req.json();
+  const { places, isGlobal, mode, transitMode } = await req.json();
 
   const origin = places[0];
   const destination = places[places.length - 1];
@@ -75,7 +75,12 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  // 교통수단 경로 (기본)
+  // 교통수단 경로
+  const transitPreferences =
+    transitMode === "bus" ? { allowedTravelModes: ["BUS"] } :
+    transitMode === "subway" ? { allowedTravelModes: ["SUBWAY", "RAIL"] } :
+    undefined;
+
   const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
     method: "POST",
     headers: {
@@ -88,6 +93,7 @@ export async function POST(req: NextRequest) {
       origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
       destination: { location: { latLng: { latitude: destination.lat, longitude: destination.lng } } },
       travelMode: "TRANSIT",
+      ...(transitPreferences && { transitPreferences }),
     }),
   });
   return NextResponse.json(await res.json());

@@ -15,26 +15,21 @@ export default function RoutePage({
 }) {
   const { id } = use(params);
 
-  const [places, setPlace] = useState<CoursePlace[]>([]); // 코스 장소 목록
-
+  const [places, setPlace] = useState<CoursePlace[]>([]);
   const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [showTransit, setShowTransit] = useState(
-    searchParams.get("transit") === "true",
-  ); // 바텀시트 열림/닫힘
-  const [routeData, setRouteData] = useState<RouteSegment[]>([]); // 경로 데이터
-  // null이면 전체 구간 표시, 숫자(0, 1, 2...)면 해당 구간만 표시
-  // RouteRenderer에 내려보내서 해당 구간의 폴리라인만 지도에 보이게 함
+  const [showTransit, setShowTransit] = useState(searchParams.get("transit") === "true");
+  const [routeData, setRouteData] = useState<{ optimized: RouteSegment[]; bus: RouteSegment[]; subway: RouteSegment[] }>({
+    optimized: [], bus: [], subway: [],
+  });
+  const [segmentVariants, setSegmentVariants] = useState<Record<number, "optimized" | "bus" | "subway">>({});
   const [selectedSegment, setSelectedSegment] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
-  // 지도 위에 경로를 그리는 중인지 여부 (RouteRenderer가 onRouteData 호출 시 false로 변경)
   const [routeLoading, setRouteLoading] = useState(true);
   const isTransitMode = searchParams.get("transit") === "true";
 
-  // 해당 코스의 장소 목록 불러오기
-  // course_places와 places 테이블을 JOIN해서 좌표, 이름 등을 한 번에 가져옴
   useEffect(() => {
     supabase
       .from("course_places")
@@ -47,6 +42,39 @@ export default function RoutePage({
         if (!data || error) setError("경로를 불러올 수 없어요");
       });
   }, [id]);
+
+  function setSegmentVariant(i: number, v: "optimized" | "bus" | "subway") {
+    setSegmentVariants((prev) => ({ ...prev, [i]: v }));
+  }
+
+  function segmentCurrentData(i: number) {
+    const variant = segmentVariants[i] ?? "optimized";
+    return routeData[variant]?.[i];
+  }
+
+  function segmentHasBusAlt(i: number) {
+    return routeData.bus[i]?.steps?.some((s) => s.transitDetails?.transitLine?.vehicle?.type === "BUS") ?? false;
+  }
+
+  function segmentHasSubwayAlt(i: number) {
+    return routeData.subway[i]?.steps?.some((s) => {
+      const t = s.transitDetails?.transitLine?.vehicle?.type;
+      return t === "SUBWAY" || t === "METRO_RAIL";
+    }) ?? false;
+  }
+
+  function segmentCurrentHasSubway(i: number) {
+    return segmentCurrentData(i)?.steps?.some((s) => {
+      const t = s.transitDetails?.transitLine?.vehicle?.type;
+      return t === "SUBWAY" || t === "METRO_RAIL";
+    }) ?? false;
+  }
+
+  function segmentCurrentHasBus(i: number) {
+    return segmentCurrentData(i)?.steps?.some((s) => s.transitDetails?.transitLine?.vehicle?.type === "BUS") ?? false;
+  }
+
+  const activeSegments = routeData.optimized;
 
   if (loading)
     return (
@@ -92,38 +120,34 @@ export default function RoutePage({
         </div>
       </div>
 
-      {/* 구간 선택 버튼: 경로 데이터가 로드된 후에만 표시 */}
-      {routeData.length > 0 && (
-        <>
-          <div className="z-50 absolute top-16 left-0 right-0 flex gap-2 overflow-x-auto px-4 py-1 scrollbar-hide">
-            <button
-              onClick={() => setSelectedSegment(null)}
-              className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
-                selectedSegment === null
-                  ? "bg-gray-800 text-white"
-                  : "bg-white text-gray-700"
-              }`}
-            >
-              전체
-            </button>
-            {routeData.map((seg, i) => {
-              const walkMin = !isTransitMode && seg.walkDuration
-                ? Math.round(parseInt(seg.walkDuration.replace("s", "")) / 60)
-                : null;
-              return (
-                <button
-                  key={i}
-                  onClick={() => setSelectedSegment(i)}
-                  className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
-                    selectedSegment === i ? "bg-[#EE6300] text-white" : "bg-white text-gray-700"
-                  }`}
-                >
-                  {i + 1}→{i + 2}{walkMin !== null && walkMin > 0 ? ` · ${walkMin}분` : ""}
-                </button>
-              );
-            })}
-          </div>
-        </>
+      {/* 구간 선택 버튼 */}
+      {activeSegments.length > 0 && (
+        <div className="z-50 absolute top-16 left-0 right-0 flex gap-2 overflow-x-auto px-4 py-1 scrollbar-hide">
+          <button
+            onClick={() => setSelectedSegment(null)}
+            className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
+              selectedSegment === null ? "bg-gray-800 text-white" : "bg-white text-gray-700"
+            }`}
+          >
+            전체
+          </button>
+          {activeSegments.map((seg, i) => {
+            const walkMin = !isTransitMode && seg.walkDuration
+              ? Math.round(parseInt(seg.walkDuration.replace("s", "")) / 60)
+              : null;
+            return (
+              <button
+                key={i}
+                onClick={() => setSelectedSegment(selectedSegment === i ? null : i)}
+                className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
+                  selectedSegment === i ? "bg-[#EE6300] text-white" : "bg-white text-gray-700"
+                }`}
+              >
+                {i + 1}→{i + 2}{walkMin !== null && walkMin > 0 ? ` · ${walkMin}분` : ""}
+              </button>
+            );
+          })}
+        </div>
       )}
 
       {/* 경로 로딩 오버레이 */}
@@ -148,8 +172,8 @@ export default function RoutePage({
             <span>도보 경로</span>
           </div>
         )}
-        {!isTransitMode && routeData.length > 0 && (() => {
-          const totalSec = routeData.reduce((sum, seg) =>
+        {!isTransitMode && activeSegments.length > 0 && (() => {
+          const totalSec = activeSegments.reduce((sum, seg) =>
             sum + parseInt(seg.walkDuration?.replace("s", "") ?? "0"), 0);
           const totalMin = Math.round(totalSec / 60);
           return totalMin > 0 ? (
@@ -172,6 +196,7 @@ export default function RoutePage({
             selectedSegment={selectedSegment}
             showTransit={isTransitMode}
             showWalk={!isTransitMode}
+            segmentVariants={segmentVariants}
           />
         </Map>
       </APIProvider>
@@ -188,28 +213,45 @@ export default function RoutePage({
               닫기
             </button>
           </div>
-          {routeData.map((segment, i) => {
-            const seconds = parseInt(
-              segment?.duration?.replace("s", "") ?? "0",
-            );
+          {activeSegments.map((_, i) => {
+            const segment = segmentCurrentData(i) ?? activeSegments[i];
+            const seconds = parseInt(segment?.duration?.replace("s", "") ?? "0");
             const minutes = Math.round(seconds / 60);
+            const variant = segmentVariants[i] ?? "optimized";
+            const showBusBtn = segmentCurrentHasSubway(i) && segmentHasBusAlt(i) && variant !== "bus";
+            const showSubwayBtn = segmentCurrentHasBus(i) && segmentHasSubwayAlt(i) && variant !== "subway";
+            const showBackBtn = variant !== "optimized";
 
             return (
               <div key={i} className="mb-3 bg-gray-50 rounded-2xl p-4">
-                <p className="font-medium text-[14px] mb-2">
-                  구간 {i + 1} → {i + 2} · 교통수단 {minutes}분
-                  {segment.walkDuration && (
-                    <span className="text-gray-400 ml-2 font-normal text-[12px]">
-                      / 도보{" "}
-                      {Math.round(
-                        parseInt(segment.walkDuration.replace("s", "")) / 60,
-                      )}
-                      분
-                    </span>
-                  )}
-                </p>
+                <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
+                  <p className="font-medium text-[14px]">
+                    구간 {i + 1} → {i + 2} · 교통수단 {minutes}분
+                    {segment.walkDuration && (
+                      <span className="text-gray-400 ml-2 font-normal text-[12px]">
+                        / 도보 {Math.round(parseInt(segment.walkDuration.replace("s", "")) / 60)}분
+                      </span>
+                    )}
+                  </p>
+                  <div className="flex gap-1">
+                    {showBusBtn && (
+                      <button onClick={() => setSegmentVariant(i, "bus")} className="text-[11px] px-2 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 cursor-pointer hover:border-[#EE6300] hover:text-[#EE6300]">
+                        🚌 버스로 보기
+                      </button>
+                    )}
+                    {showSubwayBtn && (
+                      <button onClick={() => setSegmentVariant(i, "subway")} className="text-[11px] px-2 py-1 rounded-xl bg-white border border-gray-200 text-gray-600 cursor-pointer hover:border-[#EE6300] hover:text-[#EE6300]">
+                        🚇 지하철로 보기
+                      </button>
+                    )}
+                    {showBackBtn && (
+                      <button onClick={() => setSegmentVariant(i, "optimized")} className="text-[11px] px-2 py-1 rounded-xl bg-gray-200 text-gray-500 cursor-pointer hover:bg-gray-300">
+                        최적 경로
+                      </button>
+                    )}
+                  </div>
+                </div>
                 {segment?.steps
-                  // 연속된 WALK 스텝 합치기
                   ?.reduce((acc: typeof segment.steps, step) => {
                     const last = acc[acc.length - 1];
                     if (step.travelMode === "WALK" && last?.travelMode === "WALK") {
@@ -221,62 +263,57 @@ export default function RoutePage({
                     return [...acc, step];
                   }, [])
                   .map((step, j) => {
-                  if (step.travelMode === "WALK") {
-                    const walkMinutes = Math.round(
-                      parseInt(step.staticDuration?.replace("s", "") ?? "0") / 60,
-                    );
-                    if (walkMinutes === 0) return null;
-                    return (
-                      <div key={j} className="flex items-start gap-3 mb-2">
-                        <div className="flex flex-col items-center">
-                          <div className="w-2 h-2 rounded-full bg-gray-300 mt-1" />
-                          <div className="w-px h-6 bg-gray-200" />
-                        </div>
-                        <span className="text-[12px] text-gray-400">
-                          🚶 도보 {walkMinutes}분
-                        </span>
-                      </div>
-                    );
-                  }
-                  if (step.transitDetails) {
-                    return (
-                      <div key={j} className="flex items-start gap-3 mb-2">
-                        <div className="flex flex-col items-center">
-                          <div className="w-2 h-2 rounded-full bg-[#EE6300] mt-1" />
-                          <div className="w-px h-6 bg-gray-200" />
-                        </div>
-                        <div className="text-[12px] flex flex-col gap-0.5">
-                          {/* 노선 종류 + 번호 */}
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-gray-700 font-medium">
-                              {(() => {
-                                const type = step.transitDetails?.transitLine?.vehicle?.type;
-                                if (type === "SUBWAY" || type === "METRO_RAIL") return "🚇";
-                                if (type === "RAIL" || type === "COMMUTER_TRAIN" || type === "HEAVY_RAIL") return "🚆";
-                                if (type === "TRAM" || type === "LIGHT_RAIL") return "🚊";
-                                if (type === "FERRY") return "⛴";
-                                return "🚌";
-                              })()} {step.transitDetails?.transitLine?.name}
-                            </span>
-                            {step.transitDetails?.transitLine?.nameShort && (
-                              <span className="bg-gray-200 text-gray-600 rounded px-1.5 py-0.5 text-[11px] font-medium">
-                                {step.transitDetails.transitLine.nameShort}
-                              </span>
-                            )}
+                    if (step.travelMode === "WALK") {
+                      const walkMinutes = Math.round(
+                        parseInt(step.staticDuration?.replace("s", "") ?? "0") / 60,
+                      );
+                      if (walkMinutes === 0) return null;
+                      return (
+                        <div key={j} className="flex items-start gap-3 mb-2">
+                          <div className="flex flex-col items-center">
+                            <div className="w-2 h-2 rounded-full bg-gray-300 mt-1" />
+                            <div className="w-px h-6 bg-gray-200" />
                           </div>
-                          {/* 승차 → 하차 정류장 */}
-                          <span className="text-gray-400 leading-relaxed">
-                            {step.transitDetails?.stopDetails?.departureStop?.name}
-                            {" → "}
-                            {step.transitDetails?.stopDetails?.arrivalStop?.name}
-                          </span>
+                          <span className="text-[12px] text-gray-400">🚶 도보 {walkMinutes}분</span>
                         </div>
-                      </div>
-                    );
-                  }
-                  return null;
-                })
-                }
+                      );
+                    }
+                    if (step.transitDetails) {
+                      return (
+                        <div key={j} className="flex items-start gap-3 mb-2">
+                          <div className="flex flex-col items-center">
+                            <div className="w-2 h-2 rounded-full bg-[#EE6300] mt-1" />
+                            <div className="w-px h-6 bg-gray-200" />
+                          </div>
+                          <div className="text-[12px] flex flex-col gap-0.5">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="text-gray-700 font-medium">
+                                {(() => {
+                                  const type = step.transitDetails?.transitLine?.vehicle?.type;
+                                  if (type === "SUBWAY" || type === "METRO_RAIL") return "🚇";
+                                  if (type === "RAIL" || type === "COMMUTER_TRAIN" || type === "HEAVY_RAIL") return "🚆";
+                                  if (type === "TRAM" || type === "LIGHT_RAIL") return "🚊";
+                                  if (type === "FERRY") return "⛴";
+                                  return "🚌";
+                                })()} {step.transitDetails?.transitLine?.name}
+                              </span>
+                              {step.transitDetails?.transitLine?.nameShort && (
+                                <span className="bg-gray-200 text-gray-600 rounded px-1.5 py-0.5 text-[11px] font-medium">
+                                  {step.transitDetails.transitLine.nameShort}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-gray-400 leading-relaxed">
+                              {step.transitDetails?.stopDetails?.departureStop?.name}
+                              {" → "}
+                              {step.transitDetails?.stopDetails?.arrivalStop?.name}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })}
               </div>
             );
           })}

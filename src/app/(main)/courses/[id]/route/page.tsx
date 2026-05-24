@@ -21,11 +21,13 @@ export default function RoutePage({
   const [showTransit, setShowTransit] = useState(
     searchParams.get("transit") === "true",
   );
-  const [routeData, setRouteData] = useState<RouteSegment[]>([]);
+  const [routeData, setRouteData] = useState<{ optimized: RouteSegment[]; bus: RouteSegment[]; subway: RouteSegment[] }>({ optimized: [], bus: [], subway: [] });
+  const [segmentVariants] = useState<Record<number, "optimized" | "bus" | "subway">>({});
   const [selectedSegment, setSelectedSegment] = useState<number | null>(null);
   const [routeLoading, setRouteLoading] = useState(true);
   const [showTransitRoute, setShowTransitRoute] = useState(true);
   const [showWalkRoute, setShowWalkRoute] = useState(true);
+  const activeSegments = routeData.optimized;
 
   useEffect(() => {
     supabase
@@ -57,7 +59,7 @@ export default function RoutePage({
           {showTransit ? "교통수단 닫기" : "교통수단 보기"}
         </button>
       </div>
-      {routeData.length > 0 && (
+      {activeSegments.length > 0 && (
         <>
           <div className="z-50 absolute top-16 left-0 right-0 flex gap-2 overflow-x-auto px-4 py-1 scrollbar-hide">
             <button
@@ -70,7 +72,7 @@ export default function RoutePage({
             >
               전체
             </button>
-            {routeData.map((_, i) => (
+            {activeSegments.map((_, i) => (
               <button
                 key={i}
                 onClick={() => setSelectedSegment(i)}
@@ -136,6 +138,7 @@ export default function RoutePage({
             selectedSegment={selectedSegment}
             showTransit={showTransitRoute}
             showWalk={showWalkRoute}
+            segmentVariants={segmentVariants}
           />
         </Map>
       </APIProvider>
@@ -151,7 +154,7 @@ export default function RoutePage({
               닫기
             </button>
           </div>
-          {routeData.map((segment, i) => {
+          {activeSegments.map((segment, i) => {
             const seconds = parseInt(
               segment?.duration?.replace("s", "") ?? "0",
             );
