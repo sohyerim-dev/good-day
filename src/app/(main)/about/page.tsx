@@ -62,7 +62,7 @@ export default function About() {
                   <p className="text-[13px] font-bold text-[#EE6300] mb-1">{item.step}. {item.title}</p>
                   <p className="text-[13px] text-gray-500 leading-relaxed whitespace-pre-line">{item.desc}</p>
                 </div>
-                <div className={`flex gap-2 justify-center ${item.images.length === 1 ? "" : "flex-wrap"}`}>
+                <div className="flex gap-2 flex-wrap">
                   {item.images.map((img) => (
                     <Image
                       key={img}
