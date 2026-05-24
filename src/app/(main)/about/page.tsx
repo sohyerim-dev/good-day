@@ -20,6 +20,69 @@ export default function About() {
         </p>
       </div>
 
+      {/* 핵심 사용자 흐름 */}
+      <div>
+        <h2 className="text-[16px] font-bold mb-3">핵심 사용자 흐름</h2>
+        <div className="flex flex-col gap-6">
+          {[
+            {
+              step: 1,
+              title: "장소 검색",
+              desc: "가고 싶은 장소를 검색하고 코스에 추가합니다.\n여행지, 맛집, 카페 등 원하는 장소를 한 곳에 모아 여행 계획을 시작할 수 있습니다.",
+              images: ["1-search-places.png"],
+            },
+            {
+              step: 2,
+              title: "코스 구성",
+              desc: "드래그 앤 드롭으로 장소 순서를 변경하며 여행 동선을 정리합니다.\n이동 흐름을 고려해 효율적인 코스를 구성할 수 있습니다.",
+              images: ["2-make-course.png"],
+            },
+            {
+              step: 3,
+              title: "이동 경로 확인",
+              desc: "도보 및 대중교통 경로와 이동 정보를 확인할 수 있습니다.\n장소 간 이동 시간을 고려하며 실제 여행 동선에 맞게 계획할 수 있습니다.",
+              images: ["3-course-detail.png", "4-walk-route.png", "5-transit-route.png"],
+            },
+            {
+              step: 4,
+              title: "친구와 공유 및 공동 편집",
+              desc: "코스를 친구에게 공유하고 함께 수정할 수 있습니다.\n여행 일정을 함께 조율하며 하나의 코스를 완성할 수 있습니다.",
+              images: ["6-invite-friend.png", "7-together-edit.png"],
+            },
+            {
+              step: 5,
+              title: "다른 사용자 코스 탐색",
+              desc: "인기 코스와 원하는 지역의 코스를 탐색하고 북마크할 수 있습니다.\n다른 사용자의 여행 동선을 참고하며 새로운 장소를 발견할 수 있습니다.",
+              images: ["8-hot-course.png", "9-explore.png"],
+            },
+          ].map((item, idx, arr) => (
+            <div key={item.step}>
+              <div className="bg-gray-50 rounded-2xl p-4 flex flex-col gap-3">
+                <div>
+                  <p className="text-[13px] font-bold text-[#EE6300] mb-1">{item.step}. {item.title}</p>
+                  <p className="text-[13px] text-gray-500 leading-relaxed whitespace-pre-line">{item.desc}</p>
+                </div>
+                <div className={`grid gap-2 ${item.images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                  {item.images.map((img) => (
+                    <Image
+                      key={img}
+                      src={`/screenshots/${img}`}
+                      alt={item.title}
+                      width={400}
+                      height={800}
+                      className="w-full rounded-xl object-cover"
+                    />
+                  ))}
+                </div>
+              </div>
+              {idx < arr.length - 1 && (
+                <p className="text-center text-gray-300 text-[20px] mt-4">↓</p>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
       {/* 최근 업데이트 */}
       <div>
         <h2 className="text-[16px] font-bold mb-3">최근 업데이트</h2>
