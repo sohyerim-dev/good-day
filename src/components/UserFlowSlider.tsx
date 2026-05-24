@@ -26,7 +26,7 @@ const STEPS = [
     step: 4,
     title: "친구와 공유 및 공동 편집",
     desc: "코스를 친구에게 공유하고 함께 수정할 수 있습니다.\n여행 일정을 함께 조율하며 하나의 코스를 완성할 수 있습니다.",
-    images: ["6-invite-friend.png", "7-together-edit.png"],
+    images: ["6-invite-friend.png"],
   },
   {
     step: 5,
@@ -44,8 +44,12 @@ export default function UserFlowSlider() {
     <div className="flex flex-col items-center gap-4">
       {/* 슬라이드 카드 */}
       <div className="w-full bg-gray-50 rounded-2xl p-5 flex flex-col items-center gap-4 text-center">
-        <p className="text-[16px] font-bold text-[#EE6300]">{item.step}. {item.title}</p>
-        <p className="text-[13px] text-gray-500 leading-relaxed whitespace-pre-line">{item.desc}</p>
+        <p className="text-[16px] font-bold text-[#EE6300]">
+          {item.step}. {item.title}
+        </p>
+        <p className="text-[13px] text-gray-500 leading-relaxed whitespace-pre-line">
+          {item.desc}
+        </p>
         <div className="flex gap-2 justify-center flex-wrap">
           {item.images.map((img) => (
             <Image
@@ -69,7 +73,9 @@ export default function UserFlowSlider() {
         >
           이전
         </button>
-        <span className="text-[13px] text-gray-400">{current + 1} / {STEPS.length}</span>
+        <span className="text-[13px] text-gray-400">
+          {current + 1} / {STEPS.length}
+        </span>
         <button
           onClick={() => setCurrent((c) => Math.min(STEPS.length - 1, c + 1))}
           disabled={current === STEPS.length - 1}
