@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
   // 도보 경로
   if (mode === "walk") {
     if (isGlobal) {
+      // 해외: Google Routes WALK
       const res = await fetch("https://routes.googleapis.com/directions/v2:computeRoutes", {
         method: "POST",
         headers: {
