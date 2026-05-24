@@ -62,15 +62,15 @@ export default function About() {
                   <p className="text-[13px] font-bold text-[#EE6300] mb-1">{item.step}. {item.title}</p>
                   <p className="text-[13px] text-gray-500 leading-relaxed whitespace-pre-line">{item.desc}</p>
                 </div>
-                <div className={`grid gap-2 ${item.images.length === 1 ? "grid-cols-1" : "grid-cols-2"}`}>
+                <div className={`flex gap-2 justify-center ${item.images.length === 1 ? "" : "flex-wrap"}`}>
                   {item.images.map((img) => (
                     <Image
                       key={img}
                       src={`/screenshots/${img}`}
                       alt={item.title}
-                      width={400}
-                      height={800}
-                      className="w-full rounded-xl object-cover"
+                      width={160}
+                      height={320}
+                      className="rounded-xl object-contain"
                     />
                   ))}
                 </div>
