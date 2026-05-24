@@ -3,6 +3,8 @@ import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
 import { Course } from "@/types/course";
 import InstallPrompt from "@/components/InstallPrompt";
+
+type CourseWithCollab = Course & { collabLabel: string };
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -12,20 +14,47 @@ const PAGE_SIZE = 5;
 export default function Home() {
   const user = useUserStore((state) => state.user);
   const hasHydrated = useUserStore((state) => state.hasHydrated);
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [courses, setCourses] = useState<CourseWithCollab[]>([]);
   const [page, setPage] = useState(1);
 
   useEffect(() => {
     if (!user) return;
     const supabase = createClient();
-    supabase
-      .from("courses")
-      .select("*")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: false })
-      .then(({ data }) => {
-        if (data) setCourses(data);
-      });
+
+    async function load() {
+      const [{ data: owned }, { data: myCollabs }] = await Promise.all([
+        supabase.from("courses").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
+        supabase.from("course_collaborators").select("course_id").eq("user_id", user!.id),
+      ]);
+
+      const collabCourseIds = myCollabs?.map((c) => c.course_id) ?? [];
+
+      const [ownedWithInfo, collabResult] = await Promise.all([
+        Promise.all(
+          (owned ?? []).map(async (course) => {
+            const { data: collabs } = await supabase.from("course_collaborators").select("user_id").eq("course_id", course.id);
+            if (!collabs || collabs.length === 0) return { ...course, collabLabel: "" };
+            const { data: profiles } = await supabase.from("profiles").select("username").in("id", collabs.map((c) => c.user_id));
+            const names = profiles?.map((p) => p.username).join(", ") ?? "";
+            return { ...course, collabLabel: names ? `공동 편집 중 : ${names}` : "" };
+          })
+        ),
+        collabCourseIds.length > 0
+          ? supabase.from("courses").select("*").in("id", collabCourseIds).order("created_at", { ascending: false })
+          : Promise.resolve({ data: [] as Course[] }),
+      ]);
+
+      const collabWithInfo: CourseWithCollab[] = await Promise.all(
+        ((collabResult as { data: Course[] }).data ?? []).map(async (course) => {
+          const { data: profile } = await supabase.from("profiles").select("username").eq("id", course.user_id).single();
+          return { ...course, collabLabel: `공동 편집 중 : ${profile?.username ?? ""}` };
+        })
+      );
+
+      setCourses([...ownedWithInfo, ...collabWithInfo]);
+    }
+
+    load();
   }, [user]);
   const totalPages = Math.ceil(courses.length / PAGE_SIZE);
   const paginated = courses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -117,6 +146,9 @@ export default function Home() {
                       />
                       <span className="font-medium">{course.title}</span>
                     </div>
+                    {course.collabLabel && (
+                      <span className="text-[11px] text-[#EE6300] pl-6">{course.collabLabel}</span>
+                    )}
                     {course.description && (
                       <span className="text-[12px] text-gray-400 pl-6">
                         {course.description}

@@ -39,6 +39,7 @@ export default function CourseDetail({
   const [includeMemo, setIncludeMemo] = useState(true);
   const [memoModal, setMemoModal] = useState<{ placeId: string; placeName: string } | null>(null);
   const [memoInput, setMemoInput] = useState("");
+  const [inviteCopied, setInviteCopied] = useState(false);
 
   // ?u=userId 파라미터가 있으면 해당 유저의 일정을 표시, 없으면 내 일정
   const searchParams = useSearchParams();
@@ -238,6 +239,16 @@ export default function CourseDetail({
   }
 
 
+  async function handleInvite() {
+    const res = await fetch(`/api/courses/${id}/invite`, { method: "POST" });
+    const data = await res.json();
+    if (!res.ok) return;
+    const link = `${window.location.origin}/courses/${id}/join?token=${data.token}`;
+    await navigator.clipboard.writeText(link);
+    setInviteCopied(true);
+    setTimeout(() => setInviteCopied(false), 2000);
+  }
+
   async function handleDeleteCourse() {
     if (!confirm("코스를 삭제할까요?")) return;
     await supabase.from("courses").delete().eq("id", id);
@@ -354,7 +365,7 @@ export default function CourseDetail({
               <p className="text-[14px] text-gray-500 pl-6">{course.description}</p>
             )}
             {course && course.user_id === user?.id && (
-              <div className="flex items-center gap-1 pl-6">
+              <div className="flex items-center gap-1 pl-6 flex-wrap">
                 <span className="text-[11px] leading-4.75 bg-[#EE6300] text-white rounded-full px-2 py-0.5">
                   내 코스
                 </span>
@@ -364,6 +375,12 @@ export default function CourseDetail({
                 >
                   수정
                 </Link>
+                <button
+                  onClick={handleInvite}
+                  className="text-[11px] text-[#EE6300] border leading-4.75 border-[#EE6300] rounded-full px-2 py-0.5"
+                >
+                  {inviteCopied ? "링크 복사됨!" : "공동편집 초대"}
+                </button>
                 <button
                   onClick={handleDeleteCourse}
                   className="text-[11px] text-red-400 border leading-4.75 border-red-300 rounded-full px-2 py-0.5"
