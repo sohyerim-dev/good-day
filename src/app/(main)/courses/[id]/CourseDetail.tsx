@@ -446,7 +446,7 @@ export default function CourseDetail({
                       </a>
                     ) : p.places.google_place_id ? (
                       <a
-                        href={`https://www.google.com/maps/search/?api=1&query_place_id=${p.places.google_place_id}`}
+                        href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.places.name)}&query_place_id=${p.places.google_place_id}`}
                         target="_blank"
                         className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 hover:bg-[#EE6300] hover:text-white"
                       >
