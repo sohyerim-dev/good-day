@@ -121,22 +121,43 @@ export default function Explore() {
       >
         뒤로 가기
       </button>
-      <div className="absolute top-16 left-4 right-4 z-50 flex gap-2">
-        <input
-          value={locationQuery}
-          onChange={(e) => setLocationQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleLocationSearch();
-          }}
-          placeholder="지역 검색 (예: 홍대입구역, 강남, 성수동)"
-          className="border border-gray-200 flex-1 bg-white rounded-2xl px-4 py-2 shadow text-[14px] focus:outline-none"
-        />
-        <button
-          onClick={handleLocationSearch}
-          className="bg-[#EE6300] hover:bg-white hover:text-[#EE6300] text-white rounded-2xl px-4 py-2 shadow text-[14px] cursor-pointer whitespace-nowrap"
-        >
-          검색
-        </button>
+      <div className="absolute top-16 left-4 right-4 z-50 flex flex-col gap-2">
+        <div className="flex gap-2">
+          <input
+            value={locationQuery}
+            onChange={(e) => setLocationQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleLocationSearch();
+            }}
+            placeholder="지역 검색 (예: 홍대입구역, 강남, 성수동)"
+            className="border border-gray-200 flex-1 bg-white rounded-2xl px-4 py-2 shadow text-[14px] focus:outline-none"
+          />
+          <button
+            onClick={handleLocationSearch}
+            className="bg-[#EE6300] hover:bg-white hover:text-[#EE6300] text-white rounded-2xl px-4 py-2 shadow text-[14px] cursor-pointer whitespace-nowrap"
+          >
+            검색
+          </button>
+        </div>
+        <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+          {[
+            { label: "서울", lat: 37.5665, lng: 126.9780, zoom: 12 },
+            { label: "부산", lat: 35.1796, lng: 129.0756, zoom: 12 },
+            { label: "제주", lat: 33.4996, lng: 126.5312, zoom: 12 },
+            { label: "경주", lat: 35.8562, lng: 129.2247, zoom: 13 },
+            { label: "강릉", lat: 37.7519, lng: 128.8760, zoom: 13 },
+            { label: "전주", lat: 35.8242, lng: 127.1480, zoom: 13 },
+            { label: "🌍 해외", lat: 30, lng: 10, zoom: 3 },
+          ].map((region) => (
+            <button
+              key={region.label}
+              onClick={() => { setCenter({ lat: region.lat, lng: region.lng }); setZoomLevel(region.zoom); }}
+              className="shrink-0 bg-white rounded-2xl px-4 py-1.5 shadow text-[13px] font-medium text-gray-700 cursor-pointer hover:bg-[#EE6300] hover:text-white"
+            >
+              {region.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="absolute top-4 right-4 z-50 flex gap-2">
