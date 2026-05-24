@@ -42,7 +42,7 @@ export default function Home() {
           rel="noopener noreferrer"
           className="w-full flex items-center justify-between bg-[#EE6300]/10 border border-[#EE6300]/30 rounded-2xl px-5 py-3 mb-2 text-[13px] text-[#EE6300] font-medium hover:bg-[#EE6300]/20 transition"
         >
-          <span>🔗 서비스 바로가기 · good-day-go-out.co.kr</span>
+          <span>🔗 프로덕션 서비스</span>
           <span>→</span>
         </a>
         <div className="w-full bg-gray-50 rounded-2xl px-5 py-8 mt-4 flex flex-col items-center gap-3 text-center">
