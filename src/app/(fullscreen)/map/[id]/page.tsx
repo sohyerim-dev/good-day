@@ -249,7 +249,14 @@ export default function RoutePage({
                           {/* 노선 종류 + 번호 */}
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span className="text-gray-700 font-medium">
-                              🚌 {step.transitDetails?.transitLine?.name}
+                              {(() => {
+                                const type = step.transitDetails?.transitLine?.vehicle?.type;
+                                if (type === "SUBWAY" || type === "METRO_RAIL") return "🚇";
+                                if (type === "RAIL" || type === "COMMUTER_TRAIN" || type === "HEAVY_RAIL") return "🚆";
+                                if (type === "TRAM" || type === "LIGHT_RAIL") return "🚊";
+                                if (type === "FERRY") return "⛴";
+                                return "🚌";
+                              })()} {step.transitDetails?.transitLine?.name}
                             </span>
                             {step.transitDetails?.transitLine?.nameShort && (
                               <span className="bg-gray-200 text-gray-600 rounded px-1.5 py-0.5 text-[11px] font-medium">

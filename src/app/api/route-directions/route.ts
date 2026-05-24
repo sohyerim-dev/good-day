@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
       "Content-Type": "application/json",
       "X-Goog-Api-Key": process.env.GOOGLE_MAPS_API_KEY!,
       "X-Goog-FieldMask":
-        "routes.polyline.encodedPolyline,routes.legs.steps.transitDetails.transitLine.name,routes.legs.steps.transitDetails.transitLine.nameShort,routes.legs.steps.transitDetails.stopDetails,routes.legs.steps.staticDuration,routes.legs.steps.travelMode,routes.legs.duration",
+        "routes.polyline.encodedPolyline,routes.legs.steps.transitDetails.transitLine.name,routes.legs.steps.transitDetails.transitLine.nameShort,routes.legs.steps.transitDetails.transitLine.vehicle,routes.legs.steps.transitDetails.stopDetails,routes.legs.steps.staticDuration,routes.legs.steps.travelMode,routes.legs.duration",
     },
     body: JSON.stringify({
       origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
