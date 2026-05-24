@@ -52,8 +52,8 @@ export default function UserFlowSlider() {
               key={img}
               src={`/screenshots/${img}`}
               alt={item.title}
-              width={380}
-              height={760}
+              width={320}
+              height={640}
               className="rounded-xl object-contain"
             />
           ))}
