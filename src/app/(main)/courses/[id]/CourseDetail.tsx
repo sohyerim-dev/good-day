@@ -40,11 +40,15 @@ export default function CourseDetail({
   const [memoModal, setMemoModal] = useState<{ placeId: string; placeName: string } | null>(null);
   const [memoInput, setMemoInput] = useState("");
   const [inviteCopied, setInviteCopied] = useState(false);
+  const [isCollaborator, setIsCollaborator] = useState(false);
 
   // ?u=userId 파라미터가 있으면 해당 유저의 일정을 표시, 없으면 내 일정
+  // 오너 또는 공동편집자는 오너 ID 기준으로 공유 메모를 읽고 씀
   const searchParams = useSearchParams();
-  const scheduleOwnerId = searchParams.get("u") ?? user?.id ?? null;
-  const isScheduleEditable = !!user && !!scheduleOwnerId && user.id === scheduleOwnerId;
+  const scheduleOwnerId = searchParams.get("u") ??
+    ((user?.id === course?.user_id || isCollaborator) && course?.user_id ? course.user_id : user?.id) ??
+    null;
+  const isScheduleEditable = !!user && ((!!scheduleOwnerId && user.id === scheduleOwnerId) || isCollaborator);
   const [schedules, setSchedules] = useState<Record<string, string>>({}); // place_id → time_memo
 
   // 공유 메뉴 외부 클릭 시 닫기
@@ -102,6 +106,18 @@ export default function CourseDetail({
         setMemos(memoMap);
       });
   }, [id, scheduleOwnerId]);
+
+  // 공동편집자 여부 확인
+  useEffect(() => {
+    if (!user?.id || !course?.user_id || user.id === course.user_id) return;
+    supabase
+      .from("course_collaborators")
+      .select("user_id")
+      .eq("course_id", id)
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setIsCollaborator(!!data));
+  }, [user?.id, course?.user_id, id]);
 
   // 로그인한 사용자에게만 필요한 데이터 (좋아요 여부, 북마크 여부, 저장된 장소)
   useEffect(() => {
@@ -165,14 +181,14 @@ export default function CourseDetail({
 
   // 시간 메모 저장: 값이 있으면 upsert, 없으면 삭제
   async function handleSaveTime(placeId: string, time: string) {
-    if (!user || !isScheduleEditable) return;
+    if (!user || !isScheduleEditable || !scheduleOwnerId) return;
     if (!time) {
       await supabase.from("user_course_schedules").delete()
-        .eq("user_id", user.id).eq("course_id", id).eq("place_id", placeId);
+        .eq("user_id", scheduleOwnerId).eq("course_id", id).eq("place_id", placeId);
       setSchedules((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
     } else {
       await supabase.from("user_course_schedules").upsert(
-        { user_id: user.id, course_id: id, place_id: placeId, time_memo: time },
+        { user_id: scheduleOwnerId, course_id: id, place_id: placeId, time_memo: time },
         { onConflict: "user_id,course_id,place_id" },
       );
       setSchedules((prev) => ({ ...prev, [placeId]: time }));
@@ -180,23 +196,23 @@ export default function CourseDetail({
   }
 
   async function handleSaveMemo(placeId: string, memo: string) {
-    if (!user || !isScheduleEditable) return;
+    if (!user || !isScheduleEditable || !scheduleOwnerId) return;
     const trimmed = memo.trim();
     if (!trimmed) {
       if (!schedules[placeId]) {
         const { error } = await supabase.from("user_course_schedules").delete()
-          .eq("user_id", user.id).eq("course_id", id).eq("place_id", placeId);
+          .eq("user_id", scheduleOwnerId).eq("course_id", id).eq("place_id", placeId);
         if (!error) setMemos((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
       } else {
         const { error } = await supabase.from("user_course_schedules").upsert(
-          { user_id: user.id, course_id: id, place_id: placeId, time_memo: schedules[placeId], memo: null },
+          { user_id: scheduleOwnerId, course_id: id, place_id: placeId, time_memo: schedules[placeId], memo: null },
           { onConflict: "user_id,course_id,place_id" },
         );
         if (!error) setMemos((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
       }
     } else {
       const { error } = await supabase.from("user_course_schedules").upsert(
-        { user_id: user.id, course_id: id, place_id: placeId, time_memo: schedules[placeId] ?? "", memo: trimmed },
+        { user_id: scheduleOwnerId, course_id: id, place_id: placeId, time_memo: schedules[placeId] ?? "", memo: trimmed },
         { onConflict: "user_id,course_id,place_id" },
       );
       if (!error) setMemos((prev) => ({ ...prev, [placeId]: trimmed }));
@@ -209,7 +225,7 @@ export default function CourseDetail({
     const hasSchedule = isScheduleEditable && Object.keys(schedules).length > 0;
     const hasMemo = isScheduleEditable && Object.keys(memos).length > 0;
     const shouldInclude = (hasSchedule && includeSchedule) || (hasMemo && includeMemo);
-    return shouldInclude ? `${base}?u=${user?.id}` : base;
+    return shouldInclude ? `${base}?u=${scheduleOwnerId}` : base;
   }
 
   async function handleCopyUrl() {
@@ -298,7 +314,7 @@ export default function CourseDetail({
             <h2 className="font-bold text-[16px]">{memoModal.placeName}</h2>
             <button onClick={() => setMemoModal(null)} className="text-gray-400 hover:text-black text-[13px] cursor-pointer">닫기</button>
           </div>
-          {course?.user_id === user?.id ? (
+          {(course?.user_id === user?.id || isCollaborator) ? (
             <>
               <textarea
                 value={memoInput}
@@ -437,34 +453,35 @@ export default function CourseDetail({
                     )}
                   </div>
                 </div>
-                {/* 메모: 내 코스 또는 북마크한 코스면 편집 가능, 공유받은 경우 읽기 전용, 없으면 숨김 */}
-                {(((course?.user_id === user?.id || bookmarked) && isScheduleEditable) || (!isScheduleEditable && memos[p.places.id])) && (
+                {/* 메모: 내 코스·공동편집자·북마크면 편집 가능, 공유받은 경우 읽기 전용, 없으면 숨김 */}
+                {(((course?.user_id === user?.id || isCollaborator || bookmarked) && isScheduleEditable) || (!isScheduleEditable && memos[p.places.id])) && (
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
-                    {isScheduleEditable ? (
+                    {memos[p.places.id] ? (
                       <button
                         onClick={() => {
                           setMemoInput(memos[p.places.id] ?? "");
                           setMemoModal({ placeId: p.places.id, placeName: p.places.name });
                         }}
-                        className="text-[12px] text-gray-500 border border-gray-300 rounded-xl px-3 py-1 cursor-pointer hover:border-[#EE6300] hover:text-[#EE6300] shrink-0"
+                        className="flex items-center gap-1.5 flex-1 min-w-0 text-left cursor-pointer group"
                       >
-                        {memos[p.places.id] ? "메모 보기" : "메모 추가"}
+                        <span className="text-[11px] text-[#EE6300] border border-[#EE6300] rounded-lg px-1.5 py-0.5 shrink-0 group-hover:bg-[#EE6300] group-hover:text-white">메모</span>
+                        <span className="text-[12px] text-gray-500 truncate group-hover:text-[#EE6300]">{memos[p.places.id]}</span>
                       </button>
                     ) : (
                       <button
                         onClick={() => {
-                          setMemoInput(memos[p.places.id] ?? "");
+                          setMemoInput("");
                           setMemoModal({ placeId: p.places.id, placeName: p.places.name });
                         }}
                         className="text-[12px] text-gray-500 border border-gray-300 rounded-xl px-3 py-1 cursor-pointer hover:border-[#EE6300] hover:text-[#EE6300] shrink-0"
                       >
-                        메모 보기
+                        메모 추가
                       </button>
                     )}
                   </div>
                 )}
-                {/* 시간 메모: 내 코스 또는 북마크한 코스면 편집 가능, 공유받은 일정이면 읽기 전용, 없으면 숨김 */}
-                {(((course?.user_id === user?.id || bookmarked) && isScheduleEditable) || (!isScheduleEditable && schedules[p.places.id])) && (
+                {/* 시간 메모: 내 코스·공동편집자·북마크면 편집 가능, 공유받은 일정이면 읽기 전용, 없으면 숨김 */}
+                {(((course?.user_id === user?.id || isCollaborator || bookmarked) && isScheduleEditable) || (!isScheduleEditable && schedules[p.places.id])) && (
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
                     <span className="text-[12px] text-gray-400">🕐</span>
                     {isScheduleEditable ? (
