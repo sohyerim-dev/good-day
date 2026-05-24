@@ -102,7 +102,7 @@ export default function RoutePage({
         </button>
         <div className="flex gap-2">
           <button
-            onClick={() => router.push(isTransitMode ? `/map/${id}` : `/map/${id}?transit=true`)}
+            onClick={() => { if (isTransitMode) setShowTransit(false); router.push(isTransitMode ? `/map/${id}` : `/map/${id}?transit=true`); }}
             className="bg-[#EE6300] text-white rounded-2xl px-4 py-2 shadow text-[14px] font-medium cursor-pointer"
           >
             {isTransitMode ? "도보 경로 보기" : "교통수단・경로 보기"}
