@@ -35,7 +35,8 @@ export default function AuthProvider({
       if (!user) {
         setHasHydrated(true);
         if (!isPublicPage) {
-          router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+          const fullPath = pathname + window.location.search;
+          router.push(`/login?redirect=${encodeURIComponent(fullPath)}`);
         }
         return;
       }
@@ -48,7 +49,8 @@ export default function AuthProvider({
         supabase.auth.signOut();
         setHasHydrated(true);
         if (!isPublicPage) {
-          router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
+          const fullPath = pathname + window.location.search;
+          router.push(`/login?redirect=${encodeURIComponent(fullPath)}`);
         }
         return;
       }

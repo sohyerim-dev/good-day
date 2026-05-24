@@ -31,7 +31,10 @@ export default function JoinCoursePage({
       .single()
       .then(async ({ data, error }) => {
         if (error || !data) { setError("코스를 찾을 수 없어요."); setLoading(false); return; }
-        if (data.invite_token !== token) { setError("유효하지 않은 초대 링크예요."); setLoading(false); return; }
+        if ((data as any).invite_token !== token) { setError("유효하지 않은 초대 링크예요."); setLoading(false); return; }
+        if (!(data as any).invite_token_expires_at || new Date((data as any).invite_token_expires_at) < new Date()) {
+          setError("초대 링크가 만료됐어요. 오너에게 새 링크를 요청해주세요."); setLoading(false); return;
+        }
         if (!data.invite_token_expires_at || new Date(data.invite_token_expires_at) < new Date()) {
           setError("초대 링크가 만료됐어요. 오너에게 새 링크를 요청해주세요."); setLoading(false); return;
         }
