@@ -33,6 +33,10 @@ export default function About() {
               date: "2026.05.24",
               text: "코스 추가・수정 시 경로 미리보기 기능 추가",
             },
+            {
+              date: "2026.05.24",
+              text: "공동 편집 기능 추가 — 초대 링크로 친구와 함께 코스를 편집할 수 있어요",
+            },
           ].map((item, i) => (
             <div
               key={i}
