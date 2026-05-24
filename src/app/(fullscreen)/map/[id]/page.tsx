@@ -106,19 +106,22 @@ export default function RoutePage({
             >
               전체
             </button>
-            {routeData.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setSelectedSegment(i)}
-                className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
-                  selectedSegment === i
-                    ? "bg-[#EE6300] text-white"
-                    : "bg-white text-gray-700"
-                }`}
-              >
-                {i + 1}→{i + 2}
-              </button>
-            ))}
+            {routeData.map((seg, i) => {
+              const walkMin = !isTransitMode && seg.walkDuration
+                ? Math.round(parseInt(seg.walkDuration.replace("s", "")) / 60)
+                : null;
+              return (
+                <button
+                  key={i}
+                  onClick={() => setSelectedSegment(i)}
+                  className={`shrink-0 rounded-2xl px-4 py-1.5 text-[13px] font-medium shadow cursor-pointer ${
+                    selectedSegment === i ? "bg-[#EE6300] text-white" : "bg-white text-gray-700"
+                  }`}
+                >
+                  {i + 1}→{i + 2}{walkMin !== null && walkMin > 0 ? ` · ${walkMin}분` : ""}
+                </button>
+              );
+            })}
           </div>
         </>
       )}
@@ -131,7 +134,7 @@ export default function RoutePage({
         </div>
       )}
 
-      {/* 범례 */}
+      {/* 범례 + 도보 총 소요 시간 */}
       <div className="z-50 absolute bottom-8 left-4 bg-white rounded-2xl px-4 py-2 shadow text-[12px] flex flex-col gap-1">
         {isTransitMode && (
           <div className="flex items-center gap-2">
@@ -145,6 +148,14 @@ export default function RoutePage({
             <span>도보 경로</span>
           </div>
         )}
+        {!isTransitMode && routeData.length > 0 && (() => {
+          const totalSec = routeData.reduce((sum, seg) =>
+            sum + parseInt(seg.walkDuration?.replace("s", "") ?? "0"), 0);
+          const totalMin = Math.round(totalSec / 60);
+          return totalMin > 0 ? (
+            <span className="text-gray-500 text-[11px]">총 도보 약 {totalMin}분</span>
+          ) : null;
+        })()}
       </div>
 
       <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
