@@ -41,6 +41,10 @@ export default function About() {
               date: "2026.05.24",
               text: "해외 장소 추가 지원 — 코스에 해외 장소를 검색하고 경로도 확인할 수 있어요",
             },
+            {
+              date: "2026.05.24",
+              text: "경로 보기: 구간별 버스・지하철 경로 전환 기능 추가",
+            },
           ].map((item, i) => (
             <div
               key={i}
