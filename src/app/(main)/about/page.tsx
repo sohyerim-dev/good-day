@@ -68,8 +68,8 @@ export default function About() {
                       key={img}
                       src={`/screenshots/${img}`}
                       alt={item.title}
-                      width={160}
-                      height={320}
+                      width={380}
+                      height={760}
                       className="rounded-xl object-contain"
                     />
                   ))}
