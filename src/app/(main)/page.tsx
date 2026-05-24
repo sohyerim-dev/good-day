@@ -115,7 +115,7 @@ export default function Home() {
       </div>
       <InstallPrompt />
 
-      <h2 className="font-bold text-[18px] mb-3 self-start">나의 코스</h2>
+      <h2 className="font-bold text-[18px] mb-3 mt-4 self-start">나의 코스</h2>
 
       {courses.length === 0 ? (
         <div className="flex flex-col items-center w-full justify-center bg-gray-50 rounded-2xl p-10 gap-2">
