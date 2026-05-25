@@ -242,7 +242,7 @@ export default function SavedPlaces() {
               onChange={(e) => setNewFolderName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleCreateCollection(); }}
               placeholder="폴더 이름"
-              className="bg-gray-50 rounded-xl px-4 py-3 text-[14px] focus:outline-[#EE6300]"
+              className="bg-gray-50 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
             />
             <div className="flex gap-2">
               <button
@@ -272,7 +272,7 @@ export default function SavedPlaces() {
               value={editingName}
               onChange={(e) => setEditingName(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleRenameCollection(); }}
-              className="bg-gray-50 rounded-xl px-4 py-3 text-[14px] focus:outline-[#EE6300]"
+              className="bg-gray-50 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
             />
             <div className="flex gap-2">
               <button

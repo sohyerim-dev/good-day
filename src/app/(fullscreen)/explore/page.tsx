@@ -39,6 +39,7 @@ export default function Explore() {
     {} as Record<string, ExploreCoursePlace[]>,
   );
   const [selected, setSelected] = useState<ExploreCoursePlace | null>(null);
+  const [selectedCourseIdx, setSelectedCourseIdx] = useState(0);
   const [selectedCoursePlaces, setSelectedCoursePlaces] =
     useState<
       { order: number; places: { name: string; lat: number; lng: number } }[]
@@ -220,6 +221,7 @@ export default function Explore() {
               places={explorePlaces}
               onMarkerClick={(place) => {
                 setSelectedCoursePlaces(undefined);
+                setSelectedCourseIdx(0);
                 setSelected(place);
                 supabase
                   .from("course_places")
@@ -237,13 +239,13 @@ export default function Explore() {
       </APIProvider>
       {selected && (
         <div className="z-50 absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
-          <div className="flex justify-between items-start mb-4 gap-3">
+          <div className="flex justify-between items-start mb-3 gap-3">
             <div className="flex flex-col gap-0.5 min-w-0">
               <h2 className="font-bold text-[18px] leading-tight">
-                {selected.course_places[0].courses.title}
+                {selected.course_places[selectedCourseIdx].courses.title}
               </h2>
               <h3 className="text-[13px] text-gray-400">
-                {selected.course_places[0].courses.profiles?.username}
+                {selected.course_places[selectedCourseIdx].courses.profiles?.username}
               </h3>
             </div>
             <button
@@ -256,6 +258,35 @@ export default function Explore() {
               닫기
             </button>
           </div>
+
+          {/* 코스 탭 (여러 코스에 포함된 경우) */}
+          {selected.course_places.length > 1 && (
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-3 -mx-1 px-1">
+              {selected.course_places.map((cp, i) => (
+                <button
+                  key={cp.course_id}
+                  onClick={() => {
+                    setSelectedCourseIdx(i);
+                    setSelectedCoursePlaces(undefined);
+                    supabase
+                      .from("course_places")
+                      .select("*, places(*)")
+                      .eq("course_id", cp.course_id)
+                      .order("order")
+                      .then(({ data }) => setSelectedCoursePlaces(data ?? []));
+                  }}
+                  className={`shrink-0 rounded-2xl px-3 py-1 text-[12px] font-medium border cursor-pointer ${
+                    i === selectedCourseIdx
+                      ? "bg-[#EE6300] text-white border-[#EE6300]"
+                      : "bg-white text-gray-500 border-gray-200"
+                  }`}
+                >
+                  {cp.courses.title}
+                </button>
+              ))}
+            </div>
+          )}
+
           {selectedCoursePlaces === undefined ? (
             <div className="flex justify-center py-4">
               <div className="w-6 h-6 border-4 border-[#EE6300] border-t-transparent rounded-full animate-spin" />
@@ -266,7 +297,7 @@ export default function Explore() {
             </p>
           ) : (
             <ul className="flex flex-col gap-2 mb-4">
-              {selectedCoursePlaces?.map((p, i) => (
+              {selectedCoursePlaces.map((p, i) => (
                 <li
                   key={i}
                   className="bg-gray-50 rounded-2xl px-4 py-3 text-[14px]"
@@ -281,7 +312,7 @@ export default function Explore() {
           )}
 
           <Link
-            href={`/courses/${selected.course_places[0].course_id}`}
+            href={`/courses/${selected.course_places[selectedCourseIdx].course_id}`}
             className="block bg-[#EE6300] text-white text-center rounded-2xl py-3 font-medium"
           >
             자세히 보기

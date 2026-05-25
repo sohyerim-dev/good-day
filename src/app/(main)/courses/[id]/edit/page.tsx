@@ -262,7 +262,7 @@ export default function EditCourse({
         id="course-title"
         placeholder="코스 제목"
         value={title}
-        className="bg-gray-50 rounded-2xl p-4 w-full focus:outline-[#EE6300]"
+        className="bg-gray-50 rounded-2xl p-4 w-full focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
         onChange={(e) => setTitle(e.target.value)}
       />
       <label htmlFor="course-description" className="font-medium text-[18px]">
@@ -272,7 +272,7 @@ export default function EditCourse({
         id="course-description"
         placeholder="코스 설명"
         value={description}
-        className="bg-gray-50 rounded-2xl p-4 w-full focus:outline-[#EE6300]"
+        className="bg-gray-50 rounded-2xl p-4 w-full focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
         onChange={(e) => setDescription(e.target.value)}
       />
 
@@ -311,7 +311,7 @@ export default function EditCourse({
             if (e.key === "Enter") handleSearch();
           }}
           onChange={(e) => setQuery(e.target.value)}
-          className="bg-gray-50 rounded-2xl p-4 w-[70%] focus:outline-[#EE6300]"
+          className="bg-gray-50 rounded-2xl p-4 w-[70%] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
         />
         <button
           onClick={handleSearch}

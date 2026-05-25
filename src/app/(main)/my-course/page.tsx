@@ -224,7 +224,7 @@ export default function MyCourse() {
                   value={deleteInput}
                   onChange={(e) => setDeleteInput(e.target.value)}
                   placeholder='"탈퇴" 입력'
-                  className="border border-gray-200 rounded-xl px-4 py-3 text-[14px] focus:outline-[#EE6300]"
+                  className="border border-gray-200 rounded-xl px-4 py-3 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
                 />
                 <button
                   onClick={handleDeleteAccount}
