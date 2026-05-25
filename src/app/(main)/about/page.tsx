@@ -69,6 +69,7 @@ export default function About() {
       {/* 서비스 피드백 */}
       <div>
         <h2 className="text-[16px] font-bold mb-3">서비스 피드백</h2>
+        <div className="flex flex-col gap-2">
         <a
           href="https://docs.google.com/forms/d/e/1FAIpQLSd4014fVb2wvYh3bIzOZT457wDgi7bhMc8XEC_StU9koix6GQ/viewform?usp=header"
           target="_blank"
@@ -92,6 +93,28 @@ export default function About() {
             <path d="m9 18 6-6-6-6" />
           </svg>
         </a>
+        <a
+          href="https://docs.google.com/forms/d/e/1FAIpQLSf3kC6LXiwEkdSgSbF844fuGnA3804JKYXs4l-qBxs47wKbMw/viewform?usp=publish-editor"
+          target="_blank"
+          className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 hover:bg-gray-100"
+        >
+          <span className="text-[14px] font-medium">고객 문의</span>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="text-gray-300"
+          >
+            <path d="m9 18 6-6-6-6" />
+          </svg>
+        </a>
+        </div>
       </div>
       {/* 개발자 정보 */}
       <div>
