@@ -302,6 +302,12 @@ export default function RoutePage({
                                   {step.transitDetails.transitLine.nameShort}
                                 </span>
                               )}
+                              {step.staticDuration && (() => {
+                                const min = Math.round(parseInt(step.staticDuration.replace("s", "")) / 60);
+                                return min > 0 ? (
+                                  <span className="text-gray-400 text-[11px]">{min}분</span>
+                                ) : null;
+                              })()}
                             </div>
                             <span className="text-gray-400 leading-relaxed">
                               {step.transitDetails?.stopDetails?.departureStop?.name}
