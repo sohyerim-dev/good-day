@@ -2,36 +2,32 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { HotCourse } from "@/types/course";
+import { useQuery } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const PAGE_SIZE = 5;
 
-export default function Hot() {
-  const [courses, setCourses] = useState<HotCourse[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
+async function fetchHotCourses(): Promise<HotCourse[]> {
   const supabase = createClient();
+  const { data, error } = await supabase
+    .from("courses")
+    .select("*, profiles(username), likes(count), course_places(order, places(name))")
+    .eq("is_public", true)
+    .eq("is_hidden", false);
+  if (error) throw new Error("인기 코스를 불러올 수 없어요");
+  return (data ?? [])
+    .filter((c) => (c.likes[0]?.count ?? 0) > 0)
+    .sort((a, b) => (b.likes[0]?.count ?? 0) - (a.likes[0]?.count ?? 0));
+}
 
-  useEffect(() => {
-    supabase
-      .from("courses")
-      .select(
-        "*, profiles(username), likes(count), course_places(order, places(name))",
-      )
-      .eq("is_public", true)
-      .eq("is_hidden", false)
-      .then(({ data, error }) => {
-        if (error) setError("인기 코스를 불러올 수 없어요");
-        const sorted = (data ?? [])
-          .filter((c) => (c.likes[0]?.count ?? 0) > 0)
-          .sort((a, b) => (b.likes[0]?.count ?? 0) - (a.likes[0]?.count ?? 0));
-        setCourses(sorted);
-        setLoading(false);
-      });
-  }, []);
+export default function Hot() {
+  const [page, setPage] = useState(1);
+  const { data: courses = [], isLoading, isError } = useQuery({
+    queryKey: ["hotCourses"],
+    queryFn: fetchHotCourses,
+  });
 
   const totalPages = Math.ceil(courses.length / PAGE_SIZE);
   const paginated = courses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -46,15 +42,15 @@ export default function Hot() {
 
       {/* 목록 */}
       <ul className="p-4 flex flex-col gap-3">
-        {loading ? (
+        {isLoading ? (
           [1, 2, 3].map((i) => (
             <div
               key={i}
               className="h-24 bg-gray-200 rounded-2xl animate-pulse"
             />
           ))
-        ) : error ? (
-          <p className="text-gray-400 text-center py-10">{error}</p>
+        ) : isError ? (
+          <p className="text-gray-400 text-center py-10">인기 코스를 불러올 수 없어요</p>
         ) : courses.length === 0 ? (
           <p className="text-gray-400 text-center py-10">인기 코스가 없어요</p>
         ) : (
@@ -100,7 +96,7 @@ export default function Hot() {
       </ul>
 
       {/* 페이지네이션 */}
-      {!loading && totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 py-4 pb-28">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
