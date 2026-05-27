@@ -42,7 +42,7 @@ export default function Create() {
   // 코스 제목, 설명, 공개 여부
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
-  const [isPublic, setIsPublic] = useState(true);
+  const [isPublic, setIsPublic] = useState(false);
 
   // 네이버 장소 검색 입력값과 결과 목록
   const [query, setQuery] = useState("");
