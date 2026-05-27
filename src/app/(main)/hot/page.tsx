@@ -2,7 +2,6 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { HotCourse } from "@/types/course";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -81,15 +80,6 @@ export default function Hot() {
                           .map((cp) => cp.places.name)
                           .join(" → ")}
                       </p>
-                    </div>
-                    <div className="flex items-center gap-1 text-[13px] text-gray-400 shrink-0 ml-3">
-                      <Image
-                        src="/icons/heart-filled.svg"
-                        alt="좋아요"
-                        width={14}
-                        height={14}
-                      />
-                      <span>{course.likes[0]?.count ?? 0}</span>
                     </div>
                   </div>
                 </Link>
