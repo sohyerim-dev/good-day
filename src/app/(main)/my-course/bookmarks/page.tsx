@@ -3,43 +3,51 @@
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
 import { Course } from "@/types/course";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const PAGE_SIZE = 5;
 
-export default function Bookmarks() {
-  const [bookmarks, setBookmarks] = useState<Course[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
+async function fetchBookmarks(userId: string): Promise<Course[]> {
   const supabase = createClient();
+  const { data, error } = await supabase
+    .from("bookmarks")
+    .select("*, courses(*)")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("북마크한 코스를 불러올 수 없어요");
+  return data?.map((d) => d.courses) ?? [];
+}
+
+export default function Bookmarks() {
+  const [page, setPage] = useState(1);
   const user = useUserStore((state) => state.user);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!user?.id) return;
-    supabase
-      .from("bookmarks")
-      .select("*, courses(*)")
-      .eq("user_id", user?.id)
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
-        if (error) setError("북마크한 장소를 불러올 수 없어요");
-        setBookmarks(data?.map((d) => d.courses) ?? []);
-        setLoading(false);
-      });
-  }, [user?.id]);
+  const { data: bookmarks = [], isLoading, isError } = useQuery({
+    queryKey: ["bookmarks", user?.id],
+    queryFn: () => fetchBookmarks(user!.id),
+    enabled: !!user?.id,
+  });
+
+  const unbookmarkMutation = useMutation({
+    mutationFn: async (courseId: string) => {
+      const supabase = createClient();
+      await supabase.from("bookmarks").delete().eq("user_id", user!.id).eq("course_id", courseId);
+    },
+    onSuccess: (_, courseId) => {
+      queryClient.setQueryData<Course[]>(["bookmarks", user?.id], (prev) =>
+        (prev ?? []).filter((b) => b.id !== courseId),
+      );
+    },
+  });
 
   async function handleUnbookmark(courseId: string) {
     if (!confirm("북마크를 취소할까요?")) return;
-    await supabase
-      .from("bookmarks")
-      .delete()
-      .eq("user_id", user?.id)
-      .eq("course_id", courseId);
-    setBookmarks((prev) => prev.filter((b) => b.id !== courseId));
+    unbookmarkMutation.mutate(courseId);
   }
 
   const totalPages = Math.ceil(bookmarks.length / PAGE_SIZE);
@@ -60,34 +68,24 @@ export default function Bookmarks() {
 
       {/* 목록 */}
       <div className="p-4 flex flex-col gap-3">
-        {loading ? (
+        {isLoading ? (
           [1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="h-16 bg-gray-200 rounded-2xl animate-pulse"
-            />
+            <div key={i} className="h-16 bg-gray-200 rounded-2xl animate-pulse" />
           ))
-        ) : error ? (
-          <p className="text-gray-400 text-center py-10">{error}</p>
+        ) : isError ? (
+          <p className="text-gray-400 text-center py-10">북마크한 코스를 불러올 수 없어요</p>
         ) : bookmarks.length === 0 ? (
-          <p className="text-gray-400 text-center py-10">
-            등록된 코스가 없어요
-          </p>
+          <p className="text-gray-400 text-center py-10">등록된 코스가 없어요</p>
         ) : (
           paginated.map((bookmark) => (
             <div
               key={bookmark.id}
               className="flex items-center justify-between bg-gray-50 rounded-2xl p-4"
             >
-              <Link
-                href={`/courses/${bookmark.id}`}
-                className="flex flex-col gap-1 flex-1"
-              >
+              <Link href={`/courses/${bookmark.id}`} className="flex flex-col gap-1 flex-1">
                 <p className="font-medium">{bookmark.title}</p>
                 {bookmark.description && (
-                  <p className="text-[12px] text-gray-400">
-                    {bookmark.description}
-                  </p>
+                  <p className="text-[12px] text-gray-400">{bookmark.description}</p>
                 )}
               </Link>
               <button
@@ -100,7 +98,7 @@ export default function Bookmarks() {
           ))
         )}
       </div>
-      {!loading && totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 py-4 pb-28">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
