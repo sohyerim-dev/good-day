@@ -22,7 +22,36 @@ import Image from "next/image";
 import { useUserStore } from "@/store/userStore";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { Course, CoursePlace } from "@/types/course";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
+
+async function fetchCourse(id: string): Promise<Course> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from("courses").select("*").eq("id", id).single();
+  if (!data || error) throw new Error("코스를 찾을 수 없어요");
+  return data;
+}
+
+async function fetchCoursePlaces(id: string): Promise<CoursePlace[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("course_places")
+    .select("*, places(id, name, address, lat, lng, naver_url, google_place_id)")
+    .eq("course_id", id)
+    .order("order");
+  if (error) throw new Error("장소 목록을 불러올 수 없어요");
+  return data ?? [];
+}
+
+async function fetchSavedPlaces(userId: string): Promise<SavedPlace[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("saved_places")
+    .select("*, places(*)")
+    .eq("user_id", userId);
+  return data?.map((d) => d.places) ?? [];
+}
 
 export default function EditCourse({
   params,
@@ -33,7 +62,7 @@ export default function EditCourse({
   const user = useUserStore((state) => state.user);
   const hasHydrated = useUserStore((state) => state.hasHydrated);
   const router = useRouter();
-  const supabase = createClient();
+  const queryClient = useQueryClient();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -60,48 +89,50 @@ export default function EditCourse({
   const [placeActive, setPlaceActive] = useState(false);
 
   const [showSaved, setShowSaved] = useState(false);
-  const [savedPlacesList, setSavedPlacesList] = useState<SavedPlace[]>([]);
   const [showPreview, setShowPreview] = useState(false);
   const [region, setRegion] = useState<"domestic" | "global">("domestic");
 
-  // 기존 코스 데이터 로드
-  useEffect(() => {
-    supabase
-      .from("courses")
-      .select("*")
-      .eq("id", id)
-      .single()
-      .then(({ data }) => {
-        if (!data) return;
-        setTitle(data.title);
-        setDescription(data.description ?? "");
-        setIsPublic(data.is_public);
-      });
+  const { data: courseData } = useQuery({
+    queryKey: ["course", id],
+    queryFn: () => fetchCourse(id),
+  });
 
-    supabase
-      .from("course_places")
-      .select("*, places(*)")
-      .eq("course_id", id)
-      .order("order")
-      .then(({ data }) => {
-        if (!data) return;
-        const asNaverPlaces = data.map((cp) => ({
-          id: cp.places.id,
-          title: cp.places.name,
-          address: cp.places.address,
-          roadAddress: cp.places.address,
-          mapx: String(Math.round(cp.places.lng * 10000000)),
-          mapy: String(Math.round(cp.places.lat * 10000000)),
-          link: cp.places.naver_url ?? "",
-          naverPlaceUrl: cp.places.naver_url ?? "",
-          google_place_id: cp.places.google_place_id ?? undefined,
-          source: (cp.places.google_place_id ? "google" : "naver") as "naver" | "google",
-          order: cp.order,
-        }));
-        setSelectedPlaces(asNaverPlaces);
-        if (asNaverPlaces.length > 0) setPlaceActive(true);
-      });
-  }, [id]);
+  const { data: coursePlacesData } = useQuery({
+    queryKey: ["coursePlaces", id],
+    queryFn: () => fetchCoursePlaces(id),
+  });
+
+  const { data: savedPlacesList = [] } = useQuery({
+    queryKey: ["savedPlaces", user?.id],
+    queryFn: () => fetchSavedPlaces(user!.id),
+    enabled: showSaved && !!user?.id,
+  });
+
+  useEffect(() => {
+    if (!courseData) return;
+    setTitle(courseData.title);
+    setDescription(courseData.description ?? "");
+    setIsPublic(courseData.is_public);
+  }, [courseData]);
+
+  useEffect(() => {
+    if (!coursePlacesData) return;
+    const asNaverPlaces = coursePlacesData.map((cp) => ({
+      id: cp.places.id,
+      title: cp.places.name,
+      address: cp.places.address,
+      roadAddress: cp.places.address,
+      mapx: String(Math.round(cp.places.lng * 10000000)),
+      mapy: String(Math.round(cp.places.lat * 10000000)),
+      link: cp.places.naver_url ?? "",
+      naverPlaceUrl: cp.places.naver_url ?? "",
+      google_place_id: cp.places.google_place_id ?? undefined,
+      source: (cp.places.google_place_id ? "google" : "naver") as "naver" | "google",
+      order: cp.order,
+    }));
+    setSelectedPlaces(asNaverPlaces);
+    if (asNaverPlaces.length > 0) setPlaceActive(true);
+  }, [coursePlacesData]);
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -152,89 +183,90 @@ export default function EditCourse({
     });
   }
 
-  async function handleSave() {
-    if (selectedPlaces.length < 2) return;
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      const supabase = createClient();
 
-    const now = new Date();
-    const dateStr = now.toLocaleDateString("ko-KR");
-    const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+      const now = new Date();
+      const dateStr = now.toLocaleDateString("ko-KR");
+      const timeStr = now.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
 
-    const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
-    setTitle(courseTitle);
+      const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
+      setTitle(courseTitle);
 
-    // 국내/해외 분리 upsert
-    const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id);
-    const googlePlaces = selectedPlaces.filter((p) => !!p.google_place_id);
-    const placeIdMap: Record<string, string> = {};
+      const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id);
+      const googlePlaces = selectedPlaces.filter((p) => !!p.google_place_id);
+      const placeIdMap: Record<string, string> = {};
 
-    if (naverPlaces.length > 0) {
-      const { data, error } = await supabase
-        .from("places")
-        .upsert(
-          naverPlaces.map((p) => ({
-            name: p.title,
-            address: p.roadAddress || p.address,
-            lat: Number(p.mapy) / 10000000,
-            lng: Number(p.mapx) / 10000000,
-            naver_url: p.naverPlaceUrl,
-          })),
-          { onConflict: "naver_url" },
-        )
-        .select();
-      if (error || !data) return;
-      data.forEach((d) => { if (d.naver_url) placeIdMap[d.naver_url] = d.id; });
-    }
+      if (naverPlaces.length > 0) {
+        const { data, error } = await supabase
+          .from("places")
+          .upsert(
+            naverPlaces.map((p) => ({
+              name: p.title,
+              address: p.roadAddress || p.address,
+              lat: Number(p.mapy) / 10000000,
+              lng: Number(p.mapx) / 10000000,
+              naver_url: p.naverPlaceUrl,
+            })),
+            { onConflict: "naver_url" },
+          )
+          .select();
+        if (error || !data) throw new Error("장소 저장 실패");
+        data.forEach((d) => { if (d.naver_url) placeIdMap[d.naver_url] = d.id; });
+      }
 
-    if (googlePlaces.length > 0) {
-      const { data, error } = await supabase
-        .from("places")
-        .upsert(
-          googlePlaces.map((p) => ({
-            name: p.title,
-            address: p.roadAddress || p.address,
-            lat: Number(p.mapy) / 10000000,
-            lng: Number(p.mapx) / 10000000,
-            google_place_id: p.google_place_id,
-          })),
-          { onConflict: "google_place_id" },
-        )
-        .select();
-      if (error || !data) return;
-      data.forEach((d) => { if (d.google_place_id) placeIdMap[d.google_place_id] = d.id; });
-    }
+      if (googlePlaces.length > 0) {
+        const { data, error } = await supabase
+          .from("places")
+          .upsert(
+            googlePlaces.map((p) => ({
+              name: p.title,
+              address: p.roadAddress || p.address,
+              lat: Number(p.mapy) / 10000000,
+              lng: Number(p.mapx) / 10000000,
+              google_place_id: p.google_place_id,
+            })),
+            { onConflict: "google_place_id" },
+          )
+          .select();
+        if (error || !data) throw new Error("장소 저장 실패");
+        data.forEach((d) => { if (d.google_place_id) placeIdMap[d.google_place_id] = d.id; });
+      }
 
-    const lats = selectedPlaces.map((p) => Number(p.mapy) / 10000000);
-    const lngs = selectedPlaces.map((p) => Number(p.mapx) / 10000000);
-    const course_lat = lats.reduce((s, v) => s + v, 0) / lats.length;
-    const course_lng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
+      const lats = selectedPlaces.map((p) => Number(p.mapy) / 10000000);
+      const lngs = selectedPlaces.map((p) => Number(p.mapx) / 10000000);
+      const course_lat = lats.reduce((s, v) => s + v, 0) / lats.length;
+      const course_lng = lngs.reduce((s, v) => s + v, 0) / lngs.length;
 
-    // courses update
-    const { error: courseError } = await supabase
-      .from("courses")
-      .update({
-        title: courseTitle,
-        description,
-        is_public: isPublic,
-        course_lat,
-        course_lng,
-      })
-      .eq("id", id);
+      const { error: courseError } = await supabase
+        .from("courses")
+        .update({
+          title: courseTitle,
+          description,
+          is_public: isPublic,
+          course_lat,
+          course_lng,
+        })
+        .eq("id", id);
 
-    if (courseError) return;
+      if (courseError) throw new Error("코스 저장 실패");
 
-    // 기존 course_places 삭제 후 재삽입
-    await supabase.from("course_places").delete().eq("course_id", id);
-
-    await supabase.from("course_places").insert(
-      selectedPlaces.map((p) => ({
-        course_id: id,
-        place_id: placeIdMap[p.google_place_id ?? p.naverPlaceUrl],
-        order: p.order,
-      })),
-    );
-
-    router.push(`/courses/${id}`);
-  }
+      await supabase.from("course_places").delete().eq("course_id", id);
+      await supabase.from("course_places").insert(
+        selectedPlaces.map((p) => ({
+          course_id: id,
+          place_id: placeIdMap[p.google_place_id ?? p.naverPlaceUrl],
+          order: p.order,
+        })),
+      );
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["course", id] });
+      queryClient.invalidateQueries({ queryKey: ["coursePlaces", id] });
+      router.push(`/courses/${id}`);
+    },
+  });
 
   function handleAddFromSaved(place: SavedPlace) {
     if (selectedPlaces.some((p) => p.id === place.id)) return;
@@ -321,16 +353,7 @@ export default function EditCourse({
         </button>
       </div>
       <button
-        onClick={() => {
-          supabase
-            .from("saved_places")
-            .select("*, places(*)")
-            .eq("user_id", user?.id)
-            .then(({ data }) => {
-              setSavedPlacesList(data?.map((d) => d.places) ?? []);
-              setShowSaved(true);
-            });
-        }}
+        onClick={() => setShowSaved(true)}
         className="border hover:bg-[#EE6300] hover:text-white border-[#EE6300] text-[#EE6300] rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
       >
         내 저장된 장소에서 추가
@@ -447,11 +470,11 @@ export default function EditCourse({
         </div>
       </label>
       <button
-        onClick={handleSave}
-        disabled={!hasHydrated || selectedPlaces.length < 2}
+        onClick={() => saveMutation.mutate()}
+        disabled={!hasHydrated || selectedPlaces.length < 2 || saveMutation.isPending}
         className="bg-[#EE6300] border hover:border-[#EE6300] hover:bg-white hover:text-[#EE6300] mt-2 rounded-2xl p-5 w-full cursor-pointer text-white disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        저장
+        {saveMutation.isPending ? "저장 중..." : "저장"}
       </button>
       {selectedPlaces.length < 2 && (
         <p className="text-[12px] text-gray-400 text-center -mt-2">

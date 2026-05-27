@@ -4,11 +4,53 @@ import AlertModal from "@/components/ui/AlertModal";
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
 import { Course, CoursePlace } from "@/types/course";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, use, useEffect, useRef, useState } from "react";
 import Script from "next/script";
+
+async function fetchCourse(id: string): Promise<Course> {
+  const supabase = createClient();
+  const { data, error } = await supabase.from("courses").select("*").eq("id", id).single();
+  if (!data || error) throw new Error("코스를 찾을 수 없어요");
+  return data;
+}
+
+async function fetchCoursePlaces(id: string): Promise<CoursePlace[]> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("course_places")
+    .select("*, places(id, name, address, lat, lng, naver_url, google_place_id)")
+    .eq("course_id", id)
+    .order("order");
+  if (error) throw new Error("장소 목록을 불러올 수 없어요");
+  return data ?? [];
+}
+
+interface CourseUserData {
+  liked: boolean;
+  likeCount: number;
+  bookmarked: boolean;
+  savedPlaceIds: string[];
+}
+
+async function fetchCourseUserData(id: string, userId: string): Promise<CourseUserData> {
+  const supabase = createClient();
+  const [likedRes, likeCountRes, bookmarkedRes, savedRes] = await Promise.all([
+    supabase.from("likes").select("id").eq("user_id", userId).eq("course_id", id).maybeSingle(),
+    supabase.from("likes").select("id", { count: "exact", head: true }).eq("course_id", id),
+    supabase.from("bookmarks").select("id").eq("user_id", userId).eq("course_id", id).maybeSingle(),
+    supabase.from("saved_places").select("place_id").eq("user_id", userId),
+  ]);
+  return {
+    liked: !!likedRes.data,
+    likeCount: likeCountRes.count ?? 0,
+    bookmarked: !!bookmarkedRes.data,
+    savedPlaceIds: (savedRes.data ?? []).map((d) => d.place_id),
+  };
+}
 
 export default function CourseDetail({
   params,
@@ -18,38 +60,23 @@ export default function CourseDetail({
   const { id } = use(params);
   const user = useUserStore((state) => state.user);
   const hasHydrated = useUserStore((state) => state.hasHydrated);
-  const supabase = createClient();
-  const [error, setError] = useState("");
-  const [course, setCourse] = useState<Course | null>(null);
-  const [places, setPlaces] = useState<CoursePlace[]>([]);
   const router = useRouter();
-  const [liked, setLiked] = useState(false);
-  const [likeCount, setLikeCount] = useState(0);
-  const [bookmarked, setBookmarked] = useState(false);
+  const queryClient = useQueryClient();
+
   const [copied, setCopied] = useState(false);
-  const [placesError, setPlacesError] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [savedPlaces, setSavedPlaces] = useState<Set<string>>(new Set());
   const [showShareMenu, setShowShareMenu] = useState(false);
   const shareMenuRef = useRef<HTMLDivElement>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [showInfoTooltip, setShowInfoTooltip] = useState(false);
   const [includeSchedule, setIncludeSchedule] = useState(true);
-  const [memos, setMemos] = useState<Record<string, string>>({}); // place_id → memo
+  const [memos, setMemos] = useState<Record<string, string>>({});
   const [includeMemo, setIncludeMemo] = useState(true);
   const [memoModal, setMemoModal] = useState<{ placeId: string; placeName: string } | null>(null);
   const [memoInput, setMemoInput] = useState("");
   const [inviteCopied, setInviteCopied] = useState(false);
-  const [isCollaborator, setIsCollaborator] = useState(false);
+  const [schedules, setSchedules] = useState<Record<string, string>>({});
 
-  // ?u=userId 파라미터가 있으면 해당 유저의 일정을 표시, 없으면 내 일정
-  // 오너 또는 공동편집자는 오너 ID 기준으로 공유 메모를 읽고 씀
   const searchParams = useSearchParams();
-  const scheduleOwnerId = searchParams.get("u") ??
-    ((user?.id === course?.user_id || isCollaborator) && course?.user_id ? course.user_id : user?.id) ??
-    null;
-  const isScheduleEditable = !!user && ((!!scheduleOwnerId && user.id === scheduleOwnerId) || isCollaborator);
-  const [schedules, setSchedules] = useState<Record<string, string>>({}); // place_id → time_memo
 
   // 공유 메뉴 외부 클릭 시 닫기
   useEffect(() => {
@@ -62,33 +89,54 @@ export default function CourseDetail({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // 비로그인 포함 누구나 볼 수 있는 공개 데이터
-  useEffect(() => {
-    supabase
-      .from("courses")
-      .select("*")
-      .eq("id", id)
-      .single()
-      .then(({ data, error }) => {
-        if (data) setCourse(data);
-        setLoading(false);
-        if (!data || error) setError("코스를 찾을 수 없어요");
-      });
+  const { data: course, isLoading, isError } = useQuery({
+    queryKey: ["course", id],
+    queryFn: () => fetchCourse(id),
+  });
 
-    supabase
-      .from("course_places")
-      .select("*, places(id, name, address, lat, lng, naver_url, google_place_id)")
-      .eq("course_id", id)
-      .order("order")
-      .then(({ data, error }) => {
-        if (data) setPlaces(data);
-        if (!data || error) setPlacesError("장소 목록을 불러올 수 없어요");
-      });
-  }, [id]);
+  const { data: places = [], isError: placesIsError } = useQuery({
+    queryKey: ["coursePlaces", id],
+    queryFn: () => fetchCoursePlaces(id),
+  });
 
-  // scheduleOwnerId 기준으로 일정 불러오기 (내 일정 또는 공유받은 일정)
+  const userDataQueryKey = ["courseUserData", id, user?.id];
+  const { data: userData } = useQuery({
+    queryKey: userDataQueryKey,
+    queryFn: () => fetchCourseUserData(id, user!.id),
+    enabled: !!user?.id,
+  });
+
+  const liked = userData?.liked ?? false;
+  const likeCount = userData?.likeCount ?? 0;
+  const bookmarked = userData?.bookmarked ?? false;
+  const savedPlaces = new Set(userData?.savedPlaceIds ?? []);
+
+  // 공동편집자 여부
+  const { data: isCollaborator = false } = useQuery({
+    queryKey: ["courseCollaborator", id, user?.id],
+    queryFn: async () => {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("course_collaborators")
+        .select("user_id")
+        .eq("course_id", id)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      return !!data;
+    },
+    enabled: !!user?.id && !!course?.user_id && user?.id !== course?.user_id,
+  });
+
+  // ?u=userId 파라미터가 있으면 해당 유저의 일정을 표시, 없으면 내 일정
+  const scheduleOwnerId = searchParams.get("u") ??
+    ((user?.id === course?.user_id || isCollaborator) && course?.user_id ? course.user_id : user?.id) ??
+    null;
+  const isScheduleEditable = !!user && ((!!scheduleOwnerId && user.id === scheduleOwnerId) || isCollaborator);
+
+  // 일정/메모 불러오기
   useEffect(() => {
     if (!scheduleOwnerId) return;
+    const supabase = createClient();
     supabase
       .from("user_course_schedules")
       .select("place_id, time_memo, memo")
@@ -107,81 +155,66 @@ export default function CourseDetail({
       });
   }, [id, scheduleOwnerId]);
 
-  // 공동편집자 여부 확인
-  useEffect(() => {
-    if (!user?.id || !course?.user_id || user.id === course.user_id) return;
-    supabase
-      .from("course_collaborators")
-      .select("user_id")
-      .eq("course_id", id)
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setIsCollaborator(!!data));
-  }, [user?.id, course?.user_id, id]);
+  const likeMutation = useMutation({
+    mutationFn: async () => {
+      const supabase = createClient();
+      if (liked) {
+        await supabase.from("likes").delete().eq("user_id", user!.id).eq("course_id", id);
+      } else {
+        await supabase.from("likes").insert({ user_id: user!.id, course_id: id });
+      }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData<CourseUserData>(userDataQueryKey, (prev) =>
+        prev ? { ...prev, liked: !liked, likeCount: liked ? likeCount - 1 : likeCount + 1 } : prev,
+      );
+    },
+  });
 
-  // 로그인한 사용자에게만 필요한 데이터 (좋아요 여부, 북마크 여부, 저장된 장소)
-  useEffect(() => {
-    if (!user?.id) return;
+  const bookmarkMutation = useMutation({
+    mutationFn: async () => {
+      const supabase = createClient();
+      if (bookmarked) {
+        await supabase.from("bookmarks").delete().eq("user_id", user!.id).eq("course_id", id);
+      } else {
+        await supabase.from("bookmarks").insert({ user_id: user!.id, course_id: id });
+      }
+    },
+    onSuccess: () => {
+      queryClient.setQueryData<CourseUserData>(userDataQueryKey, (prev) =>
+        prev ? { ...prev, bookmarked: !bookmarked } : prev,
+      );
+    },
+  });
 
-    supabase
-      .from("likes")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("course_id", id)
-      .maybeSingle()
-      .then(({ data }) => setLiked(!!data));
-
-    supabase
-      .from("likes")
-      .select("id", { count: "exact", head: true })
-      .eq("course_id", id)
-      .then(({ count }) => setLikeCount(count ?? 0));
-
-    supabase
-      .from("bookmarks")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("course_id", id)
-      .maybeSingle()
-      .then(({ data }) => setBookmarked(!!data));
-
-    supabase
-      .from("saved_places")
-      .select("place_id")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
-        if (data) setSavedPlaces(new Set(data.map((d) => d.place_id)));
+  const savePlaceMutation = useMutation({
+    mutationFn: async (placeId: string) => {
+      const supabase = createClient();
+      if (savedPlaces.has(placeId)) {
+        await supabase.from("saved_places").delete().eq("user_id", user!.id).eq("place_id", placeId);
+      } else {
+        await supabase.from("saved_places").insert({ user_id: user!.id, place_id: placeId });
+      }
+      return placeId;
+    },
+    onSuccess: (placeId) => {
+      queryClient.setQueryData<CourseUserData>(userDataQueryKey, (prev) => {
+        if (!prev) return prev;
+        const next = new Set(prev.savedPlaceIds);
+        next.has(placeId) ? next.delete(placeId) : next.add(placeId);
+        return { ...prev, savedPlaceIds: Array.from(next) };
       });
-  }, [id, user?.id]);
+    },
+  });
 
-  async function handleSavePlace(placeId: string) {
-    if (savedPlaces.has(placeId)) {
-      const { error } = await supabase
-        .from("saved_places")
-        .delete()
-        .eq("user_id", user?.id)
-        .eq("place_id", placeId);
-
-      if (!error) {
-        setSavedPlaces((prev) => {
-          const next = new Set(prev);
-          next.delete(placeId);
-          return next;
-        });
-      }
-    } else {
-      const { error } = await supabase
-        .from("saved_places")
-        .insert({ "user_id": user?.id, place_id: placeId });
-      if (!error) {
-        setSavedPlaces((prev) => new Set(prev).add(placeId));
-      }
-    }
+  function handleSavePlace(placeId: string) {
+    savePlaceMutation.mutate(placeId);
   }
 
   // 시간 메모 저장: 값이 있으면 upsert, 없으면 삭제
   async function handleSaveTime(placeId: string, time: string) {
     if (!user || !isScheduleEditable || !scheduleOwnerId) return;
+    const supabase = createClient();
     if (!time) {
       await supabase.from("user_course_schedules").delete()
         .eq("user_id", scheduleOwnerId).eq("course_id", id).eq("place_id", placeId);
@@ -197,6 +230,7 @@ export default function CourseDetail({
 
   async function handleSaveMemo(placeId: string, memo: string) {
     if (!user || !isScheduleEditable || !scheduleOwnerId) return;
+    const supabase = createClient();
     const trimmed = memo.trim();
     if (!trimmed) {
       if (!schedules[placeId]) {
@@ -267,11 +301,12 @@ export default function CourseDetail({
 
   async function handleDeleteCourse() {
     if (!confirm("코스를 삭제할까요?")) return;
+    const supabase = createClient();
     await supabase.from("courses").delete().eq("id", id);
     router.push("/");
   }
 
-  if (loading || !hasHydrated)
+  if (isLoading || !hasHydrated)
     return (
       <main className="flex flex-col min-h-full">
         <div className="p-4 border-b border-gray-100 animate-pulse">
@@ -287,7 +322,7 @@ export default function CourseDetail({
         </div>
       </main>
     );
-  if (error)
+  if (isError)
     return (
       <main className="flex flex-col items-center justify-center min-h-full gap-4">
         <p className="text-gray-400">코스를 찾을 수 없어요</p>
@@ -415,8 +450,8 @@ export default function CourseDetail({
       </div>
 
       {/* 장소 목록 */}
-      {placesError ? (
-        <p className="text-gray-400">{placesError}</p>
+      {placesIsError ? (
+        <p className="text-gray-400">장소 목록을 불러올 수 없어요</p>
       ) : (
         <ul className="p-4 flex flex-col gap-2 pb-56">
           {places.map((p, i) => (
@@ -648,21 +683,7 @@ export default function CourseDetail({
             </div>
             <button
               className="flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
-              onClick={async () => {
-                if (liked) {
-                  const { error } = await supabase
-                    .from("likes")
-                    .delete()
-                    .eq("user_id", user?.id)
-                    .eq("course_id", id);
-                  if (!error) { setLiked(false); setLikeCount((prev) => prev - 1); }
-                } else {
-                  const { error } = await supabase
-                    .from("likes")
-                    .insert({ user_id: user?.id, course_id: id });
-                  if (!error) { setLiked(true); setLikeCount((prev) => prev + 1); }
-                }
-              }}
+              onClick={() => likeMutation.mutate()}
             >
               <Image
                 src={liked ? "/icons/heart-filled.svg" : "/icons/heart.svg"}
@@ -673,21 +694,7 @@ export default function CourseDetail({
             </button>
             <button
               className="flex-1 flex justify-center bg-gray-100 rounded-2xl px-4 py-3 cursor-pointer"
-              onClick={async () => {
-                if (bookmarked) {
-                  const { error } = await supabase
-                    .from("bookmarks")
-                    .delete()
-                    .eq("user_id", user?.id)
-                    .eq("course_id", id);
-                  if (!error) setBookmarked(!bookmarked);
-                } else {
-                  const { error } = await supabase
-                    .from("bookmarks")
-                    .insert({ user_id: user?.id, course_id: id });
-                  if (!error) setBookmarked(!bookmarked);
-                }
-              }}
+              onClick={() => bookmarkMutation.mutate()}
             >
               <Image
                 src={
