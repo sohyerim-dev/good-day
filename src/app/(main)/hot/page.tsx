@@ -22,6 +22,7 @@ export default function Hot() {
         "*, profiles(username), likes(count), course_places(order, places(name))",
       )
       .eq("is_public", true)
+      .eq("is_hidden", false)
       .then(({ data, error }) => {
         if (error) setError("인기 코스를 불러올 수 없어요");
         const sorted = (data ?? [])

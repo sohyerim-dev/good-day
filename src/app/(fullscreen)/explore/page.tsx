@@ -64,8 +64,9 @@ export default function Explore() {
     // 지도 영역(bounds)이 설정된 후에만 조회
     if (!neLat || !neLng || !swLat || !swLng) return;
 
-    // 공개 코스 또는 본인 코스만 표시 + 장소 2개 이상인 코스만 노출
-    const isVisible = (cp: { courses: { is_public: boolean; user_id: string; course_places?: { count: number }[] } }) =>
+    // 공개 코스 또는 본인 코스만 표시 + 장소 2개 이상 + 숨김 처리된 코스 제외
+    const isVisible = (cp: { courses: { is_public: boolean; is_hidden: boolean; user_id: string; course_places?: { count: number }[] } }) =>
+      !cp.courses.is_hidden &&
       (cp.courses.is_public || cp.courses.user_id === user?.id) &&
       (cp.courses.course_places?.[0]?.count ?? 0) >= 2;
 
@@ -80,7 +81,7 @@ export default function Explore() {
       .lte("lng", neLng)
       .then(({ data }) => {
         const filtered = data?.filter((p) =>
-          p.course_places.some((cp: { order: number; courses: { is_public: boolean; user_id: string; course_places?: { count: number }[] } }) =>
+          p.course_places.some((cp: { order: number; courses: { is_public: boolean; is_hidden: boolean; user_id: string; course_places?: { count: number }[] } }) =>
             cp.order === 1 && isVisible(cp)
           ),
         );
