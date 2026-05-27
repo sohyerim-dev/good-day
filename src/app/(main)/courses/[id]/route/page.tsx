@@ -4,9 +4,20 @@ import RouteRenderer from "@/components/RouteRenderer";
 import { createClient } from "@/lib/supabase/client";
 import { CoursePlace } from "@/types/course";
 import { RouteSegment } from "@/types/route";
+import { useQuery } from "@tanstack/react-query";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
 import { useRouter, useSearchParams } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { use, useState } from "react";
+
+async function fetchCoursePlaces(id: string): Promise<CoursePlace[]> {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("course_places")
+    .select("*, places(*)")
+    .eq("course_id", id)
+    .order("order");
+  return data ?? [];
+}
 
 export default function RoutePage({
   params,
@@ -14,8 +25,6 @@ export default function RoutePage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const [places, setPlace] = useState<CoursePlace[]>([]);
-  const supabase = createClient();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [showTransit, setShowTransit] = useState(
@@ -27,16 +36,10 @@ export default function RoutePage({
   const [showTransitRoute, setShowTransitRoute] = useState(true);
   const [showWalkRoute, setShowWalkRoute] = useState(true);
 
-  useEffect(() => {
-    supabase
-      .from("course_places")
-      .select("*, places(*)")
-      .eq("course_id", id)
-      .order("order")
-      .then(({ data }) => {
-        if (data) setPlace(data);
-      });
-  }, [id]);
+  const { data: places = [] } = useQuery({
+    queryKey: ["coursePlaces", id],
+    queryFn: () => fetchCoursePlaces(id),
+  });
   return (
     <main className="relative h-screen">
       <div className="z-50 absolute top-4 left-4 right-4 flex justify-between">
