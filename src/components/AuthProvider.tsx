@@ -17,6 +17,27 @@ export default function AuthProvider({
   const setUser = useUserStore((state) => state.setUser);
   const setHasHydrated = useUserStore((state) => state.setHasHydrated);
 
+  // 토큰 자동 갱신을 위한 상시 리스너 (탭이 열려있는 동안 세션 유지)
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === "TOKEN_REFRESHED" && session?.user) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("id", session.user.id)
+          .single();
+        setUser({
+          id: session.user.id,
+          email: session.user.email ?? "",
+          username: profile?.username ?? "",
+        });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // 페이지 이동 시 인증 체크 및 라우트 보호
   useEffect(() => {
     // 로그인/회원가입 페이지는 인증 체크 불필요
     if (pathname === "/login" || pathname === "/signup") return;
