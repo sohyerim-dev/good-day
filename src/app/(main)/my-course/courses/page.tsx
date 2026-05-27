@@ -2,73 +2,83 @@
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
 import { Course } from "@/types/course";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 const PAGE_SIZE = 5;
 
 type CourseWithCollab = Course & { isOwner: boolean; collabLabel: string };
 
-export default function Courses() {
-  const [courses, setCourses] = useState<CourseWithCollab[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [page, setPage] = useState(1);
+async function fetchMyCourses(userId: string): Promise<CourseWithCollab[]> {
   const supabase = createClient();
+
+  const [{ data: owned }, { data: myCollabs }] = await Promise.all([
+    supabase.from("courses").select("*").eq("user_id", userId).order("created_at", { ascending: false }),
+    supabase.from("course_collaborators").select("course_id").eq("user_id", userId),
+  ]);
+
+  const collabCourseIds = myCollabs?.map((c) => c.course_id) ?? [];
+
+  const [ownedWithInfo, collabCourses] = await Promise.all([
+    Promise.all(
+      (owned ?? []).map(async (course) => {
+        const { data: collabs } = await supabase
+          .from("course_collaborators")
+          .select("user_id")
+          .eq("course_id", course.id);
+        if (!collabs || collabs.length === 0) return { ...course, isOwner: true, collabLabel: "" };
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("username")
+          .in("id", collabs.map((c) => c.user_id));
+        const names = profiles?.map((p) => p.username).join(", ") ?? "";
+        return { ...course, isOwner: true, collabLabel: names ? `공동 편집 중 : ${names}` : "" };
+      })
+    ),
+    collabCourseIds.length > 0
+      ? supabase.from("courses").select("*").in("id", collabCourseIds).order("created_at", { ascending: false })
+      : Promise.resolve({ data: [] as Course[] }),
+  ]);
+
+  const collabWithInfo: CourseWithCollab[] = await Promise.all(
+    ((collabCourses as { data: Course[] }).data ?? []).map(async (course) => {
+      const { data: profile } = await supabase.from("profiles").select("username").eq("id", course.user_id).single();
+      return { ...course, isOwner: false, collabLabel: `공동 편집 중 : ${profile?.username ?? ""}` };
+    })
+  );
+
+  return [...ownedWithInfo, ...collabWithInfo];
+}
+
+export default function Courses() {
+  const [page, setPage] = useState(1);
   const user = useUserStore((state) => state.user);
   const router = useRouter();
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    if (!user?.id) return;
+  const { data: courses = [], isLoading, isError } = useQuery({
+    queryKey: ["myCourses", user?.id],
+    queryFn: () => fetchMyCourses(user!.id),
+    enabled: !!user?.id,
+  });
 
-    async function load() {
-      const [{ data: owned }, { data: myCollabs }] = await Promise.all([
-        supabase.from("courses").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
-        supabase.from("course_collaborators").select("course_id").eq("user_id", user!.id),
-      ]);
-
-      const collabCourseIds = myCollabs?.map((c) => c.course_id) ?? [];
-
-      const [ownedWithInfo, collabCourses] = await Promise.all([
-        Promise.all(
-          (owned ?? []).map(async (course) => {
-            const { data: collabs } = await supabase
-              .from("course_collaborators")
-              .select("user_id")
-              .eq("course_id", course.id);
-            if (!collabs || collabs.length === 0) return { ...course, isOwner: true, collabLabel: "" };
-            const { data: profiles } = await supabase
-              .from("profiles")
-              .select("username")
-              .in("id", collabs.map((c) => c.user_id));
-            const names = profiles?.map((p) => p.username).join(", ") ?? "";
-            return { ...course, isOwner: true, collabLabel: names ? `공동 편집 중 : ${names}` : "" };
-          })
-        ),
-        collabCourseIds.length > 0
-          ? supabase.from("courses").select("*").in("id", collabCourseIds).order("created_at", { ascending: false })
-          : Promise.resolve({ data: [] as Course[] }),
-      ]);
-
-      const collabWithInfo: CourseWithCollab[] = await Promise.all(
-        ((collabCourses as { data: Course[] }).data ?? []).map(async (course) => {
-          const { data: profile } = await supabase.from("profiles").select("username").eq("id", course.user_id).single();
-          return { ...course, isOwner: false, collabLabel: `공동 편집 중 : ${profile?.username ?? ""}` };
-        })
+  const deleteMutation = useMutation({
+    mutationFn: async (courseId: string) => {
+      const supabase = createClient();
+      await supabase.from("courses").delete().eq("id", courseId);
+    },
+    onSuccess: (_, courseId) => {
+      queryClient.setQueryData<CourseWithCollab[]>(["myCourses", user?.id], (prev) =>
+        (prev ?? []).filter((c) => c.id !== courseId),
       );
-
-      setCourses([...ownedWithInfo, ...collabWithInfo]);
-      setLoading(false);
-    }
-
-    load().catch(() => { setError("코스를 불러올 수 없어요"); setLoading(false); });
-  }, [user?.id]);
+    },
+  });
 
   async function handleDeleteCourse(courseId: string) {
     if (!confirm("코스를 삭제할까요?")) return;
-    await supabase.from("courses").delete().eq("id", courseId);
-    setCourses((prev) => prev.filter((c) => c.id !== courseId));
+    deleteMutation.mutate(courseId);
   }
 
   const totalPages = Math.ceil(courses.length / PAGE_SIZE);
@@ -84,10 +94,10 @@ export default function Courses() {
       </div>
 
       <div className="p-4 flex flex-col gap-3">
-        {loading ? (
+        {isLoading ? (
           [1, 2, 3].map((i) => <div key={i} className="h-16 bg-gray-200 rounded-2xl animate-pulse" />)
-        ) : error ? (
-          <p className="text-gray-400 text-center py-10">{error}</p>
+        ) : isError ? (
+          <p className="text-gray-400 text-center py-10">코스를 불러올 수 없어요</p>
         ) : courses.length === 0 ? (
           <p className="text-gray-400 text-center py-10">등록된 코스가 없어요</p>
         ) : (
@@ -114,7 +124,7 @@ export default function Courses() {
           ))
         )}
       </div>
-      {!loading && totalPages > 1 && (
+      {!isLoading && totalPages > 1 && (
         <div className="flex justify-center items-center gap-2 py-4 pb-28">
           <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-3 py-1.5 rounded-xl text-[13px] bg-gray-100 text-gray-500 disabled:opacity-30 cursor-pointer disabled:cursor-default">이전</button>
           {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
