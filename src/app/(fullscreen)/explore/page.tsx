@@ -45,6 +45,7 @@ export default function Explore() {
       { order: number; places: { name: string; lat: number; lng: number } }[]
     >();
   const [showCourses, setShowCourses] = useState(false);
+  const [visibleCourseCount, setVisibleCourseCount] = useState(10);
   const [zoomLevel, setZoomLevel] = useState<number | undefined>();
   const [locationQuery, setLocationQuery] = useState("");
 
@@ -103,6 +104,7 @@ export default function Explore() {
           course_places: p.course_places.filter(isVisible),
         })).filter((p) => p.course_places.length > 0);
         setExploreAllPlaces(filtered ?? []);
+        setVisibleCourseCount(10);
       });
   }, [swLat, neLat, swLng, neLng]);
 
@@ -337,7 +339,7 @@ export default function Explore() {
             </p>
           ) : (
             <ul className="flex flex-col gap-3">
-              {Object.entries(placeGroup).map(([courseId, places]) => {
+              {Object.entries(placeGroup).slice(0, visibleCourseCount).map(([courseId, places]) => {
                 // 현재 courseId에 해당하는 course_places 항목을 찾아서 코스 정보(제목, 작성자) 추출
                 const courseInfo = places[0].course_places.find(
                   (cp) => cp.course_id === courseId,
@@ -385,6 +387,16 @@ export default function Explore() {
                   </li>
                 );
               })}
+              {Object.entries(placeGroup).length > visibleCourseCount && (
+                <li className="flex justify-center pt-1">
+                  <button
+                    onClick={() => setVisibleCourseCount((c) => c + 10)}
+                    className="text-[13px] text-[#EE6300] cursor-pointer hover:underline"
+                  >
+                    더보기
+                  </button>
+                </li>
+              )}
             </ul>
           )}
         </div>
