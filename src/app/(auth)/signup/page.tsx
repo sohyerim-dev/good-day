@@ -51,6 +51,10 @@ export default function SignUp() {
       setError("닉네임을 입력해주세요.");
       return;
     }
+    if (!/^[a-zA-Z0-9가-힣]+$/.test(nickname)) {
+      setError("닉네임은 한글, 영어, 숫자만 사용할 수 있어요. (공백 불가)");
+      return;
+    }
     const { data } = await supabase
       .from("profiles")
       .select("id")
