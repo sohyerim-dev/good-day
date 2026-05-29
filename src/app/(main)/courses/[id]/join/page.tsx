@@ -50,6 +50,12 @@ export default function JoinCoursePage({
   }, [id, token]);
 
   async function handleJoin() {
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      router.push(`/login?redirect=${encodeURIComponent(`/courses/${id}/join?token=${token}`)}`);
+      return;
+    }
     setJoining(true);
     const res = await fetch(`/api/courses/${id}/join`, {
       method: "POST",

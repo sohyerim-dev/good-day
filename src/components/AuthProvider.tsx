@@ -49,6 +49,7 @@ export default function AuthProvider({
       pathname === "/explore" ||
       pathname === "/about" ||
       /^\/courses\/[^/]+$/.test(pathname) ||
+      /^\/courses\/[^/]+\/join/.test(pathname) ||
       /^\/map\/[^/]+/.test(pathname);
     const supabase = createClient();
 
