@@ -26,11 +26,20 @@ export default function Explore() {
   const [exploreAllPlaces, setExploreAllPlaces] = useState<
     ExploreCoursePlace[]
   >([]);
-  // 장소 배열을 코스 ID 기준으로 그룹화 { courseId: [place, place, ...] }
-  // 한 장소가 여러 코스에 속할 수 있으므로 course_places 전체를 순회해서 각 코스에 등록
+  // 마커가 찍힌 코스(첫 번째 장소가 뷰포트 내에 있는 코스)의 ID 집합
+  const markerCourseIds = new Set(
+    explorePlaces.flatMap((p) =>
+      p.course_places
+        .filter((cp: { order: number }) => cp.order === 1)
+        .map((cp: { course_id: string }) => cp.course_id),
+    ),
+  );
+
+  // 마커가 있는 코스만 그룹화 (첫 번째 장소가 뷰포트 밖인 코스는 목록에서 제외)
   const placeGroup = exploreAllPlaces.reduce(
     (acc, p) => {
       p.course_places.forEach((cp) => {
+        if (!markerCourseIds.has(cp.course_id)) return;
         if (!acc[cp.course_id]) acc[cp.course_id] = [];
         acc[cp.course_id].push(p);
       });
