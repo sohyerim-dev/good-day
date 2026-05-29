@@ -64,12 +64,10 @@ export default function AuthProvider({
       const autoLogin = localStorage.getItem("autoLogin");
       const activeSession = sessionStorage.getItem("activeSession");
 
-      if (autoLogin === "false" && !activeSession) {
+      if (!isPublicPage && autoLogin === "false" && !activeSession) {
         supabase.auth.signOut();
         setHasHydrated(true);
-        if (!isPublicPage) {
-          router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
-        }
+        router.push(`/login?redirect=${encodeURIComponent(pathname)}`);
         return;
       }
 
