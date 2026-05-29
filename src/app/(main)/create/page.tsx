@@ -58,6 +58,7 @@ export default function Create() {
   // 내 저장 장소 바텀시트 표시 여부 / 저장된 장소 목록
   const [showSaved, setShowSaved] = useState(false);
   const [savedPlacesList, setSavedPlacesList] = useState<SavedPlace[]>([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   // 토스트 메시지 상태 / 타이머 ref (중복 추가 시 하단에 2초간 표시)
   const [toast, setToast] = useState("");
@@ -127,6 +128,8 @@ export default function Create() {
 
   // 코스 저장 -> places upsert -> courses insert -> course_places insert 순으로 처리
   async function handleSave() {
+    if (isSaving) return;
+    setIsSaving(true);
     const now = new Date();
     const dateStr = now.toLocaleDateString("ko-KR");
     const timeStr = now.toLocaleTimeString("ko-KR", {
@@ -393,10 +396,10 @@ export default function Create() {
       </p>
       <button
         onClick={handleSave}
-        disabled={!hasHydrated || selectedPlaces.length < 2}
+        disabled={!hasHydrated || selectedPlaces.length < 2 || isSaving}
         className="bg-[#EE6300] border hover:border-[#EE6300] hover:bg-white hover:text-[#EE6300] mt-2 rounded-2xl p-5 w-full cursor-pointer text-white disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        저장
+        {isSaving ? "저장 중..." : "저장"}
       </button>
       {selectedPlaces.length < 2 && (
         <p className="text-[12px] text-gray-400 text-center -mt-2">
