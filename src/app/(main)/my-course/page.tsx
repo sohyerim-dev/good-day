@@ -11,10 +11,17 @@ export default function MyCourse() {
   const setUser = useUserStore((state) => state.setUser);
   const [isEditing, setIsEditing] = useState(false);
   const [editUsername, setEditUsername] = useState("");
+  const [usernameError, setUsernameError] = useState("");
   const supabase = createClient();
   const router = useRouter();
 
   async function handleUsernameUpdate() {
+    if (!editUsername.trim()) { setUsernameError("닉네임을 입력해주세요."); return; }
+    if (!/^[a-zA-Z0-9가-힣]+$/.test(editUsername)) {
+      setUsernameError("한글, 영어, 숫자만 사용할 수 있어요. (공백 불가)");
+      return;
+    }
+    setUsernameError("");
     await supabase
       .from("profiles")
       .update({ username: editUsername })
@@ -40,22 +47,25 @@ export default function MyCourse() {
         <div className="bg-gray-50 rounded-2xl p-4">
           <p className="text-[12px] text-gray-400 mb-2">내 계정</p>
           {isEditing ? (
-            <div className="flex items-center gap-2">
-              <input
-                value={editUsername}
-                onChange={(e) => setEditUsername(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleUsernameUpdate();
-                }}
-                className="font-bold text-[18px] focus:outline-none border-b border-[#EE6300] bg-transparent"
-                autoFocus
-              />
-              <button
-                onClick={handleUsernameUpdate}
-                className="text-[11px] text-white bg-[#EE6300] rounded-full px-2 py-0.5"
-              >
-                완료
-              </button>
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <input
+                  value={editUsername}
+                  onChange={(e) => { setEditUsername(e.target.value); setUsernameError(""); }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleUsernameUpdate();
+                  }}
+                  className="font-bold text-[18px] focus:outline-none border-b border-[#EE6300] bg-transparent"
+                  autoFocus
+                />
+                <button
+                  onClick={handleUsernameUpdate}
+                  className="text-[11px] text-white bg-[#EE6300] rounded-full px-2 py-0.5"
+                >
+                  완료
+                </button>
+              </div>
+              {usernameError && <p className="text-[12px] text-red-400">{usernameError}</p>}
             </div>
           ) : (
             <div className="flex items-center gap-2">
