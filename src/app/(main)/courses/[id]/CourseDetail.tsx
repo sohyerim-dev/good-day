@@ -407,10 +407,6 @@ export default function CourseDetail({
                 className="shrink-0"
               />
               <h1 className="text-[22px] font-bold">{course?.title}</h1>
-              <div className="flex items-center gap-1 text-[13px] text-gray-400 shrink-0">
-                <Image src="/icons/heart-filled.svg" alt="좋아요" width={14} height={14} />
-                <span>{likeCount}</span>
-              </div>
             </div>
             {course?.description && (
               <p className="text-[14px] text-gray-500 pl-6">{course.description}</p>
