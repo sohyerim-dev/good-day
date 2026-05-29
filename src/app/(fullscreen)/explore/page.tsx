@@ -234,11 +234,15 @@ export default function Explore() {
               onMarkerClick={(place) => {
                 setSelectedCoursePlaces(undefined);
                 setSelectedCourseIdx(0);
-                setSelected(place);
+                // 이 장소가 첫 번째 장소(order=1)인 코스만 피커에 표시
+                const firstOnlyCps = place.course_places.filter(
+                  (cp: { order: number }) => cp.order === 1,
+                );
+                setSelected({ ...place, course_places: firstOnlyCps });
                 supabase
                   .from("course_places")
                   .select("*, places(*)")
-                  .eq("course_id", place.course_places[0].course_id)
+                  .eq("course_id", firstOnlyCps[0].course_id)
                   .order("order")
                   .then(({ data }) => {
                     setSelectedCoursePlaces(data ?? []);
