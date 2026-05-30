@@ -67,12 +67,14 @@ export default function AuthProvider({
       const autoLogin = localStorage.getItem("autoLogin");
       const activeSession = sessionStorage.getItem("activeSession");
 
-      if (!isPublicPage && autoLogin === "false" && !activeSession) {
-        supabase.auth.signOut();
+      if (autoLogin === "false" && !activeSession) {
         setHasHydrated(true);
-        const fullPath = pathname + window.location.search;
-        router.push(`/login?redirect=${encodeURIComponent(fullPath)}`);
-        return;
+        if (!isPublicPage) {
+          supabase.auth.signOut();
+          const fullPath = pathname + window.location.search;
+          router.push(`/login?redirect=${encodeURIComponent(fullPath)}`);
+        }
+        return; // public이든 private이든 setUser 호출 안 함 → 비로그인 상태로 표시
       }
 
       const { data: profile } = await supabase
