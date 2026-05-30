@@ -67,7 +67,6 @@ export default function Create() {
   const SAVED_PAGE_SIZE = 10;
   // 이미 저장된 장소 키(naver_url 또는 google_place_id) 목록 - 검색 결과에서 저장 여부 표시용
   const [savedPlaceKeys, setSavedPlaceKeys] = useState<Set<string>>(new Set());
-  const [showPreview, setShowPreview] = useState(false);
   const [region, setRegion] = useState<"domestic" | "global">("domestic");
 
   const [isSaving, setIsSaving] = useState(false);
@@ -496,13 +495,33 @@ export default function Create() {
         />
       </div>
       {selectedPlaces.length >= 2 && (
-        <button
-          type="button"
-          onClick={() => setShowPreview(true)}
-          className="border border-[#EE6300] text-[#EE6300] hover:bg-[#EE6300] hover:text-white rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
-        >
-          경로 미리보기
-        </button>
+        <div className="rounded-2xl overflow-hidden h-64">
+          <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+            <Map
+              key={selectedPlaces.length}
+              mapId="DEMO_MAP_ID"
+              style={{ width: "100%", height: "100%" }}
+              defaultCenter={{
+                lat: selectedPlaces.reduce((s, p) => s + Number(p.mapy) / 10000000, 0) / selectedPlaces.length,
+                lng: selectedPlaces.reduce((s, p) => s + Number(p.mapx) / 10000000, 0) / selectedPlaces.length,
+              }}
+              defaultZoom={13}
+              mapTypeControl={false}
+              clickableIcons={false}
+            >
+              <CoursePreviewRenderer
+                places={selectedPlaces.map((p) => ({
+                  order: p.order,
+                  places: {
+                    name: p.title,
+                    lat: Number(p.mapy) / 10000000,
+                    lng: Number(p.mapx) / 10000000,
+                  },
+                }))}
+              />
+            </Map>
+          </APIProvider>
+        </div>
       )}
       <DndContext
         sensors={sensors}
@@ -573,49 +592,6 @@ export default function Create() {
           장소를 2개 이상 추가해야 코스를 저장할 수 있어요.
         </p>
       )}
-      {showPreview &&
-        (() => {
-          const previewPlaces = selectedPlaces.map((p) => ({
-            order: p.order,
-            places: {
-              name: p.title,
-              lat: Number(p.mapy) / 10000000,
-              lng: Number(p.mapx) / 10000000,
-            },
-          }));
-          const previewCenter = {
-            lat:
-              previewPlaces.reduce((s, p) => s + p.places.lat, 0) /
-              previewPlaces.length,
-            lng:
-              previewPlaces.reduce((s, p) => s + p.places.lng, 0) /
-              previewPlaces.length,
-          };
-          return (
-            <div className="fixed inset-0 z-50">
-              <button
-                onClick={() => setShowPreview(false)}
-                className="absolute top-4 left-4 z-10 bg-white rounded-2xl px-4 py-2 shadow text-[14px] font-medium cursor-pointer text-[#EE6300]"
-              >
-                닫기
-              </button>
-              <APIProvider
-                apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}
-              >
-                <Map
-                  mapId="DEMO_MAP_ID"
-                  style={{ width: "100%", height: "100dvh" }}
-                  defaultCenter={previewCenter}
-                  defaultZoom={13}
-                  mapTypeControl={false}
-                  clickableIcons={false}
-                >
-                  <CoursePreviewRenderer places={previewPlaces} />
-                </Map>
-              </APIProvider>
-            </div>
-          );
-        })()}
       {showSaved && (
         <div className="fixed inset-x-0 top-0 bottom-20 z-9999 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
