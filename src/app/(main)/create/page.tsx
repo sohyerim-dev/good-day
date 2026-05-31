@@ -1,7 +1,7 @@
 "use client";
 
 import { NaverPlace, PlaceCollection, SavedPlace } from "@/types/place";
-import { Fragment, useState, useRef, useEffect } from "react";
+import { Fragment, Suspense, useState, useRef, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -23,7 +23,7 @@ import { useUserStore } from "@/store/userStore";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
-export default function Create() {
+function CreatePage() {
   const user = useUserStore((state) => state.user);
   const hasHydrated = useUserStore((state) => state.hasHydrated);
   const router = useRouter();
@@ -847,4 +847,8 @@ export default function Create() {
       )}
     </main>
   );
+}
+
+export default function Create() {
+  return <Suspense><CreatePage /></Suspense>;
 }
