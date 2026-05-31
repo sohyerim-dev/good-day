@@ -89,7 +89,6 @@ export default function EditCourse({
   const [placeActive, setPlaceActive] = useState(false);
 
   const [showSaved, setShowSaved] = useState(false);
-  const [showPreview, setShowPreview] = useState(false);
   const [region, setRegion] = useState<"domestic" | "global">("domestic");
 
   const { data: courseData } = useQuery({
@@ -410,15 +409,6 @@ export default function EditCourse({
           className={placeActive ? "ml-2" : "hidden"}
         />
       </div>
-      {selectedPlaces.length >= 2 && (
-        <button
-          type="button"
-          onClick={() => setShowPreview(true)}
-          className="border border-[#EE6300] text-[#EE6300] hover:bg-[#EE6300] hover:text-white rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
-        >
-          경로 미리보기
-        </button>
-      )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
           items={selectedPlaces.map((p) => p.id)}
@@ -512,38 +502,6 @@ export default function EditCourse({
         </p>
       )}
 
-      {showPreview && (() => {
-        const previewPlaces = selectedPlaces.map((p) => ({
-          order: p.order,
-          places: { name: p.title, lat: Number(p.mapy) / 10000000, lng: Number(p.mapx) / 10000000 },
-        }));
-        const previewCenter = {
-          lat: previewPlaces.reduce((s, p) => s + p.places.lat, 0) / previewPlaces.length,
-          lng: previewPlaces.reduce((s, p) => s + p.places.lng, 0) / previewPlaces.length,
-        };
-        return (
-          <div className="fixed inset-0 z-50">
-            <button
-              onClick={() => setShowPreview(false)}
-              className="absolute top-4 left-4 z-10 bg-white rounded-2xl px-4 py-2 shadow text-[14px] font-medium cursor-pointer text-[#EE6300]"
-            >
-              닫기
-            </button>
-            <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
-              <Map
-                mapId="DEMO_MAP_ID"
-                style={{ width: "100%", height: "100dvh" }}
-                defaultCenter={previewCenter}
-                defaultZoom={13}
-                mapTypeControl={false}
-                clickableIcons={false}
-              >
-                <CoursePreviewRenderer places={previewPlaces} />
-              </Map>
-            </APIProvider>
-          </div>
-        );
-      })()}
       {showSaved && (
         <div className="fixed inset-x-0 top-0 bottom-20 z-9999 flex flex-col justify-end">
           <div className="bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
