@@ -453,6 +453,36 @@ export default function EditCourse({
         </SortableContext>
       </DndContext>
 
+      {selectedPlaces.length >= 2 && (
+        <div className="rounded-2xl overflow-hidden h-64">
+          <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+            <Map
+              key={selectedPlaces.length}
+              mapId="DEMO_MAP_ID"
+              style={{ width: "100%", height: "100%" }}
+              defaultCenter={{
+                lat: selectedPlaces.reduce((s, p) => s + Number(p.mapy) / 10000000, 0) / selectedPlaces.length,
+                lng: selectedPlaces.reduce((s, p) => s + Number(p.mapx) / 10000000, 0) / selectedPlaces.length,
+              }}
+              defaultZoom={13}
+              mapTypeControl={false}
+              clickableIcons={false}
+            >
+              <CoursePreviewRenderer
+                places={selectedPlaces.map((p) => ({
+                  order: p.order,
+                  places: {
+                    name: p.title,
+                    lat: Number(p.mapy) / 10000000,
+                    lng: Number(p.mapx) / 10000000,
+                  },
+                }))}
+              />
+            </Map>
+          </APIProvider>
+        </div>
+      )}
+
       <label className="flex items-center gap-2 cursor-pointer">
         <span className="font-medium">코스 공개</span>
         <input
