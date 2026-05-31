@@ -202,7 +202,7 @@ export default function Explore() {
               : "bg-[#EE6300] text-white hover:bg-gray-800"
           }`}
         >
-          {showCourses ? "목록 닫기" : "목록 보기"}
+          {showCourses ? "목록 닫기" : "코스 목록"}
         </button>
       </div>
       <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
