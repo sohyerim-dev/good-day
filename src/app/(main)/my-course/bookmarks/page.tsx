@@ -88,12 +88,20 @@ export default function Bookmarks() {
                   <p className="text-[12px] text-gray-400">{bookmark.description}</p>
                 )}
               </Link>
-              <button
-                onClick={() => handleUnbookmark(bookmark.id)}
-                className="text-[12px] text-red-400 border border-red-300 rounded-xl px-2 py-1 shrink-0 ml-3"
-              >
-                취소
-              </button>
+              <div className="flex gap-2 shrink-0 ml-3">
+                <button
+                  onClick={() => router.push(`/create?from=${bookmark.id}`)}
+                  className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer hover:bg-[#EE6300] hover:text-white"
+                >
+                  내 코스로
+                </button>
+                <button
+                  onClick={() => handleUnbookmark(bookmark.id)}
+                  className="text-[12px] text-red-400 border border-red-300 rounded-xl px-2 py-1"
+                >
+                  취소
+                </button>
+              </div>
             </div>
           ))
         )}

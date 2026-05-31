@@ -20,13 +20,14 @@ import SortablePlaceItem from "@/components/SortablePlaceItem";
 import CoursePreviewRenderer from "@/components/CoursePreviewRenderer";
 import Image from "next/image";
 import { useUserStore } from "@/store/userStore";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
 export default function Create() {
   const user = useUserStore((state) => state.user);
   const hasHydrated = useUserStore((state) => state.hasHydrated);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const supabase = createClient();
 
   const sensors = useSensors(
@@ -80,6 +81,33 @@ export default function Create() {
     setToast(message);
     toastTimer.current = setTimeout(() => setToast(""), 2000);
   }
+
+  // 북마크 코스에서 복사 시 장소 자동 로드 (?from=COURSE_ID)
+  useEffect(() => {
+    const fromCourseId = searchParams.get("from");
+    if (!fromCourseId) return;
+    supabase
+      .from("course_places")
+      .select("*, places(*)")
+      .eq("course_id", fromCourseId)
+      .order("order")
+      .then(({ data }) => {
+        if (!data || data.length === 0) return;
+        const places = data.map((cp) => ({
+          id: cp.places.id,
+          title: cp.places.name,
+          address: cp.places.address,
+          roadAddress: cp.places.address,
+          mapx: String(cp.places.lng * 10000000),
+          mapy: String(cp.places.lat * 10000000),
+          link: cp.places.naver_url ?? "",
+          naverPlaceUrl: cp.places.naver_url ?? "",
+          order: cp.order,
+        }));
+        setSelectedPlaces(places);
+        setPlaceActive(true);
+      });
+  }, []);
 
   // 마운트 시 저장된 장소 키 + 컬렉션 로드
   useEffect(() => {
