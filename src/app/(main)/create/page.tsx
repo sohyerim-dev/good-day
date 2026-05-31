@@ -72,6 +72,12 @@ export default function Create() {
 
   const [isSaving, setIsSaving] = useState(false);
 
+  // 북마크 코스 바텀시트
+  const [showBookmarks, setShowBookmarks] = useState(false);
+  const [bookmarkedCourses, setBookmarkedCourses] = useState<{ id: string; title: string }[]>([]);
+  const [expandedCourseId, setExpandedCourseId] = useState<string | null>(null);
+  const [coursePlacesCache, setCoursePlacesCache] = useState<Record<string, NaverPlace[]>>({});
+
   // 토스트 메시지 상태 / 타이머 ref (중복 추가 시 하단에 2초간 표시)
   const [toast, setToast] = useState("");
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -331,6 +337,38 @@ export default function Create() {
   }
 
   // 저장된 장소를 NaverPlace 형식으로 변환해서 코스에 추가, 중복 방지
+  async function handleOpenBookmarks() {
+    const { data } = await supabase
+      .from("bookmarks")
+      .select("courses(id, title)")
+      .eq("user_id", user!.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    setBookmarkedCourses((data ?? []).map((d: any) => d.courses).filter(Boolean));
+    setShowBookmarks(true);
+  }
+
+  async function handleExpandCourse(courseId: string) {
+    if (expandedCourseId === courseId) { setExpandedCourseId(null); return; }
+    if (coursePlacesCache[courseId]) { setExpandedCourseId(courseId); return; }
+    const { data } = await supabase
+      .from("course_places")
+      .select("*, places(*)")
+      .eq("course_id", courseId)
+      .order("order");
+    const places: NaverPlace[] = (data ?? []).map((cp) => ({
+      id: cp.places.id,
+      title: cp.places.name,
+      address: cp.places.address,
+      roadAddress: cp.places.address,
+      mapx: String(cp.places.lng * 10000000),
+      mapy: String(cp.places.lat * 10000000),
+      link: cp.places.naver_url ?? "",
+      naverPlaceUrl: cp.places.naver_url ?? "",
+    }));
+    setCoursePlacesCache((prev) => ({ ...prev, [courseId]: places }));
+    setExpandedCourseId(courseId);
+  }
+
   function handleAddFromSaved(place: SavedPlace) {
     if (selectedPlaces.some((p) => p.id === place.id)) return;
     const asNaverPlace: NaverPlace = {
@@ -434,6 +472,12 @@ export default function Create() {
         className="border hover:bg-[#EE6300] hover:text-white border-[#EE6300] text-[#EE6300] rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
       >
         내 저장된 장소에서 추가
+      </button>
+      <button
+        onClick={handleOpenBookmarks}
+        className="border hover:bg-[#EE6300] hover:text-white border-[#EE6300] text-[#EE6300] rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"
+      >
+        북마크한 코스에서 추가
       </button>
       <p className="text-[12px] text-gray-400 -mt-2">
         코스 상세에서 저장해둔 장소를 바로 불러올 수 있어요.
@@ -721,6 +765,83 @@ export default function Create() {
                 {col.name}
               </button>
             ))}
+          </div>
+        </div>
+      )}
+      {showBookmarks && (
+        <div className="fixed inset-x-0 top-0 bottom-20 z-9999 flex flex-col justify-end">
+          <div className="bg-white rounded-t-3xl p-6 shadow-lg max-h-[70vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="font-bold text-[18px]">북마크한 코스</h2>
+              <button
+                onClick={() => { setShowBookmarks(false); setExpandedCourseId(null); }}
+                className="text-[14px] text-gray-400 cursor-pointer hover:text-black"
+              >
+                닫기
+              </button>
+            </div>
+            {bookmarkedCourses.length === 0 ? (
+              <p className="text-gray-400 text-center py-4">북마크한 코스가 없어요</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {bookmarkedCourses.map((course) => (
+                  <li key={course.id} className="bg-gray-50 rounded-2xl overflow-hidden">
+                    <div className="flex items-center justify-between px-4 py-3">
+                      <span className="font-medium text-[14px] flex-1 min-w-0 truncate mr-2">{course.title}</span>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => handleExpandCourse(course.id)}
+                          className="text-[12px] text-gray-500 border border-gray-300 rounded-xl px-2 py-1 cursor-pointer hover:border-[#EE6300] hover:text-[#EE6300]"
+                        >
+                          {expandedCourseId === course.id ? "▲" : "▼"}
+                        </button>
+                        <button
+                          onClick={async () => {
+                            let places = coursePlacesCache[course.id];
+                            if (!places) {
+                              const { data } = await supabase
+                                .from("course_places").select("*, places(*)").eq("course_id", course.id).order("order");
+                              places = (data ?? []).map((cp) => ({
+                                id: cp.places.id, title: cp.places.name,
+                                address: cp.places.address, roadAddress: cp.places.address,
+                                mapx: String(cp.places.lng * 10000000), mapy: String(cp.places.lat * 10000000),
+                                link: cp.places.naver_url ?? "", naverPlaceUrl: cp.places.naver_url ?? "",
+                              }));
+                              setCoursePlacesCache((prev) => ({ ...prev, [course.id]: places! }));
+                            }
+                            setSelectedPlaces((prev) => {
+                              const existingIds = new Set(prev.map((p) => p.id));
+                              const toAdd = places!.filter((p) => !existingIds.has(p.id));
+                              if (toAdd.length === 0) { showToast("이미 모두 추가된 장소예요."); return prev; }
+                              return [...prev, ...toAdd.map((p, i) => ({ ...p, order: prev.length + i + 1 }))];
+                            });
+                            setPlaceActive(true);
+                          }}
+                          className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 cursor-pointer hover:bg-[#EE6300] hover:text-white"
+                        >
+                          전체 추가
+                        </button>
+                      </div>
+                    </div>
+                    {expandedCourseId === course.id && coursePlacesCache[course.id] && (
+                      <ul className="border-t border-gray-100 px-4 pb-3 flex flex-col gap-1.5 pt-2">
+                        {coursePlacesCache[course.id].map((place) => (
+                          <li key={place.id} className="flex items-center justify-between">
+                            <span className="text-[13px] text-gray-600 flex-1 min-w-0 truncate mr-2">{place.title}</span>
+                            <button
+                              onClick={() => handleAddPlace(place)}
+                              className="text-[11px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-0.5 cursor-pointer hover:bg-[#EE6300] hover:text-white shrink-0"
+                            >
+                              추가
+                            </button>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
       )}
