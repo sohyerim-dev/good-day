@@ -68,7 +68,7 @@ export default function About() {
               date: "2026.05.30",
               text: "코스 추가 시 북마크한 코스에서 장소를 개별 또는 전체 추가 가능",
             },
-          ].map((item, i) => (
+          ].slice(-5).map((item, i) => (
             <div
               key={i}
               className="bg-gray-50 rounded-2xl px-4 py-3 flex items-start gap-3"
