@@ -14,9 +14,13 @@ export default function About() {
         </div>
         <p className="text-[14px] text-gray-500 leading-relaxed text-center mt-2">
           약속 전에 항상 동선을 미리 짜던 경험에서 시작한 서비스입니다.
-          <br /><br />
-          계획형 인간 J들을 위한 <strong className="font-bold">놀기 코스 플래너</strong>로,<br />
-          장소를 추가하고 순서를 정해 여행 코스를 만들 수 있습니다.<br />
+          <br />
+          <br />
+          계획형 인간 J들을 위한{" "}
+          <strong className="font-bold">놀기 코스 플래너</strong>로,
+          <br />
+          장소를 추가하고 순서를 정해 여행 코스를 만들 수 있습니다.
+          <br />
           친구와 함께 코스를 편집하거나 공유하며 여행 계획을 완성할 수 있어요.
         </p>
       </div>
@@ -52,6 +56,18 @@ export default function About() {
               date: "2026.05.24",
               text: "경로 보기: 구간별 버스・지하철 경로 전환 기능 추가",
             },
+            {
+              date: "2026.05.28",
+              text: "코스 추가: 경로 미리보기 인라인 방식으로 변경",
+            },
+            {
+              date: "2026.05.30",
+              text: "북마크한 코스를 내 코스로 복사하는 기능 추가",
+            },
+            {
+              date: "2026.05.30",
+              text: "코스 추가 시 북마크한 코스에서 장소를 개별 또는 전체 추가 가능",
+            },
           ].map((item, i) => (
             <div
               key={i}
@@ -70,50 +86,50 @@ export default function About() {
       <div>
         <h2 className="text-[16px] font-bold mb-3">서비스 피드백</h2>
         <div className="flex flex-col gap-2">
-        <a
-          href="https://docs.google.com/forms/d/e/1FAIpQLSd4014fVb2wvYh3bIzOZT457wDgi7bhMc8XEC_StU9koix6GQ/viewform?usp=header"
-          target="_blank"
-          className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 hover:bg-gray-100"
-        >
-          <span className="text-[14px] font-medium">
-            서비스 이용 피드백 남기기
-          </span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-gray-300"
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSd4014fVb2wvYh3bIzOZT457wDgi7bhMc8XEC_StU9koix6GQ/viewform?usp=header"
+            target="_blank"
+            className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 hover:bg-gray-100"
           >
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </a>
-        <a
-          href="https://docs.google.com/forms/d/e/1FAIpQLSf3kC6LXiwEkdSgSbF844fuGnA3804JKYXs4l-qBxs47wKbMw/viewform?usp=publish-editor"
-          target="_blank"
-          className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 hover:bg-gray-100"
-        >
-          <span className="text-[14px] font-medium">고객 문의</span>
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="text-gray-300"
+            <span className="text-[14px] font-medium">
+              서비스 이용 피드백 남기기
+            </span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-gray-300"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </a>
+          <a
+            href="https://docs.google.com/forms/d/e/1FAIpQLSf3kC6LXiwEkdSgSbF844fuGnA3804JKYXs4l-qBxs47wKbMw/viewform?usp=publish-editor"
+            target="_blank"
+            className="flex items-center justify-between bg-gray-50 rounded-2xl p-4 hover:bg-gray-100"
           >
-            <path d="m9 18 6-6-6-6" />
-          </svg>
-        </a>
+            <span className="text-[14px] font-medium">고객 문의</span>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="text-gray-300"
+            >
+              <path d="m9 18 6-6-6-6" />
+            </svg>
+          </a>
         </div>
       </div>
       {/* 개발자 정보 */}
