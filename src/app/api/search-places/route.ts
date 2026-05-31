@@ -19,11 +19,22 @@ export async function GET(req: NextRequest) {
   );
 
   const data = await res.json();
-  const cleaned = data.items.map((item: NaverPlace) => ({
-    ...item,
-    title: item.title.replace(/<[^>]*>/g, ""),
-    naverPlaceUrl: `https://map.naver.com/p/search/${encodeURIComponent(item.title.replace(/<[^>]*>/g, ""))}`,
-    id: `${item.title.replace(/<[^>]*>/g, "")}-${item.address}`,
-  }));
+  const decode = (s: string) =>
+    s.replace(/<[^>]*>/g, "")
+     .replace(/&amp;/g, "&")
+     .replace(/&lt;/g, "<")
+     .replace(/&gt;/g, ">")
+     .replace(/&quot;/g, '"')
+     .replace(/&#39;/g, "'");
+
+  const cleaned = data.items.map((item: NaverPlace) => {
+    const title = decode(item.title);
+    return {
+      ...item,
+      title,
+      naverPlaceUrl: `https://map.naver.com/p/search/${encodeURIComponent(title)}`,
+      id: `${title}-${item.address}`,
+    };
+  });
   return NextResponse.json({ ...data, items: cleaned });
 }
