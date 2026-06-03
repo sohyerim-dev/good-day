@@ -51,7 +51,7 @@ function CreatePage() {
 
   // 코스에 추가된 장소 목록 (순서 포함))
   const [selectedPlaces, setSelectedPlaces] = useState<
-    (NaverPlace & { order: number })[]
+    (NaverPlace & { order: number; _key?: string })[]
   >([]);
 
   // 검색 결과 패널 표시 여부 / 코스 장소 목록 섹션 표시 여부
@@ -201,13 +201,13 @@ function CreatePage() {
 
   // 검색 결과에서 장소를 코스에 추가, 첫 추가 시 목록 섹션 표시
   function handleAddPlace(place: NaverPlace) {
-    if (selectedPlaces.some((p) => p.id === place.id)) {
-      showToast("이미 추가된 장소예요.");
+    if (selectedPlaces.at(-1)?.id === place.id) {
+      showToast("같은 장소를 연속으로 추가할 수 없어요.");
       return;
     }
     setSelectedPlaces((prev) => [
       ...prev,
-      { ...place, order: prev.length + 1 },
+      { ...place, order: prev.length + 1, _key: `${place.id}-${Date.now()}` },
     ]);
     // 추가 후 검색 결과 닫아서 코스 목록 바로 확인 가능하게 함
     setSearchResults([]);
@@ -370,7 +370,7 @@ function CreatePage() {
   }
 
   function handleAddFromSaved(place: SavedPlace) {
-    if (selectedPlaces.some((p) => p.id === place.id)) return;
+    if (selectedPlaces.at(-1)?.id === place.id) return;
     const asNaverPlace: NaverPlace = {
       id: place.id,
       title: place.name,
@@ -604,7 +604,7 @@ function CreatePage() {
         onDragEnd={handleDragEnd}
       >
         <SortableContext
-          items={selectedPlaces.map((p) => p.id)}
+          items={selectedPlaces.map((p) => p._key ?? p.id)}
           strategy={verticalListSortingStrategy}
         >
           <ul
@@ -613,9 +613,9 @@ function CreatePage() {
             }
           >
             {selectedPlaces.map((place, index) => (
-              <Fragment key={place.id}>
+              <Fragment key={place._key ?? place.id}>
                 <SortablePlaceItem
-                  key={place.id}
+                  key={place._key ?? place.id}
                   place={place}
                   onRemove={() => handleRemovePlace(index)}
                 />

@@ -82,7 +82,7 @@ export default function EditCourse({
   const [searchResults, setSearchResults] = useState<NaverPlace[]>([]);
 
   const [selectedPlaces, setSelectedPlaces] = useState<
-    (NaverPlace & { order: number })[]
+    (NaverPlace & { order: number; _key?: string })[]
   >([]);
 
   const [searchActive, setSearchActive] = useState(false);
@@ -128,6 +128,7 @@ export default function EditCourse({
       google_place_id: cp.places.google_place_id ?? undefined,
       source: (cp.places.google_place_id ? "google" : "naver") as "naver" | "google",
       order: cp.order,
+      _key: `${cp.places.id}-${cp.order}`,
     }));
     setSelectedPlaces(asNaverPlaces);
     if (asNaverPlaces.length > 0) setPlaceActive(true);
@@ -145,9 +146,12 @@ export default function EditCourse({
   }
 
   function handleAddPlace(place: NaverPlace) {
+    if (selectedPlaces.at(-1)?.id === place.id) {
+      return;
+    }
     setSelectedPlaces((prev) => [
       ...prev,
-      { ...place, order: prev.length + 1 },
+      { ...place, order: prev.length + 1, _key: `${place.id}-${Date.now()}` },
     ]);
     // 추가 후 검색 결과 닫아서 코스 목록 바로 확인 가능하게 함
     setSearchResults([]);
@@ -268,7 +272,7 @@ export default function EditCourse({
   });
 
   function handleAddFromSaved(place: SavedPlace) {
-    if (selectedPlaces.some((p) => p.id === place.id)) return;
+    if (selectedPlaces.at(-1)?.id === place.id) return;
     const asNaverPlace: NaverPlace = {
       id: place.id,
       title: place.name,
@@ -443,7 +447,7 @@ export default function EditCourse({
       )}
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext
-          items={selectedPlaces.map((p) => p.id)}
+          items={selectedPlaces.map((p) => p._key ?? p.id)}
           strategy={verticalListSortingStrategy}
         >
           <ul
@@ -452,9 +456,9 @@ export default function EditCourse({
             }
           >
             {selectedPlaces.map((place, index) => (
-              <Fragment key={place.id}>
+              <Fragment key={place._key ?? place.id}>
                 <SortablePlaceItem
-                  key={place.id}
+                  key={place._key ?? place.id}
                   place={place}
                   onRemove={() => handleRemovePlace(index)}
                 />

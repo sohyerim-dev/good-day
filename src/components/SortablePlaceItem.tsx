@@ -6,13 +6,13 @@ import { CSS } from "@dnd-kit/utilities";
 import Image from "next/image";
 
 interface Props {
-  place: NaverPlace & { order: number };
+  place: NaverPlace & { order: number; _key?: string };
   onRemove: () => void;
 }
 
 export default function SortablePlaceItem({ place, onRemove }: Props) {
   const { attributes, listeners, setNodeRef, transform, transition } =
-    useSortable({ id: place.id });
+    useSortable({ id: place._key ?? place.id });
 
   const style = {
     transform: CSS.Transform.toString(transform),
