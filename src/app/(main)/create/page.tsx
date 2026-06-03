@@ -565,17 +565,12 @@ function CreatePage() {
       </ul>
 
       {/* 추가된 장소 목록 */}
-      <div className="flex">
-        <h2 className={placeActive ? "text-[18px] font-medium" : "hidden"}>
-          나의 코스
-        </h2>
-        <Image
-          src="/icons/sparkles.svg"
-          width={20}
-          height={20}
-          alt=""
-          className={placeActive ? "ml-2" : "hidden"}
-        />
+      <div className={placeActive ? "flex flex-col gap-0.5" : "hidden"}>
+        <div className="flex items-center">
+          <h2 className="text-[18px] font-medium">나의 코스</h2>
+          <Image src="/icons/sparkles.svg" width={20} height={20} alt="" className="ml-2" />
+        </div>
+        <p className="text-[12px] text-gray-400">왼쪽 아이콘을 길게 누르면 순서를 바꿀 수 있어요.</p>
       </div>
       {selectedPlaces.length >= 2 && (
         <div className="rounded-2xl overflow-hidden h-64">
