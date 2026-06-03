@@ -293,6 +293,7 @@ export default function EditCourse({
         id="course-title"
         placeholder="코스 제목"
         value={title}
+        autoComplete="off"
         className="bg-gray-50 rounded-2xl p-4 w-full focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
         onChange={(e) => setTitle(e.target.value)}
       />
@@ -303,6 +304,7 @@ export default function EditCourse({
         id="course-description"
         placeholder="코스 설명"
         value={description}
+        autoComplete="off"
         className="bg-gray-50 rounded-2xl p-4 w-full focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
         onChange={(e) => setDescription(e.target.value)}
       />
@@ -338,6 +340,7 @@ export default function EditCourse({
           id="place-search"
           placeholder="장소 검색"
           value={query}
+          autoComplete="off"
           onKeyDown={(e) => {
             if (e.key === "Enter") handleSearch();
           }}
