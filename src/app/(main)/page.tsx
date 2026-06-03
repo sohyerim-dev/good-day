@@ -59,7 +59,11 @@ export default function Home() {
   const totalPages = Math.ceil(courses.length / PAGE_SIZE);
   const paginated = courses.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
-  if (!hasHydrated) return null;
+  if (!hasHydrated) return (
+    <main className="flex items-center justify-center min-h-full">
+      <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" />
+    </main>
+  );
 
   if (!user) {
     return (
