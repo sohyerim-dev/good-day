@@ -197,8 +197,16 @@ export default function EditCourse({
       const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
       setTitle(courseTitle);
 
-      const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id);
-      const googlePlaces = selectedPlaces.filter((p) => !!p.google_place_id);
+      const seenNaver = new Set<string>();
+      const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id).filter((p) => {
+        if (seenNaver.has(p.naverPlaceUrl)) return false;
+        seenNaver.add(p.naverPlaceUrl); return true;
+      });
+      const seenGoogle = new Set<string>();
+      const googlePlaces = selectedPlaces.filter((p) => !!p.google_place_id).filter((p) => {
+        if (seenGoogle.has(p.google_place_id!)) return false;
+        seenGoogle.add(p.google_place_id!); return true;
+      });
       const placeIdMap: Record<string, string> = {};
 
       if (naverPlaces.length > 0) {
