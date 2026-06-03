@@ -26,25 +26,26 @@ export default function Explore() {
 
   // 코스별 뷰포트 내 최소 order 장소를 마커로 사용
   // (서울→부산 코스를 부산 지도에서 볼 때 부산역에 마커가 찍힘)
-  const courseFirstInViewport = new Map<string, { placeId: string; cp: ExploreCoursePlace["course_places"][number] }>();
+  type CpType = ExploreCoursePlace["course_places"][number];
+  const courseFirstInViewport: Record<string, { placeId: string; cp: CpType }> = {};
   exploreAllPlaces.forEach((place) => {
     place.course_places.forEach((cp) => {
-      const existing = courseFirstInViewport.get(cp.course_id);
+      const existing = courseFirstInViewport[cp.course_id];
       if (!existing || cp.order < existing.cp.order) {
-        courseFirstInViewport.set(cp.course_id, { placeId: place.id, cp });
+        courseFirstInViewport[cp.course_id] = { placeId: place.id, cp };
       }
     });
   });
-  const placeById = new Map(exploreAllPlaces.map((p) => [p.id, p]));
-  const markerPlaceMap = new Map<string, ExploreCoursePlace & { course_places: ExploreCoursePlace["course_places"] }>();
-  courseFirstInViewport.forEach(({ placeId, cp }) => {
-    const place = placeById.get(placeId);
+  const placeById: Record<string, ExploreCoursePlace> = Object.fromEntries(exploreAllPlaces.map((p) => [p.id, p]));
+  const markerPlaceMap: Record<string, ExploreCoursePlace & { course_places: CpType[] }> = {};
+  Object.values(courseFirstInViewport).forEach(({ placeId, cp }) => {
+    const place = placeById[placeId];
     if (!place) return;
-    if (!markerPlaceMap.has(placeId)) markerPlaceMap.set(placeId, { ...place, course_places: [] });
-    markerPlaceMap.get(placeId)!.course_places.push(cp);
+    if (!markerPlaceMap[placeId]) markerPlaceMap[placeId] = { ...place, course_places: [] };
+    markerPlaceMap[placeId].course_places.push(cp);
   });
-  const markerPlaces = Array.from(markerPlaceMap.values());
-  const markerCourseIds = new Set(courseFirstInViewport.keys());
+  const markerPlaces = Object.values(markerPlaceMap);
+  const markerCourseIds = new Set(Object.keys(courseFirstInViewport));
 
   // 마커가 있는 코스만 그룹화 (첫 번째 장소가 뷰포트 밖인 코스는 목록에서 제외)
   const placeGroup = exploreAllPlaces.reduce(

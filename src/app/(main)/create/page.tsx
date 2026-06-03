@@ -261,9 +261,17 @@ function CreatePage() {
 
     if (selectedPlaces.length < 2) return;
 
-    // 국내/해외 분리 upsert
-    const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id);
-    const googlePlaces = selectedPlaces.filter((p) => !!p.google_place_id);
+    // 국내/해외 분리 upsert (A→B→A처럼 같은 장소가 여러 번 있을 수 있으므로 중복 제거)
+    const seen = new Set<string>();
+    const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id).filter((p) => {
+      if (seen.has(p.naverPlaceUrl)) return false;
+      seen.add(p.naverPlaceUrl); return true;
+    });
+    const seenG = new Set<string>();
+    const googlePlaces = selectedPlaces.filter((p) => !!p.google_place_id).filter((p) => {
+      if (seenG.has(p.google_place_id!)) return false;
+      seenG.add(p.google_place_id!); return true;
+    });
     const placeIdMap: Record<string, string> = {};
 
     if (naverPlaces.length > 0) {
