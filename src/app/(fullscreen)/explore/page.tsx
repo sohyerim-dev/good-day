@@ -22,18 +22,29 @@ export default function Explore() {
   const [swLat, setSwLat] = useState<number>();
   const [swLng, setSwLng] = useState<number>();
 
-  const [explorePlaces, setExplorePlaces] = useState<ExploreCoursePlace[]>([]);
-  const [exploreAllPlaces, setExploreAllPlaces] = useState<
-    ExploreCoursePlace[]
-  >([]);
-  // 마커가 찍힌 코스(첫 번째 장소가 뷰포트 내에 있는 코스)의 ID 집합
-  const markerCourseIds = new Set(
-    explorePlaces.flatMap((p) =>
-      p.course_places
-        .filter((cp: { order: number }) => cp.order === 1)
-        .map((cp: { course_id: string }) => cp.course_id),
-    ),
-  );
+  const [exploreAllPlaces, setExploreAllPlaces] = useState<ExploreCoursePlace[]>([]);
+
+  // 코스별 뷰포트 내 최소 order 장소를 마커로 사용
+  // (서울→부산 코스를 부산 지도에서 볼 때 부산역에 마커가 찍힘)
+  const courseFirstInViewport = new Map<string, { placeId: string; cp: ExploreCoursePlace["course_places"][number] }>();
+  exploreAllPlaces.forEach((place) => {
+    place.course_places.forEach((cp) => {
+      const existing = courseFirstInViewport.get(cp.course_id);
+      if (!existing || cp.order < existing.cp.order) {
+        courseFirstInViewport.set(cp.course_id, { placeId: place.id, cp });
+      }
+    });
+  });
+  const placeById = new Map(exploreAllPlaces.map((p) => [p.id, p]));
+  const markerPlaceMap = new Map<string, ExploreCoursePlace & { course_places: ExploreCoursePlace["course_places"] }>();
+  courseFirstInViewport.forEach(({ placeId, cp }) => {
+    const place = placeById.get(placeId);
+    if (!place) return;
+    if (!markerPlaceMap.has(placeId)) markerPlaceMap.set(placeId, { ...place, course_places: [] });
+    markerPlaceMap.get(placeId)!.course_places.push(cp);
+  });
+  const markerPlaces = Array.from(markerPlaceMap.values());
+  const markerCourseIds = new Set(courseFirstInViewport.keys());
 
   // 마커가 있는 코스만 그룹화 (첫 번째 장소가 뷰포트 밖인 코스는 목록에서 제외)
   const placeGroup = exploreAllPlaces.reduce(
@@ -80,25 +91,7 @@ export default function Explore() {
       (cp.courses.is_public || cp.courses.user_id === user?.id) &&
       (cp.courses.course_places?.[0]?.count ?? 0) >= 2;
 
-    // 마커용: 현재 지도 영역 내에서 코스의 첫 번째 장소(order=1)만 가져옴
-    // 코스 시작점에만 마커를 표시해 지도가 복잡해지지 않게 함
-    supabase
-      .from("places")
-      .select("*, course_places!inner(*, courses!inner(*, profiles(username), course_places(count)))")
-      .gte("lat", swLat)
-      .lte("lat", neLat)
-      .gte("lng", swLng)
-      .lte("lng", neLng)
-      .then(({ data }) => {
-        const filtered = data?.filter((p) =>
-          p.course_places.some((cp: { order: number; courses: { is_public: boolean; is_hidden: boolean; user_id: string; course_places?: { count: number }[] } }) =>
-            cp.order === 1 && isVisible(cp)
-          ),
-        );
-        setExplorePlaces(filtered ?? []);
-      });
-
-    // 목록용: 현재 지도 영역 내 모든 장소를 가져와서 코스 단위로 그룹화에 사용
+    // 뷰포트 내 모든 장소 조회 - 마커 위치와 목록 모두 여기서 파생
     supabase
       .from("places")
       .select("*, course_places!inner(*, courses!inner(*, profiles(username), course_places(count)))")
@@ -230,19 +223,15 @@ export default function Explore() {
           )}
           {!selected && (
             <MarkerRenderer
-              places={explorePlaces}
+              places={markerPlaces}
               onMarkerClick={(place) => {
                 setSelectedCoursePlaces(undefined);
                 setSelectedCourseIdx(0);
-                // 이 장소가 첫 번째 장소(order=1)인 코스만 피커에 표시
-                const firstOnlyCps = place.course_places.filter(
-                  (cp: { order: number }) => cp.order === 1,
-                );
-                setSelected({ ...place, course_places: firstOnlyCps });
+                setSelected(place);
                 supabase
                   .from("course_places")
                   .select("*, places(*)")
-                  .eq("course_id", firstOnlyCps[0].course_id)
+                  .eq("course_id", place.course_places[0].course_id)
                   .order("order")
                   .then(({ data }) => {
                     setSelectedCoursePlaces(data ?? []);
