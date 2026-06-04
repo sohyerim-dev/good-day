@@ -1,7 +1,6 @@
 "use client";
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
@@ -178,22 +177,29 @@ export default function MyCourse() {
         >
           <span className="font-medium">이용약관</span>
           <span className="text-gray-300 group-hover:text-[#EE6300]">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="lucide lucide-chevron-right-icon lucide-chevron-right"
-            >
-              <path d="m9 18 6-6-6-6" />
-            </svg>
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
           </span>
         </Link>
+        <a
+          href="https://docs.google.com/forms/d/e/1FAIpQLSd4014fVb2wvYh3bIzOZT457wDgi7bhMc8XEC_StU9koix6GQ/viewform?usp=header"
+          target="_blank"
+          className="group flex justify-between items-center bg-gray-50 rounded-2xl p-4"
+        >
+          <span className="font-medium">서비스 피드백</span>
+          <span className="text-gray-300 group-hover:text-[#EE6300]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          </span>
+        </a>
+        <a
+          href="https://docs.google.com/forms/d/e/1FAIpQLSf3kC6LXiwEkdSgSbF844fuGnA3804JKYXs4l-qBxs47wKbMw/viewform?usp=publish-editor"
+          target="_blank"
+          className="group flex justify-between items-center bg-gray-50 rounded-2xl p-4"
+        >
+          <span className="font-medium">고객 문의</span>
+          <span className="text-gray-300 group-hover:text-[#EE6300]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6" /></svg>
+          </span>
+        </a>
       </div>
 
       <div className="mt-auto">
