@@ -171,6 +171,7 @@ export default function MyCourse() {
             </svg>
           </span>
         </Link>
+        <hr className="border-gray-100 my-1" />
         <Link
           href="/my-course/terms"
           className="group flex justify-between items-center bg-gray-50 rounded-2xl p-4"
