@@ -11,6 +11,10 @@ export default function MyCourse() {
   const [isEditing, setIsEditing] = useState(false);
   const [editUsername, setEditUsername] = useState("");
   const [usernameError, setUsernameError] = useState("");
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const deleteInputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +34,18 @@ export default function MyCourse() {
       .eq("id", user?.id);
     setUser({ ...user!, username: editUsername });
     setIsEditing(false);
+  }
+
+  async function handlePasswordUpdate() {
+    if (newPassword.length < 8) { setPasswordError("비밀번호는 8자 이상이어야 해요."); return; }
+    if (newPassword !== confirmPassword) { setPasswordError("비밀번호가 일치하지 않아요."); return; }
+    setPasswordError("");
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    if (error) { setPasswordError(error.message); return; }
+    setIsChangingPassword(false);
+    setNewPassword("");
+    setConfirmPassword("");
+    alert("비밀번호가 변경됐어요.");
   }
 
   async function handleDeleteAccount() {
@@ -100,6 +116,48 @@ export default function MyCourse() {
             </div>
           )}
           <p className="text-[13px] text-gray-400 mt-1">{user?.email}</p>
+          {isChangingPassword ? (
+            <div className="flex flex-col gap-1 mt-3">
+              <input
+                type="password"
+                value={newPassword}
+                onChange={(e) => { setNewPassword(e.target.value); setPasswordError(""); }}
+                placeholder="새 비밀번호 (8자 이상)"
+                autoFocus
+                className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+              />
+              <input
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => { setConfirmPassword(e.target.value); setPasswordError(""); }}
+                onKeyDown={(e) => { if (e.key === "Enter") handlePasswordUpdate(); }}
+                placeholder="비밀번호 확인"
+                className="bg-white border border-gray-200 rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+              />
+              {passwordError && <p className="text-[12px] text-red-400">{passwordError}</p>}
+              <div className="flex gap-2 mt-1">
+                <button
+                  onClick={handlePasswordUpdate}
+                  className="text-[12px] bg-[#EE6300] text-white rounded-xl px-3 py-1.5 cursor-pointer"
+                >
+                  변경
+                </button>
+                <button
+                  onClick={() => { setIsChangingPassword(false); setNewPassword(""); setConfirmPassword(""); setPasswordError(""); }}
+                  className="text-[12px] text-gray-400 border border-gray-200 rounded-xl px-3 py-1.5 cursor-pointer"
+                >
+                  취소
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsChangingPassword(true)}
+              className="mt-2 text-[12px] text-gray-400 hover:text-[#EE6300] cursor-pointer text-left"
+            >
+              비밀번호 변경
+            </button>
+          )}
         </div>
       </div>
 
