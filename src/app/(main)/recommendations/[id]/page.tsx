@@ -209,7 +209,7 @@ export default function RecommendationDetail() {
 
         {/* 본문 */}
         <div
-          className="text-[14px] leading-relaxed text-gray-700"
+          className="text-[14px] leading-relaxed text-gray-700 [&_p]:min-h-[1em] [&_p+p]:mt-2"
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
 
