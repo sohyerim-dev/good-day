@@ -95,7 +95,7 @@ function WritePage() {
       const ext = img.file.name.split(".").pop();
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { error } = await supabase.storage.from("post-images").upload(path, img.file);
-      if (error) continue;
+      if (error) { alert(`이미지 업로드 실패: ${error.message}`); setIsSubmitting(false); return urls; }
       const { data: publicData } = supabase.storage.from("post-images").getPublicUrl(path);
       urls.push(publicData.publicUrl);
     }
