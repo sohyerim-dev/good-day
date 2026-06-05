@@ -177,8 +177,8 @@ export default function EditCourse({
     if (!over || active.id === over.id) return;
 
     setSelectedPlaces((prev) => {
-      const oldIndex = prev.findIndex((p) => p.id === active.id);
-      const newIndex = prev.findIndex((p) => p.id === over.id);
+      const oldIndex = prev.findIndex((p) => (p._key ?? p.id) === active.id);
+      const newIndex = prev.findIndex((p) => (p._key ?? p.id) === over.id);
       return arrayMove(prev, oldIndex, newIndex).map((place, i) => ({
         ...place,
         order: i + 1,
