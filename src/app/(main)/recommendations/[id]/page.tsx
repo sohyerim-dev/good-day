@@ -47,7 +47,7 @@ export default function RecommendationDetail() {
         setLoading(false);
       });
     supabase.rpc("increment_post_view", { p_id: id }).then(({ error }) => {
-      if (error) console.error("view count error:", error);
+      if (error) alert("view count error: " + error.message + " | code: " + error.code);
     });
   }, [id]);
 
