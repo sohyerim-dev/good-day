@@ -163,7 +163,7 @@ export default function RecommendationDetail() {
 
         {/* 이미지 슬라이더 */}
         {images.length > 0 && (
-          <div className="relative w-full bg-black rounded-2xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
+          <div className="relative w-full bg-black rounded-2xl overflow-hidden max-h-[480px]" style={{ aspectRatio: "4/3" }}>
             <img src={images[imgIndex].url} alt="" className="w-full h-full object-contain" />
             {images.length > 1 && (
               <>

@@ -101,7 +101,7 @@ export default function Recommendations() {
                 >
                   {thumbnail && (
                     <div
-                      className="w-full bg-cover bg-center"
+                      className="w-full bg-cover bg-center max-h-64"
                       style={{ backgroundImage: `url(${thumbnail})`, aspectRatio: "4/3" }}
                     />
                   )}
