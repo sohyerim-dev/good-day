@@ -39,6 +39,7 @@ export default function TiptapEditor({ content, onChange }: Props) {
       <div className="flex gap-1 p-2 border-b border-gray-100 bg-gray-50">
         <button
           type="button"
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => editor.chain().focus().toggleBold().run()}
           className={`px-3 py-1.5 rounded-xl text-[13px] font-bold cursor-pointer ${
             editor.isActive("bold")
@@ -52,6 +53,7 @@ export default function TiptapEditor({ content, onChange }: Props) {
           <button
             key={align}
             type="button"
+            onMouseDown={(e) => e.preventDefault()}
             onClick={() => editor.chain().focus().setTextAlign(align).run()}
             className={`px-3 py-1.5 rounded-xl text-[13px] cursor-pointer ${
               editor.isActive({ textAlign: align })
