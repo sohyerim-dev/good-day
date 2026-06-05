@@ -7,8 +7,6 @@ import { Suspense, useEffect, useRef, useState } from "react";
 import TiptapEditor from "@/components/TiptapEditor";
 import { NaverPlace } from "@/types/place";
 
-const ADMIN_EMAIL = "musik91@naver.com";
-
 interface PlaceEntry {
   name: string;
   naver_url: string;
@@ -36,7 +34,7 @@ function WritePage() {
   // 관리자 체크
   useEffect(() => {
     if (!hasHydrated) return;
-    if (!user || user.email !== ADMIN_EMAIL) {
+    if (!user || user.role !== "admin") {
       router.replace("/");
     }
   }, [hasHydrated, user]);
@@ -166,7 +164,7 @@ function WritePage() {
   }
 
   if (!hasHydrated) return null;
-  if (!user || user.email !== ADMIN_EMAIL) return null;
+  if (!user || user.role !== "admin") return null;
 
   return (
     <main className="p-4 flex flex-col gap-5 pb-32">

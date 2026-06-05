@@ -6,8 +6,6 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
-const ADMIN_EMAIL = "musik91@naver.com";
-
 interface PostDetail {
   id: string;
   title: string;
@@ -24,7 +22,7 @@ export default function RecommendationDetail() {
   const user = useUserStore((state) => state.user);
   const router = useRouter();
   const supabase = createClient();
-  const isAdmin = user?.email === ADMIN_EMAIL;
+  const isAdmin = user?.role === "admin";
 
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);

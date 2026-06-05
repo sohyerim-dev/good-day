@@ -24,13 +24,14 @@ export default function AuthProvider({
       if (event === "TOKEN_REFRESHED" && session?.user) {
         const { data: profile } = await supabase
           .from("profiles")
-          .select("username")
+          .select("username, role")
           .eq("id", session.user.id)
           .single();
         setUser({
           id: session.user.id,
           email: session.user.email ?? "",
           username: profile?.username ?? "",
+          role: profile?.role ?? "user",
         });
       }
     });
@@ -79,7 +80,7 @@ export default function AuthProvider({
 
       const { data: profile } = await supabase
         .from("profiles")
-        .select("username")
+        .select("username, role")
         .eq("id", user.id)
         .single();
 
@@ -87,6 +88,7 @@ export default function AuthProvider({
         id: user.id,
         email: user.email ?? "",
         username: profile?.username ?? "",
+        role: profile?.role ?? "user",
       });
       setHasHydrated(true);
     });
