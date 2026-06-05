@@ -152,9 +152,10 @@ function WritePage() {
       await supabase.from("courses").update({ title: cTitle, description: cDesc, course_lat, course_lng }).eq("id", courseId);
       await supabase.from("course_places").delete().eq("course_id", courseId);
     } else {
-      const { data } = await supabase.from("courses").insert({
+      const { data, error } = await supabase.from("courses").insert({
         user_id: user!.id, title: cTitle, description: cDesc, is_public: false, is_hidden: true, course_lat, course_lng,
       }).select("id").single();
+      if (error) { alert(`코스 생성 실패: ${error.message}`); return null; }
       if (!data) return null;
       courseId = data.id;
     }
@@ -171,6 +172,7 @@ function WritePage() {
   async function handleSubmit() {
     if (!title.trim() || isSubmitting) return;
     setIsSubmitting(true);
+    try {
 
     const imageUrls = await uploadImages();
     const validPlaces = places.filter((p) => p.name.trim());
@@ -222,6 +224,10 @@ function WritePage() {
         );
       }
       router.push(`/recommendations/${postData.id}`);
+    }
+    } catch (e) {
+      alert(`저장 중 오류가 발생했어요: ${e}`);
+      setIsSubmitting(false);
     }
   }
 
