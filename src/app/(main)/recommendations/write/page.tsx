@@ -11,7 +11,12 @@ interface PlaceEntry {
   name: string;
   naver_url: string;
   address: string;
+  lat: number;
+  lng: number;
+  google_place_id: string;
 }
+
+const EMPTY_PLACE: PlaceEntry = { name: "", naver_url: "", address: "", lat: 0, lng: 0, google_place_id: "" };
 
 function WritePage() {
   const user = useUserStore((state) => state.user);
@@ -25,27 +30,22 @@ function WritePage() {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<"place" | "course">("place");
   const [content, setContent] = useState("");
-  const [linkedCourseId, setLinkedCourseId] = useState("");
   const [images, setImages] = useState<{ file?: File; previewUrl: string; storedUrl?: string }[]>([]);
-  const [places, setPlaces] = useState<PlaceEntry[]>([{ name: "", naver_url: "", address: "" }]);
+  const [places, setPlaces] = useState<PlaceEntry[]>([EMPTY_PLACE]);
   const [placeQuery, setPlaceQuery] = useState("");
   const [placeResults, setPlaceResults] = useState<NaverPlace[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 관리자 체크
   useEffect(() => {
     if (!hasHydrated) return;
-    if (!user || user.role !== "admin") {
-      router.replace("/");
-    }
+    if (!user || user.role !== "admin") router.replace("/");
   }, [hasHydrated, user]);
 
-  // 수정 모드: 기존 데이터 로드
   useEffect(() => {
     if (!editId) return;
     supabase
       .from("posts")
-      .select("*, post_images(id, url, order), post_places(id, name, naver_url, order)")
+      .select("*, post_images(id, url, order), post_places(id, name, naver_url, address, order)")
       .eq("id", editId)
       .single()
       .then(({ data }) => {
@@ -53,23 +53,20 @@ function WritePage() {
         setTitle(data.title);
         setCategory(data.category);
         setContent(data.content);
-        setLinkedCourseId(data.linked_course_id ?? "");
         const sortedImages = (data.post_images ?? []).sort((a: { order: number }, b: { order: number }) => a.order - b.order);
         setImages(sortedImages.map((img: { url: string }) => ({ previewUrl: img.url, storedUrl: img.url })));
         const sortedPlaces = (data.post_places ?? []).sort((a: { order: number }, b: { order: number }) => a.order - b.order);
         if (sortedPlaces.length > 0) {
-          setPlaces(sortedPlaces.map((p: { name: string; naver_url: string | null; address: string | null }) => ({ name: p.name, naver_url: p.naver_url ?? "", address: p.address ?? "" })));
+          setPlaces(sortedPlaces.map((p: { name: string; naver_url: string | null; address: string | null }) => ({
+            ...EMPTY_PLACE, name: p.name, naver_url: p.naver_url ?? "", address: p.address ?? "",
+          })));
         }
       });
   }, [editId]);
 
   async function handleImageAdd(files: FileList | null) {
     if (!files) return;
-    const newImages = Array.from(files).map((file) => ({
-      file,
-      previewUrl: URL.createObjectURL(file),
-    }));
-    setImages((prev) => [...prev, ...newImages]);
+    setImages((prev) => [...prev, ...Array.from(files).map((file) => ({ file, previewUrl: URL.createObjectURL(file) }))]);
   }
 
   async function handlePlaceSearch() {
@@ -80,7 +77,14 @@ function WritePage() {
   }
 
   function handleAddFromSearch(place: NaverPlace) {
-    setPlaces((prev) => [...prev, { name: place.title, naver_url: place.naverPlaceUrl, address: place.roadAddress || place.address }]);
+    setPlaces((prev) => [...prev, {
+      name: place.title,
+      naver_url: place.naverPlaceUrl,
+      address: place.roadAddress || place.address,
+      lat: Number(place.mapy) / 10000000,
+      lng: Number(place.mapx) / 10000000,
+      google_place_id: place.google_place_id ?? "",
+    }]);
     setPlaceResults([]);
     setPlaceQuery("");
   }
@@ -88,10 +92,7 @@ function WritePage() {
   async function uploadImages(): Promise<string[]> {
     const urls: string[] = [];
     for (const img of images) {
-      if (img.storedUrl) {
-        urls.push(img.storedUrl);
-        continue;
-      }
+      if (img.storedUrl) { urls.push(img.storedUrl); continue; }
       if (!img.file) continue;
       const ext = img.file.name.split(".").pop();
       const path = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
@@ -103,31 +104,89 @@ function WritePage() {
     return urls;
   }
 
+  async function upsertCoursePlaces(validPlaces: PlaceEntry[]): Promise<Record<string, string>> {
+    const placeIdMap: Record<string, string> = {};
+    const naverPlaces = validPlaces.filter((p) => !p.google_place_id && p.naver_url);
+    const googlePlaces = validPlaces.filter((p) => !!p.google_place_id);
+
+    if (naverPlaces.length > 0) {
+      const seen = new Set<string>();
+      const unique = naverPlaces.filter((p) => { if (seen.has(p.naver_url)) return false; seen.add(p.naver_url); return true; });
+      const { data } = await supabase.from("places").upsert(
+        unique.map((p) => ({ name: p.name, address: p.address, lat: p.lat, lng: p.lng, naver_url: p.naver_url })),
+        { onConflict: "naver_url" }
+      ).select();
+      data?.forEach((d) => { if (d.naver_url) placeIdMap[d.naver_url] = d.id; });
+    }
+    if (googlePlaces.length > 0) {
+      const seen = new Set<string>();
+      const unique = googlePlaces.filter((p) => { if (seen.has(p.google_place_id)) return false; seen.add(p.google_place_id); return true; });
+      const { data } = await supabase.from("places").upsert(
+        unique.map((p) => ({ name: p.name, address: p.address, lat: p.lat, lng: p.lng, google_place_id: p.google_place_id })),
+        { onConflict: "google_place_id" }
+      ).select();
+      data?.forEach((d) => { if (d.google_place_id) placeIdMap[d.google_place_id] = d.id; });
+    }
+    return placeIdMap;
+  }
+
+  async function createOrUpdateCourse(validPlaces: PlaceEntry[], existingCourseId?: string): Promise<string | null> {
+    const placeIdMap = await upsertCoursePlaces(validPlaces);
+    const lats = validPlaces.filter((p) => p.lat).map((p) => p.lat);
+    const lngs = validPlaces.filter((p) => p.lng).map((p) => p.lng);
+    const course_lat = lats.length > 0 ? lats.reduce((s, v) => s + v, 0) / lats.length : 0;
+    const course_lng = lngs.length > 0 ? lngs.reduce((s, v) => s + v, 0) / lngs.length : 0;
+
+    let courseId = existingCourseId;
+    if (courseId) {
+      await supabase.from("courses").update({ title: title.trim(), course_lat, course_lng }).eq("id", courseId);
+      await supabase.from("course_places").delete().eq("course_id", courseId);
+    } else {
+      const { data } = await supabase.from("courses").insert({
+        user_id: user!.id, title: title.trim(), is_public: false, is_hidden: true, course_lat, course_lng,
+      }).select("id").single();
+      if (!data) return null;
+      courseId = data.id;
+    }
+
+    const coursePlaces = validPlaces
+      .map((p, i) => ({ course_id: courseId!, place_id: placeIdMap[p.google_place_id || p.naver_url], order: i + 1 }))
+      .filter((cp) => cp.place_id);
+    if (coursePlaces.length > 0) {
+      await supabase.from("course_places").insert(coursePlaces);
+    }
+    return courseId ?? null;
+  }
+
   async function handleSubmit() {
     if (!title.trim() || isSubmitting) return;
     setIsSubmitting(true);
 
     const imageUrls = await uploadImages();
+    const validPlaces = places.filter((p) => p.name.trim());
+
+    // 코스 글이면 코스 자동 생성/업데이트
+    let linkedCourseId: string | null = null;
+    if (category === "course" && validPlaces.length > 0) {
+      if (editId) {
+        const { data: existingPost } = await supabase.from("posts").select("linked_course_id").eq("id", editId).single();
+        linkedCourseId = await createOrUpdateCourse(validPlaces, existingPost?.linked_course_id ?? undefined);
+      } else {
+        linkedCourseId = await createOrUpdateCourse(validPlaces);
+      }
+    }
 
     if (editId) {
-      // 수정
       await supabase.from("posts").update({
-        title: title.trim(),
-        content,
-        category,
-        linked_course_id: linkedCourseId.trim() || null,
+        title: title.trim(), content, category,
+        linked_course_id: linkedCourseId,
         updated_at: new Date().toISOString(),
       }).eq("id", editId);
-
       await supabase.from("post_images").delete().eq("post_id", editId);
       await supabase.from("post_places").delete().eq("post_id", editId);
-
       if (imageUrls.length > 0) {
-        await supabase.from("post_images").insert(
-          imageUrls.map((url, i) => ({ post_id: editId, url, order: i }))
-        );
+        await supabase.from("post_images").insert(imageUrls.map((url, i) => ({ post_id: editId, url, order: i })));
       }
-      const validPlaces = places.filter((p) => p.name.trim());
       if (validPlaces.length > 0) {
         await supabase.from("post_places").insert(
           validPlaces.map((p, i) => ({ post_id: editId, name: p.name, naver_url: p.naver_url || null, address: p.address || null, order: i + 1 }))
@@ -135,26 +194,13 @@ function WritePage() {
       }
       router.push(`/recommendations/${editId}`);
     } else {
-      // 신규 작성
-      const { data: postData } = await supabase
-        .from("posts")
-        .insert({
-          title: title.trim(),
-          content,
-          category,
-          linked_course_id: linkedCourseId.trim() || null,
-        })
-        .select("id")
-        .single();
-
+      const { data: postData } = await supabase.from("posts").insert({
+        title: title.trim(), content, category, linked_course_id: linkedCourseId,
+      }).select("id").single();
       if (!postData) { setIsSubmitting(false); return; }
-
       if (imageUrls.length > 0) {
-        await supabase.from("post_images").insert(
-          imageUrls.map((url, i) => ({ post_id: postData.id, url, order: i }))
-        );
+        await supabase.from("post_images").insert(imageUrls.map((url, i) => ({ post_id: postData.id, url, order: i })));
       }
-      const validPlaces = places.filter((p) => p.name.trim());
       if (validPlaces.length > 0) {
         await supabase.from("post_places").insert(
           validPlaces.map((p, i) => ({ post_id: postData.id, name: p.name, naver_url: p.naver_url || null, address: p.address || null, order: i + 1 }))
@@ -214,27 +260,16 @@ function WritePage() {
                 type="button"
                 onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
                 className="absolute -top-1 -right-1 bg-gray-700 text-white rounded-full w-5 h-5 text-[11px] flex items-center justify-center cursor-pointer"
-              >
-                ×
-              </button>
+              >×</button>
             </div>
           ))}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 flex items-center justify-center text-gray-400 text-2xl cursor-pointer hover:border-[#EE6300] hover:text-[#EE6300]"
-          >
-            +
-          </button>
+          >+</button>
         </div>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => handleImageAdd(e.target.files)}
-        />
+        <input ref={fileInputRef} type="file" accept="image/*" multiple className="hidden" onChange={(e) => handleImageAdd(e.target.files)} />
       </div>
 
       {/* 본문 에디터 */}
@@ -248,6 +283,9 @@ function WritePage() {
         <label className="font-medium text-[15px]">
           {category === "place" ? "장소 (1개)" : "코스 장소 (순서대로)"}
         </label>
+        {category === "course" && (
+          <p className="text-[12px] text-gray-400 -mt-1">장소를 검색해서 추가하면 코스가 자동으로 생성돼요.</p>
+        )}
         <ul className="flex flex-col gap-2">
           {places.map((place, i) => (
             <li key={i} className="flex gap-2 items-start">
@@ -276,15 +314,13 @@ function WritePage() {
                   type="button"
                   onClick={() => setPlaces((prev) => prev.filter((_, j) => j !== i))}
                   className="mt-2 text-gray-400 hover:text-red-400 text-[18px] cursor-pointer"
-                >
-                  ×
-                </button>
+                >×</button>
               )}
             </li>
           ))}
         </ul>
 
-        {/* 장소 검색으로 추가 */}
+        {/* 장소 검색 */}
         <div className="flex gap-2">
           <input
             value={placeQuery}
@@ -297,9 +333,7 @@ function WritePage() {
             type="button"
             onClick={handlePlaceSearch}
             className="text-[13px] bg-gray-200 text-gray-600 rounded-xl px-3 py-2 cursor-pointer hover:bg-[#EE6300] hover:text-white"
-          >
-            검색
-          </button>
+          >검색</button>
         </div>
         {placeResults.length > 0 && (
           <ul className="bg-gray-50 rounded-2xl p-3 flex flex-col gap-1">
@@ -313,42 +347,18 @@ function WritePage() {
                   type="button"
                   onClick={() => handleAddFromSearch(place)}
                   className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-0.5 cursor-pointer"
-                >
-                  추가
-                </button>
+                >추가</button>
               </li>
             ))}
-            <button
-              type="button"
-              onClick={() => setPlaceResults([])}
-              className="text-[12px] text-gray-400 text-right mt-1 cursor-pointer"
-            >
-              닫기
-            </button>
+            <button type="button" onClick={() => setPlaceResults([])} className="text-[12px] text-gray-400 text-right mt-1 cursor-pointer">닫기</button>
           </ul>
         )}
         <button
           type="button"
-          onClick={() => setPlaces((prev) => [...prev, { name: "", naver_url: "", address: "" }])}
+          onClick={() => setPlaces((prev) => [...prev, { ...EMPTY_PLACE }])}
           className="text-[13px] text-[#EE6300] border border-[#EE6300] rounded-xl py-2 cursor-pointer hover:bg-[#EE6300] hover:text-white"
-        >
-          + 장소 직접 추가
-        </button>
+        >+ 장소 직접 추가</button>
       </div>
-
-      {/* 코스 추천: 연결 코스 ID */}
-      {category === "course" && (
-        <div className="flex flex-col gap-1">
-          <label className="font-medium text-[15px]">연결할 코스 ID <span className="text-gray-400 font-normal text-[12px]">(북마크 기능에 사용, 선택)</span></label>
-          <input
-            value={linkedCourseId}
-            onChange={(e) => setLinkedCourseId(e.target.value)}
-            placeholder="courses 테이블의 id (UUID)"
-            className="bg-gray-50 rounded-2xl p-4 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
-          />
-          <p className="text-[11px] text-gray-400">코스 상세 URL의 UUID를 복사해서 붙여넣으세요.</p>
-        </div>
-      )}
 
       <button
         onClick={handleSubmit}
