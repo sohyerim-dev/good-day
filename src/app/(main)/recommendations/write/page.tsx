@@ -29,6 +29,8 @@ function WritePage() {
 
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState<"place" | "course">("place");
+  const [courseTitle, setCourseTitle] = useState("");
+  const [courseDescription, setCourseDescription] = useState("");
   const [content, setContent] = useState("");
   const [images, setImages] = useState<{ file?: File; previewUrl: string; storedUrl?: string }[]>([]);
   const [places, setPlaces] = useState<PlaceEntry[]>([EMPTY_PLACE]);
@@ -53,6 +55,12 @@ function WritePage() {
         setTitle(data.title);
         setCategory(data.category);
         setContent(data.content);
+        if (data.category === "course" && data.linked_course_id) {
+          supabase.from("courses").select("title, description").eq("id", data.linked_course_id).single()
+            .then(({ data: course }) => {
+              if (course) { setCourseTitle(course.title ?? ""); setCourseDescription(course.description ?? ""); }
+            });
+        }
         const sortedImages = (data.post_images ?? []).sort((a: { order: number }, b: { order: number }) => a.order - b.order);
         setImages(sortedImages.map((img: { url: string }) => ({ previewUrl: img.url, storedUrl: img.url })));
         const sortedPlaces = (data.post_places ?? []).sort((a: { order: number }, b: { order: number }) => a.order - b.order);
@@ -138,12 +146,14 @@ function WritePage() {
     const course_lng = lngs.length > 0 ? lngs.reduce((s, v) => s + v, 0) / lngs.length : 0;
 
     let courseId = existingCourseId;
+    const cTitle = courseTitle.trim() || title.trim();
+    const cDesc = courseDescription.trim() || null;
     if (courseId) {
-      await supabase.from("courses").update({ title: title.trim(), course_lat, course_lng }).eq("id", courseId);
+      await supabase.from("courses").update({ title: cTitle, description: cDesc, course_lat, course_lng }).eq("id", courseId);
       await supabase.from("course_places").delete().eq("course_id", courseId);
     } else {
       const { data } = await supabase.from("courses").insert({
-        user_id: user!.id, title: title.trim(), is_public: false, is_hidden: true, course_lat, course_lng,
+        user_id: user!.id, title: cTitle, description: cDesc, is_public: false, is_hidden: true, course_lat, course_lng,
       }).select("id").single();
       if (!data) return null;
       courseId = data.id;
@@ -248,6 +258,31 @@ function WritePage() {
           ))}
         </div>
       </div>
+
+      {/* 코스 전용: 코스 제목·설명 */}
+      {category === "course" && (
+        <>
+          <div className="flex flex-col gap-1">
+            <label className="font-medium text-[15px]">코스 제목 <span className="text-gray-400 font-normal text-[12px]">(비우면 글 제목 사용)</span></label>
+            <input
+              value={courseTitle}
+              onChange={(e) => setCourseTitle(e.target.value)}
+              placeholder="코스 제목"
+              className="bg-gray-50 rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="font-medium text-[15px]">코스 설명 <span className="text-gray-400 font-normal text-[12px]">(선택)</span></label>
+            <textarea
+              value={courseDescription}
+              onChange={(e) => setCourseDescription(e.target.value)}
+              placeholder="코스 설명"
+              rows={3}
+              className="bg-gray-50 rounded-2xl p-4 focus:outline-none focus:ring-2 focus:ring-[#EE6300] resize-none"
+            />
+          </div>
+        </>
+      )}
 
       {/* 이미지 */}
       <div className="flex flex-col gap-2">
