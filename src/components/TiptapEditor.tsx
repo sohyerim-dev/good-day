@@ -23,8 +23,11 @@ export default function TiptapEditor({ content, onChange }: Props) {
   });
 
   useEffect(() => {
-    if (editor && content === "") {
+    if (!editor) return;
+    if (content === "") {
       editor.commands.clearContent();
+    } else if (editor.getHTML() !== content) {
+      editor.commands.setContent(content);
     }
   }, [content, editor]);
 
