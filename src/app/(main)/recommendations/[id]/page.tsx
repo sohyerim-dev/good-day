@@ -14,8 +14,6 @@ interface PostDetail {
   content: string;
   category: "place" | "course";
   linked_course_id: string | null;
-  save_count: number;
-  bookmark_count: number;
   created_at: string;
   post_images: { id: string; url: string; order: number }[];
   post_places: { id: string; name: string; naver_url: string | null; order: number }[];
@@ -82,9 +80,7 @@ export default function RecommendationDetail() {
       { onConflict: "user_id, place_id" }
     );
 
-    // save_count 증가
-    await supabase.from("posts").update({ save_count: (post.save_count ?? 0) + 1 }).eq("id", post.id);
-    setPost((p) => p ? { ...p, save_count: (p.save_count ?? 0) + 1 } : p);
+    await supabase.rpc("increment_post_save", { p_id: post.id });
     setActionDone(true);
     setActionLoading(false);
   }
@@ -99,9 +95,7 @@ export default function RecommendationDetail() {
       { onConflict: "user_id, course_id" }
     );
 
-    // bookmark_count 증가
-    await supabase.from("posts").update({ bookmark_count: (post.bookmark_count ?? 0) + 1 }).eq("id", post.id);
-    setPost((p) => p ? { ...p, bookmark_count: (p.bookmark_count ?? 0) + 1 } : p);
+    await supabase.rpc("increment_post_bookmark", { p_id: post.id });
     setActionDone(true);
     setActionLoading(false);
   }
@@ -131,7 +125,7 @@ export default function RecommendationDetail() {
     <main className="flex flex-col min-h-full pb-28">
       {/* 이미지 슬라이더 */}
       {images.length > 0 && (
-        <div className="relative bg-gray-100 overflow-hidden" style={{ aspectRatio: "4/3" }}>
+        <div className="relative w-full bg-gray-100 overflow-hidden" style={{ aspectRatio: "4/3" }}>
           <img
             src={images[imgIndex].url}
             alt=""
@@ -253,11 +247,6 @@ export default function RecommendationDetail() {
                 {actionLoading ? "저장 중..." : actionDone ? "북마크 완료!" : "코스 북마크하기"}
               </button>
             )}
-            <p className="text-[12px] text-gray-400 text-center">
-              {post.category === "place"
-                ? `${post.save_count ?? 0}명이 저장했어요`
-                : `${post.bookmark_count ?? 0}명이 북마크했어요`}
-            </p>
           </div>
         )}
       </div>

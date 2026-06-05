@@ -84,15 +84,15 @@ export default function Recommendations() {
               <li key={post.id}>
                 <Link
                   href={`/recommendations/${post.id}`}
-                  className="group flex gap-3 bg-gray-50 rounded-2xl p-4"
+                  className="group block bg-gray-50 rounded-2xl overflow-hidden"
                 >
                   {thumbnail && (
                     <div
-                      className="w-20 h-20 rounded-xl bg-cover bg-center shrink-0"
-                      style={{ backgroundImage: `url(${thumbnail})` }}
+                      className="w-full bg-cover bg-center"
+                      style={{ backgroundImage: `url(${thumbnail})`, aspectRatio: "4/3" }}
                     />
                   )}
-                  <div className="flex flex-col gap-1 flex-1 min-w-0">
+                  <div className="flex flex-col gap-1 p-4">
                     <span
                       className={`self-start text-[11px] font-medium px-2 py-0.5 rounded-full ${
                         post.category === "place"
@@ -102,7 +102,7 @@ export default function Recommendations() {
                     >
                       {post.category === "place" ? "장소" : "코스"}
                     </span>
-                    <p className="font-bold text-[15px] truncate">{post.title}</p>
+                    <p className="font-bold text-[15px]">{post.title}</p>
                     <p className="text-[12px] text-gray-400">
                       {new Date(post.created_at).toLocaleDateString("ko-KR")}
                     </p>
