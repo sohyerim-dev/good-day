@@ -175,6 +175,11 @@ function WritePage() {
     const imageUrls = await uploadImages();
     const validPlaces = places.filter((p) => p.name.trim());
 
+    // 장소 글이면 places 테이블에 upsert (저장하기 기능에서 올바른 좌표로 조회 가능하도록)
+    if (category === "place" && validPlaces.length > 0) {
+      await upsertCoursePlaces(validPlaces);
+    }
+
     // 코스 글이면 코스 자동 생성/업데이트
     let linkedCourseId: string | null = null;
     if (category === "course" && validPlaces.length > 0) {

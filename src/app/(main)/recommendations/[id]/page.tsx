@@ -55,22 +55,13 @@ export default function RecommendationDetail() {
     const firstPlace = post.post_places[0];
     if (!firstPlace?.naver_url) { setActionLoading(false); return; }
 
-    // places 테이블에서 naver_url로 조회, 없으면 insert
     const { data: existing } = await supabase
       .from("places")
       .select("id")
       .eq("naver_url", firstPlace.naver_url)
       .single();
 
-    let placeId = existing?.id;
-    if (!placeId) {
-      const { data: inserted } = await supabase
-        .from("places")
-        .insert({ name: firstPlace.name, naver_url: firstPlace.naver_url, address: "", lat: 0, lng: 0 })
-        .select("id")
-        .single();
-      placeId = inserted?.id;
-    }
+    const placeId = existing?.id;
     if (!placeId) { setActionLoading(false); return; }
 
     await supabase.from("saved_places").upsert(
