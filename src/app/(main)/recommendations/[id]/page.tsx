@@ -46,9 +46,27 @@ export default function RecommendationDetail() {
         }
         setLoading(false);
       });
-    // 조회수 증가 (RPC)
     supabase.rpc("increment_post_view", { p_id: id });
   }, [id]);
+
+  // 이미 저장한 장소 초기 로드
+  useEffect(() => {
+    if (!user || !post) return;
+    const naverUrls = post.post_places.map((p) => p.naver_url).filter(Boolean) as string[];
+    if (naverUrls.length === 0) return;
+    supabase
+      .from("saved_places")
+      .select("places(naver_url)")
+      .eq("user_id", user.id)
+      .then(({ data }) => {
+        const urls = new Set(
+          (data ?? []).flatMap((d: { places: { naver_url: string }[] }) =>
+            d.places.map((p) => p.naver_url).filter(Boolean)
+          ) as string[]
+        );
+        setSavedPlaceUrls(urls);
+      });
+  }, [post, user]);
 
   async function handleSavePlace(naverUrl: string) {
     if (!user || !post || savedPlaceUrls.has(naverUrl) || savingUrl) return;
