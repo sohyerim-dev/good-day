@@ -121,44 +121,6 @@ export default function RecommendationDetail() {
 
   return (
     <main className="flex flex-col min-h-full pb-28">
-      {/* 이미지 슬라이더 */}
-      {images.length > 0 && (
-        <div className="relative w-full bg-gray-100 overflow-hidden" style={{ aspectRatio: "4/3" }}>
-          <img
-            src={images[imgIndex].url}
-            alt=""
-            className="w-full h-full object-cover"
-          />
-          {images.length > 1 && (
-            <>
-              <button
-                onClick={() => setImgIndex((i) => Math.max(0, i - 1))}
-                disabled={imgIndex === 0}
-                className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 text-white rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30"
-              >
-                ‹
-              </button>
-              <button
-                onClick={() => setImgIndex((i) => Math.min(images.length - 1, i + 1))}
-                disabled={imgIndex === images.length - 1}
-                className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 text-white rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30"
-              >
-                ›
-              </button>
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                {images.map((_, i) => (
-                  <button
-                    key={i}
-                    onClick={() => setImgIndex(i)}
-                    className={`w-1.5 h-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/50"}`}
-                  />
-                ))}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       <div className="p-4 flex flex-col gap-4">
         {/* 헤더 */}
         <div className="flex items-start justify-between gap-2">
@@ -198,6 +160,32 @@ export default function RecommendationDetail() {
             </div>
           )}
         </div>
+
+        {/* 이미지 슬라이더 */}
+        {images.length > 0 && (
+          <div className="relative w-full bg-gray-100 rounded-2xl overflow-hidden" style={{ aspectRatio: "4/3" }}>
+            <img src={images[imgIndex].url} alt="" className="w-full h-full object-cover" />
+            {images.length > 1 && (
+              <>
+                <button
+                  onClick={() => setImgIndex((i) => Math.max(0, i - 1))}
+                  disabled={imgIndex === 0}
+                  className="absolute left-2 top-1/2 -translate-y-1/2 bg-black/30 text-white rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30"
+                >‹</button>
+                <button
+                  onClick={() => setImgIndex((i) => Math.min(images.length - 1, i + 1))}
+                  disabled={imgIndex === images.length - 1}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 bg-black/30 text-white rounded-full w-8 h-8 flex items-center justify-center disabled:opacity-30"
+                >›</button>
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
+                  {images.map((_, i) => (
+                    <button key={i} onClick={() => setImgIndex(i)} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === imgIndex ? "bg-white" : "bg-white/50"}`} />
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* 본문 */}
         <div
