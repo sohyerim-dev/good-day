@@ -100,17 +100,15 @@ export default function RecommendationDetail() {
   async function handleBookmark() {
     if (!user || !post || bookmarkDone || !post.linked_course_id) return;
     setBookmarkLoading(true);
-    alert(`DEBUG - user_id: ${user.id}\ncourse_id: ${post.linked_course_id}`);
-
-    const { error } = await supabase.from("bookmarks").upsert(
-      { user_id: user.id, course_id: post.linked_course_id },
-      { onConflict: "user_id, course_id" }
+    const { error } = await supabase.from("bookmarks").insert(
+      { user_id: user.id, course_id: post.linked_course_id }
     );
 
-    if (error) {
+    // 23505 = unique violation (이미 북마크됨) → 정상 처리
+    if (error && error.code !== "23505") {
       alert(`북마크 실패: ${error.message}`);
     } else {
-      await supabase.rpc("increment_post_bookmark", { p_id: post.id });
+      if (!error) await supabase.rpc("increment_post_bookmark", { p_id: post.id });
       setBookmarkDone(true);
     }
     setBookmarkLoading(false);
