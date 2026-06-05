@@ -261,7 +261,7 @@ export default function MyCourse() {
         </a>
       </div>
 
-      <div className="mt-auto">
+      <div className="mt-auto pb-24">
         {/* 로그아웃 / 회원탈퇴 */}
         <div className="p-4 border-t border-gray-100 flex flex-col gap-2">
           <button
