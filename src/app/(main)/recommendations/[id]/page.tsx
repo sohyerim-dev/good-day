@@ -46,7 +46,7 @@ export default function RecommendationDetail() {
         }
         setLoading(false);
       });
-    supabase.rpc("increment_post_view", { p_id: id });
+    supabase.rpc("increment_post_view", { p_id: id }).then(() => {});
   }, [id]);
 
   // 이미 저장한 장소 + 북마크 초기 로드
