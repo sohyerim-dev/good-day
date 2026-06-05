@@ -92,7 +92,7 @@ export default function Home() {
           굿데이 소개
         </Link>
         {recoPosts.length > 0 && (
-          <div className="w-full mt-4 flex flex-col gap-3">
+          <div className="w-full mt-8 flex flex-col gap-3">
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-[17px]">굿데이 추천 장소&코스</h2>
               <Link href="/recommendations" className="text-[12px] text-gray-400 hover:text-[#EE6300]">더보기</Link>
@@ -159,7 +159,7 @@ export default function Home() {
       <InstallPrompt />
 
       {recoPosts.length > 0 && (
-        <div className="w-full mb-4 flex flex-col gap-3">
+        <div className="w-full mt-6 mb-4 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <h2 className="font-bold text-[17px]">굿데이 추천 장소&코스</h2>
             <Link href="/recommendations" className="text-[12px] text-gray-400 hover:text-[#EE6300]">더보기</Link>
