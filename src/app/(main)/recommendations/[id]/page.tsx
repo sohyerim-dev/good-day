@@ -180,12 +180,24 @@ export default function RecommendationDetail() {
             </p>
           </div>
           {isAdmin && (
-            <Link
-              href={`/recommendations/write?edit=${post.id}`}
-              className="shrink-0 text-[12px] text-gray-400 border border-gray-200 rounded-xl px-2 py-1 hover:text-[#EE6300] hover:border-[#EE6300]"
-            >
-              수정
-            </Link>
+            <div className="flex gap-2 shrink-0">
+              <Link
+                href={`/recommendations/write?edit=${post.id}`}
+                className="text-[12px] text-gray-400 border border-gray-200 rounded-xl px-2 py-1 hover:text-[#EE6300] hover:border-[#EE6300]"
+              >
+                수정
+              </Link>
+              <button
+                onClick={async () => {
+                  if (!confirm("이 글을 삭제할까요?")) return;
+                  await supabase.from("posts").delete().eq("id", post.id);
+                  router.replace("/recommendations");
+                }}
+                className="text-[12px] text-red-400 border border-red-200 rounded-xl px-2 py-1 hover:text-red-600 hover:border-red-400 cursor-pointer"
+              >
+                삭제
+              </button>
+            </div>
           )}
         </div>
 
