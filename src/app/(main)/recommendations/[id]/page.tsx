@@ -66,16 +66,16 @@ export default function RecommendationDetail() {
       return;
     }
 
-    const { error } = await supabase.from("saved_places").upsert(
-      { user_id: user.id, place_id: existing.id },
-      { onConflict: "user_id, place_id" }
+    const { error } = await supabase.from("saved_places").insert(
+      { user_id: user.id, place_id: existing.id }
     );
 
-    if (error) {
+    // 23505 = unique violation (이미 저장됨) → 정상 처리
+    if (error && error.code !== "23505") {
       alert(`저장 실패: ${error.message}`);
     } else {
       setSavedPlaceUrls((prev) => new Set([...prev, naverUrl]));
-      await supabase.rpc("increment_post_save", { p_id: post.id });
+      if (!error) await supabase.rpc("increment_post_save", { p_id: post.id });
     }
     setSavingUrl(null);
   }
