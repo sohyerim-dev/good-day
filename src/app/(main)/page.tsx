@@ -120,7 +120,7 @@ export default function Home() {
 
   if (!user) {
     return (
-      <main className="p-4 flex flex-col items-center relative">
+      <main className="p-4 pb-28 flex flex-col items-center relative">
         <h1 className="sr-only">메인 페이지</h1>
         <Image
           src="/images/logo.svg"
