@@ -140,7 +140,7 @@ export default function RecommendationDetail() {
       <div className="p-4 flex flex-col gap-4">
         {/* 헤더 */}
         <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-1 flex-1 min-w-0">
             <span
               className={`self-start text-[11px] font-medium px-2 py-0.5 rounded-full ${
                 post.category === "place"
@@ -177,10 +177,16 @@ export default function RecommendationDetail() {
           )}
         </div>
 
+        {/* 이미지 프리로드 */}
+        {images.map((img) => (
+          <img key={img.id} src={img.url} alt="" className="hidden" />
+        ))}
+
         {/* 이미지 슬라이더 */}
         {images.length > 0 && (
           <div className="relative w-full bg-black rounded-2xl overflow-hidden max-h-[480px]" style={{ aspectRatio: "4/3" }}>
-            <img src={images[imgIndex].url} alt="" className="w-full h-full object-contain" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={images[imgIndex].url} alt="" className="w-full h-full object-contain" fetchPriority="high" />
             {images.length > 1 && (
               <>
                 <button
