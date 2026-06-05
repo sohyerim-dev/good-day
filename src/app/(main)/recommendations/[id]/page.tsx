@@ -14,7 +14,7 @@ interface PostDetail {
   linked_course_id: string | null;
   created_at: string;
   post_images: { id: string; url: string; order: number }[];
-  post_places: { id: string; name: string; naver_url: string | null; order: number }[];
+  post_places: { id: string; name: string; naver_url: string | null; address: string | null; order: number }[];
 }
 
 export default function RecommendationDetail() {
@@ -33,7 +33,7 @@ export default function RecommendationDetail() {
   useEffect(() => {
     supabase
       .from("posts")
-      .select("*, post_images(id, url, order), post_places(id, name, naver_url, order)")
+      .select("*, post_images(id, url, order), post_places(id, name, naver_url, address, order)")
       .eq("id", id)
       .single()
       .then(({ data }) => {
@@ -214,11 +214,16 @@ export default function RecommendationDetail() {
             <ul className="flex flex-col gap-2">
               {post.post_places.map((place) => (
                 <li key={place.id} className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    {post.category === "course" && (
-                      <span className="text-[#EE6300] font-bold text-[13px]">{place.order}.</span>
+                  <div className="flex flex-col gap-0.5">
+                    <div className="flex items-center gap-2">
+                      {post.category === "course" && (
+                        <span className="text-[#EE6300] font-bold text-[13px]">{place.order}.</span>
+                      )}
+                      <span className="text-[14px] font-medium">{place.name}</span>
+                    </div>
+                    {place.address && (
+                      <span className="text-[12px] text-gray-400">{place.address}</span>
                     )}
-                    <span className="text-[14px] font-medium">{place.name}</span>
                   </div>
                   {place.naver_url && (
                     <a
@@ -259,6 +264,12 @@ export default function RecommendationDetail() {
             )}
           </div>
         )}
+        <Link
+          href="/recommendations"
+          className="text-[13px] text-gray-400 hover:text-black text-center mt-2"
+        >
+          ← 목록으로
+        </Link>
       </div>
     </main>
   );

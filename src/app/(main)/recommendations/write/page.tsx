@@ -10,6 +10,7 @@ import { NaverPlace } from "@/types/place";
 interface PlaceEntry {
   name: string;
   naver_url: string;
+  address: string;
 }
 
 function WritePage() {
@@ -26,7 +27,7 @@ function WritePage() {
   const [content, setContent] = useState("");
   const [linkedCourseId, setLinkedCourseId] = useState("");
   const [images, setImages] = useState<{ file?: File; previewUrl: string; storedUrl?: string }[]>([]);
-  const [places, setPlaces] = useState<PlaceEntry[]>([{ name: "", naver_url: "" }]);
+  const [places, setPlaces] = useState<PlaceEntry[]>([{ name: "", naver_url: "", address: "" }]);
   const [placeQuery, setPlaceQuery] = useState("");
   const [placeResults, setPlaceResults] = useState<NaverPlace[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -57,7 +58,7 @@ function WritePage() {
         setImages(sortedImages.map((img: { url: string }) => ({ previewUrl: img.url, storedUrl: img.url })));
         const sortedPlaces = (data.post_places ?? []).sort((a: { order: number }, b: { order: number }) => a.order - b.order);
         if (sortedPlaces.length > 0) {
-          setPlaces(sortedPlaces.map((p: { name: string; naver_url: string | null }) => ({ name: p.name, naver_url: p.naver_url ?? "" })));
+          setPlaces(sortedPlaces.map((p: { name: string; naver_url: string | null; address: string | null }) => ({ name: p.name, naver_url: p.naver_url ?? "", address: p.address ?? "" })));
         }
       });
   }, [editId]);
@@ -79,7 +80,7 @@ function WritePage() {
   }
 
   function handleAddFromSearch(place: NaverPlace) {
-    setPlaces((prev) => [...prev, { name: place.title, naver_url: place.naverPlaceUrl }]);
+    setPlaces((prev) => [...prev, { name: place.title, naver_url: place.naverPlaceUrl, address: place.roadAddress || place.address }]);
     setPlaceResults([]);
     setPlaceQuery("");
   }
@@ -129,7 +130,7 @@ function WritePage() {
       const validPlaces = places.filter((p) => p.name.trim());
       if (validPlaces.length > 0) {
         await supabase.from("post_places").insert(
-          validPlaces.map((p, i) => ({ post_id: editId, name: p.name, naver_url: p.naver_url || null, order: i + 1 }))
+          validPlaces.map((p, i) => ({ post_id: editId, name: p.name, naver_url: p.naver_url || null, address: p.address || null, order: i + 1 }))
         );
       }
       router.push(`/recommendations/${editId}`);
@@ -156,7 +157,7 @@ function WritePage() {
       const validPlaces = places.filter((p) => p.name.trim());
       if (validPlaces.length > 0) {
         await supabase.from("post_places").insert(
-          validPlaces.map((p, i) => ({ post_id: postData.id, name: p.name, naver_url: p.naver_url || null, order: i + 1 }))
+          validPlaces.map((p, i) => ({ post_id: postData.id, name: p.name, naver_url: p.naver_url || null, address: p.address || null, order: i + 1 }))
         );
       }
       router.push(`/recommendations/${postData.id}`);
@@ -258,6 +259,12 @@ function WritePage() {
                   className="bg-gray-50 rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
                 />
                 <input
+                  value={place.address}
+                  onChange={(e) => setPlaces((prev) => prev.map((p, j) => j === i ? { ...p, address: e.target.value } : p))}
+                  placeholder="주소"
+                  className="bg-gray-50 rounded-xl px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+                />
+                <input
                   value={place.naver_url}
                   onChange={(e) => setPlaces((prev) => prev.map((p, j) => j === i ? { ...p, naver_url: e.target.value } : p))}
                   placeholder="네이버 플레이스 URL"
@@ -322,7 +329,7 @@ function WritePage() {
         )}
         <button
           type="button"
-          onClick={() => setPlaces((prev) => [...prev, { name: "", naver_url: "" }])}
+          onClick={() => setPlaces((prev) => [...prev, { name: "", naver_url: "", address: "" }])}
           className="text-[13px] text-[#EE6300] border border-[#EE6300] rounded-xl py-2 cursor-pointer hover:bg-[#EE6300] hover:text-white"
         >
           + 장소 직접 추가
