@@ -139,42 +139,42 @@ export default function RecommendationDetail() {
     <main className="flex flex-col min-h-full pb-28 max-w-lg mx-auto w-full">
       <div className="p-4 flex flex-col gap-4">
         {/* 헤더 */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex flex-col gap-1 flex-1 min-w-0">
-            <span
-              className={`self-start text-[11px] font-medium px-2 py-0.5 rounded-full ${
-                post.category === "place"
-                  ? "bg-blue-100 text-blue-600"
-                  : "bg-orange-100 text-[#EE6300]"
-              }`}
-            >
-              {post.category === "place" ? "장소 추천" : "코스 추천"}
-            </span>
-            <h1 className="text-[20px] font-bold">{post.title}</h1>
+        <div className="flex flex-col gap-1">
+          <span
+            className={`self-start text-[11px] font-medium px-2 py-0.5 rounded-full ${
+              post.category === "place"
+                ? "bg-blue-100 text-blue-600"
+                : "bg-orange-100 text-[#EE6300]"
+            }`}
+          >
+            {post.category === "place" ? "장소 추천" : "코스 추천"}
+          </span>
+          <h1 className="text-[20px] font-bold">{post.title}</h1>
+          <div className="flex items-center justify-between gap-2">
             <p className="text-[12px] text-gray-400">
               {new Date(post.created_at).toLocaleDateString("ko-KR")}
             </p>
+            {isAdmin && (
+              <div className="flex gap-2 shrink-0">
+                <Link
+                  href={`/recommendations/write?edit=${post.id}`}
+                  className="text-[12px] text-gray-400 border border-gray-200 rounded-xl px-2 py-1 hover:text-[#EE6300] hover:border-[#EE6300]"
+                >
+                  수정
+                </Link>
+                <button
+                  onClick={async () => {
+                    if (!confirm("이 글을 삭제할까요?")) return;
+                    await supabase.from("posts").delete().eq("id", post.id);
+                    router.replace("/recommendations");
+                  }}
+                  className="text-[12px] text-red-400 border border-red-200 rounded-xl px-2 py-1 hover:text-red-600 hover:border-red-400 cursor-pointer"
+                >
+                  삭제
+                </button>
+              </div>
+            )}
           </div>
-          {isAdmin && (
-            <div className="flex gap-2 shrink-0">
-              <Link
-                href={`/recommendations/write?edit=${post.id}`}
-                className="text-[12px] text-gray-400 border border-gray-200 rounded-xl px-2 py-1 hover:text-[#EE6300] hover:border-[#EE6300]"
-              >
-                수정
-              </Link>
-              <button
-                onClick={async () => {
-                  if (!confirm("이 글을 삭제할까요?")) return;
-                  await supabase.from("posts").delete().eq("id", post.id);
-                  router.replace("/recommendations");
-                }}
-                className="text-[12px] text-red-400 border border-red-200 rounded-xl px-2 py-1 hover:text-red-600 hover:border-red-400 cursor-pointer"
-              >
-                삭제
-              </button>
-            </div>
-          )}
         </div>
 
         {/* 이미지 프리로드 */}
