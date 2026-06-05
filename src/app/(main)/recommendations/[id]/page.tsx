@@ -46,25 +46,41 @@ export default function RecommendationDetail() {
         }
         setLoading(false);
       });
-    supabase.rpc("increment_post_view", { p_id: id });
+    supabase.rpc("increment_post_view", { p_id: id }).then(({ error }) => {
+      if (error) console.error("view count error:", error);
+    });
   }, [id]);
 
-  // 이미 저장한 장소 초기 로드
+  // 이미 저장한 장소 + 북마크 초기 로드
   useEffect(() => {
     if (!user || !post) return;
+
+    // 저장된 장소
     const naverUrls = post.post_places.map((p) => p.naver_url).filter(Boolean) as string[];
-    if (naverUrls.length === 0) return;
-    supabase
-      .from("saved_places")
-      .select("places(naver_url)")
-      .eq("user_id", user.id)
-      .then(({ data }) => {
-        const urls = new Set(
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (data ?? []).map((d: any) => d.places?.naver_url).filter(Boolean) as string[]
-        );
-        setSavedPlaceUrls(urls);
-      });
+    if (naverUrls.length > 0) {
+      supabase
+        .from("saved_places")
+        .select("places(naver_url)")
+        .eq("user_id", user.id)
+        .then(({ data }) => {
+          const urls = new Set(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (data ?? []).map((d: any) => d.places?.naver_url).filter(Boolean) as string[]
+          );
+          setSavedPlaceUrls(urls);
+        });
+    }
+
+    // 코스 북마크
+    if (post.linked_course_id) {
+      supabase
+        .from("bookmarks")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("course_id", post.linked_course_id)
+        .maybeSingle()
+        .then(({ data }) => { if (data) setBookmarkDone(true); });
+    }
   }, [post, user]);
 
   async function handleSavePlace(naverUrl: string) {
