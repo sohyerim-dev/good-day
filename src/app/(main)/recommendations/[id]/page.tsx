@@ -60,9 +60,8 @@ export default function RecommendationDetail() {
       .eq("user_id", user.id)
       .then(({ data }) => {
         const urls = new Set(
-          (data ?? []).flatMap((d: { places: { naver_url: string }[] }) =>
-            d.places.map((p) => p.naver_url).filter(Boolean)
-          ) as string[]
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (data ?? []).map((d: any) => d.places?.naver_url).filter(Boolean) as string[]
         );
         setSavedPlaceUrls(urls);
       });
