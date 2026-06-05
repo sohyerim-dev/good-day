@@ -159,9 +159,11 @@ export default function CourseDetail({
     mutationFn: async () => {
       const supabase = createClient();
       if (liked) {
-        await supabase.from("likes").delete().eq("user_id", user!.id).eq("course_id", id);
+        const { error } = await supabase.from("likes").delete().eq("user_id", user!.id).eq("course_id", id);
+        if (error) { console.error("likes delete error:", error); throw error; }
       } else {
-        await supabase.from("likes").insert({ user_id: user!.id, course_id: id });
+        const { error } = await supabase.from("likes").insert({ user_id: user!.id, course_id: id });
+        if (error) { console.error("likes insert error:", error); throw error; }
       }
     },
     onSuccess: () => {
