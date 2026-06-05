@@ -27,8 +27,10 @@ export default function RecommendationDetail() {
   const [post, setPost] = useState<PostDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [imgIndex, setImgIndex] = useState(0);
-  const [actionDone, setActionDone] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
+  const [savedPlaceUrls, setSavedPlaceUrls] = useState<Set<string>>(new Set());
+  const [savingUrl, setSavingUrl] = useState<string | null>(null);
+  const [bookmarkDone, setBookmarkDone] = useState(false);
+  const [bookmarkLoading, setBookmarkLoading] = useState(false);
 
   useEffect(() => {
     supabase
@@ -48,45 +50,52 @@ export default function RecommendationDetail() {
     supabase.rpc("increment_post_view", { p_id: id });
   }, [id]);
 
-  async function handleSavePlace() {
-    if (!user || !post || actionDone) return;
-    setActionLoading(true);
-
-    const firstPlace = post.post_places[0];
-    if (!firstPlace?.naver_url) { setActionLoading(false); return; }
+  async function handleSavePlace(naverUrl: string) {
+    if (!user || !post || savedPlaceUrls.has(naverUrl) || savingUrl) return;
+    setSavingUrl(naverUrl);
 
     const { data: existing } = await supabase
       .from("places")
       .select("id")
-      .eq("naver_url", firstPlace.naver_url)
+      .eq("naver_url", naverUrl)
       .single();
 
-    const placeId = existing?.id;
-    if (!placeId) { setActionLoading(false); return; }
+    if (!existing?.id) {
+      alert("장소 정보를 찾을 수 없어요. 관리자에게 문의해주세요.");
+      setSavingUrl(null);
+      return;
+    }
 
-    await supabase.from("saved_places").upsert(
-      { user_id: user.id, place_id: placeId },
+    const { error } = await supabase.from("saved_places").upsert(
+      { user_id: user.id, place_id: existing.id },
       { onConflict: "user_id, place_id" }
     );
 
-    await supabase.rpc("increment_post_save", { p_id: post.id });
-    setActionDone(true);
-    setActionLoading(false);
+    if (error) {
+      alert(`저장 실패: ${error.message}`);
+    } else {
+      setSavedPlaceUrls((prev) => new Set([...prev, naverUrl]));
+      await supabase.rpc("increment_post_save", { p_id: post.id });
+    }
+    setSavingUrl(null);
   }
 
   async function handleBookmark() {
-    if (!user || !post || actionDone) return;
-    if (!post.linked_course_id) return;
-    setActionLoading(true);
+    if (!user || !post || bookmarkDone || !post.linked_course_id) return;
+    setBookmarkLoading(true);
 
-    await supabase.from("bookmarks").upsert(
+    const { error } = await supabase.from("bookmarks").upsert(
       { user_id: user.id, course_id: post.linked_course_id },
       { onConflict: "user_id, course_id" }
     );
 
-    await supabase.rpc("increment_post_bookmark", { p_id: post.id });
-    setActionDone(true);
-    setActionLoading(false);
+    if (error) {
+      alert(`북마크 실패: ${error.message}`);
+    } else {
+      await supabase.rpc("increment_post_bookmark", { p_id: post.id });
+      setBookmarkDone(true);
+    }
+    setBookmarkLoading(false);
   }
 
   if (loading) {
@@ -195,57 +204,63 @@ export default function RecommendationDetail() {
               {post.category === "place" ? "장소 정보" : "코스 장소"}
             </h2>
             <ul className="flex flex-col gap-2">
-              {post.post_places.map((place) => (
-                <li key={place.id} className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3">
-                  <div className="flex flex-col gap-0.5">
-                    <div className="flex items-center gap-2">
-                      {post.category === "course" && (
-                        <span className="text-[#EE6300] font-bold text-[13px]">{place.order}.</span>
+              {post.post_places.map((place) => {
+                const isSaved = place.naver_url ? savedPlaceUrls.has(place.naver_url) : false;
+                const isSaving = place.naver_url ? savingUrl === place.naver_url : false;
+                return (
+                  <li key={place.id} className="flex items-center justify-between bg-gray-50 rounded-2xl px-4 py-3 gap-2">
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {post.category === "course" && (
+                          <span className="text-[#EE6300] font-bold text-[13px] shrink-0">{place.order}.</span>
+                        )}
+                        <span className="text-[14px] font-medium">{place.name}</span>
+                      </div>
+                      {place.address && (
+                        <span className="text-[12px] text-gray-400">{place.address}</span>
                       )}
-                      <span className="text-[14px] font-medium">{place.name}</span>
                     </div>
-                    {place.address && (
-                      <span className="text-[12px] text-gray-400">{place.address}</span>
-                    )}
-                  </div>
-                  {place.naver_url && (
-                    <a
-                      href={place.naver_url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[12px] text-gray-500 border border-gray-200 rounded-xl px-2 py-1 hover:text-[#EE6300] hover:border-[#EE6300] shrink-0"
-                    >
-                      네이버
-                    </a>
-                  )}
-                </li>
-              ))}
+                    <div className="flex gap-1.5 shrink-0">
+                      {user && post.category === "place" && place.naver_url && (
+                        <button
+                          onClick={() => handleSavePlace(place.naver_url!)}
+                          disabled={isSaved || !!savingUrl}
+                          className={`text-[12px] rounded-xl px-2 py-1 border cursor-pointer disabled:cursor-default transition-colors ${
+                            isSaved
+                              ? "bg-[#EE6300] text-white border-[#EE6300]"
+                              : "text-[#EE6300] border-[#EE6300] hover:bg-[#EE6300] hover:text-white"
+                          }`}
+                        >
+                          {isSaving ? "..." : isSaved ? "저장됨" : "저장"}
+                        </button>
+                      )}
+                      {place.naver_url && (
+                        <a
+                          href={place.naver_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[12px] text-gray-500 border border-gray-200 rounded-xl px-2 py-1 hover:text-[#EE6300] hover:border-[#EE6300]"
+                        >
+                          네이버
+                        </a>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}
 
-        {/* 저장 / 북마크 버튼 */}
-        {user && (
-          <div className="flex flex-col gap-2 mt-2">
-            {post.category === "place" && post.post_places.length > 0 && (
-              <button
-                onClick={handleSavePlace}
-                disabled={actionDone || actionLoading}
-                className="w-full bg-[#EE6300] text-white rounded-2xl py-4 font-semibold text-[15px] disabled:opacity-50 disabled:cursor-default cursor-pointer hover:bg-[#d45700]"
-              >
-                {actionLoading ? "저장 중..." : actionDone ? "저장 완료!" : "장소 저장하기"}
-              </button>
-            )}
-            {post.category === "course" && post.linked_course_id && (
-              <button
-                onClick={handleBookmark}
-                disabled={actionDone || actionLoading}
-                className="w-full bg-[#EE6300] text-white rounded-2xl py-4 font-semibold text-[15px] disabled:opacity-50 disabled:cursor-default cursor-pointer hover:bg-[#d45700]"
-              >
-                {actionLoading ? "저장 중..." : actionDone ? "북마크 완료!" : "코스 북마크하기"}
-              </button>
-            )}
-          </div>
+        {/* 코스 북마크 버튼 */}
+        {user && post.category === "course" && post.linked_course_id && (
+          <button
+            onClick={handleBookmark}
+            disabled={bookmarkDone || bookmarkLoading}
+            className="w-full bg-[#EE6300] text-white rounded-2xl py-4 font-semibold text-[15px] disabled:opacity-50 disabled:cursor-default cursor-pointer hover:bg-[#d45700]"
+          >
+            {bookmarkLoading ? "저장 중..." : bookmarkDone ? "북마크 완료!" : "코스 북마크하기"}
+          </button>
         )}
         <Link
           href="/recommendations"
