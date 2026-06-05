@@ -11,11 +11,29 @@ import { useEffect, useState } from "react";
 
 const PAGE_SIZE = 5;
 
+interface RecoPost {
+  id: string;
+  title: string;
+  category: "place" | "course";
+  post_images: { url: string; order: number }[];
+}
+
 export default function Home() {
   const user = useUserStore((state) => state.user);
   const hasHydrated = useUserStore((state) => state.hasHydrated);
   const [courses, setCourses] = useState<CourseWithCollab[]>([]);
   const [page, setPage] = useState(1);
+  const [recoPosts, setRecoPosts] = useState<RecoPost[]>([]);
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from("posts")
+      .select("id, title, category, post_images(url, order)")
+      .order("created_at", { ascending: false })
+      .limit(10)
+      .then(({ data }) => setRecoPosts(data ?? []));
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -73,6 +91,27 @@ export default function Home() {
         <Link href="/about" className="text-[13px] text-gray-400 border border-gray-200 rounded-2xl px-3 py-1.5 hover:border-[#EE6300] hover:text-[#EE6300] mb-4 self-start">
           굿데이 소개
         </Link>
+        {recoPosts.length > 0 && (
+          <div className="w-full mt-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-[17px]">굿데이 추천 장소&코스</h2>
+              <Link href="/recommendations" className="text-[12px] text-gray-400 hover:text-[#EE6300]">더보기</Link>
+            </div>
+            <div className="flex gap-3 overflow-x-auto scrollbar-hide w-full pb-1">
+              {recoPosts.map((post) => {
+                const thumbnail = post.post_images?.sort((a, b) => a.order - b.order)[0]?.url;
+                return (
+                  <Link key={post.id} href={`/recommendations/${post.id}`} className="shrink-0 w-32 flex flex-col gap-1">
+                    <div className="w-full rounded-xl overflow-hidden bg-gray-100" style={{ aspectRatio: "4/3" }}>
+                      {thumbnail && <img src={thumbnail} alt="" className="w-full h-full object-cover" />}
+                    </div>
+                    <p className="text-[12px] font-medium line-clamp-2 leading-snug">{post.title}</p>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="w-full bg-gray-50 rounded-2xl px-5 py-8 mt-4 flex flex-col items-center gap-3 text-center">
           <p className="font-bold text-[18px]">나만의 놀기 코스 플래너</p>
           <p className="text-gray-400 text-[14px] leading-relaxed">
@@ -119,6 +158,27 @@ export default function Home() {
       </div>
       <InstallPrompt />
 
+      {recoPosts.length > 0 && (
+        <div className="w-full mb-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-[17px]">굿데이 추천 장소&코스</h2>
+            <Link href="/recommendations" className="text-[12px] text-gray-400 hover:text-[#EE6300]">더보기</Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto scrollbar-hide w-full pb-1">
+            {recoPosts.map((post) => {
+              const thumbnail = post.post_images?.sort((a, b) => a.order - b.order)[0]?.url;
+              return (
+                <Link key={post.id} href={`/recommendations/${post.id}`} className="shrink-0 w-32 flex flex-col gap-1">
+                  <div className="w-full rounded-xl overflow-hidden bg-gray-100" style={{ aspectRatio: "4/3" }}>
+                    {thumbnail && <img src={thumbnail} alt="" className="w-full h-full object-cover" />}
+                  </div>
+                  <p className="text-[12px] font-medium line-clamp-2 leading-snug">{post.title}</p>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
       <h2 className="font-bold text-[18px] mb-3 mt-4 self-start">나의 코스</h2>
 
       {courses.length === 0 ? (
