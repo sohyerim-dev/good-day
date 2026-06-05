@@ -1,6 +1,7 @@
 "use client";
 
 import { createClient } from "@/lib/supabase/client";
+import { useUserStore } from "@/store/userStore";
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { useState } from "react";
@@ -32,6 +33,8 @@ const CATEGORY_LABELS: Record<Category, string> = {
 };
 
 export default function Recommendations() {
+  const user = useUserStore((state) => state.user);
+  const isAdmin = user?.role === "admin";
   const [category, setCategory] = useState<Category>("all");
   const { data: posts = [], isLoading, isError } = useQuery({
     queryKey: ["posts"],
@@ -43,7 +46,17 @@ export default function Recommendations() {
   return (
     <main className="flex flex-col min-h-full">
       <div className="p-4 border-b border-gray-100">
-        <h1 className="text-[22px] font-bold">굿데이 추천</h1>
+        <div className="flex items-center justify-between">
+          <h1 className="text-[22px] font-bold">굿데이 추천</h1>
+          {isAdmin && (
+            <Link
+              href="/recommendations/write"
+              className="text-[13px] bg-[#EE6300] text-white rounded-xl px-3 py-1.5 hover:bg-[#d45700]"
+            >
+              글쓰기
+            </Link>
+          )}
+        </div>
         <p className="text-[13px] text-gray-400 mt-1">
           굿데이가 추천하는 장소와 코스를 만나보세요.
         </p>
