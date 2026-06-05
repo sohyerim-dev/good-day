@@ -100,6 +100,7 @@ export default function RecommendationDetail() {
   async function handleBookmark() {
     if (!user || !post || bookmarkDone || !post.linked_course_id) return;
     setBookmarkLoading(true);
+    alert(`DEBUG - user_id: ${user.id}\ncourse_id: ${post.linked_course_id}`);
 
     const { error } = await supabase.from("bookmarks").upsert(
       { user_id: user.id, course_id: post.linked_course_id },
