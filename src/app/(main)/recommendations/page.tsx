@@ -44,7 +44,7 @@ export default function Recommendations() {
   const filtered = category === "all" ? posts : posts.filter((p) => p.category === category);
 
   return (
-    <main className="flex flex-col min-h-full pb-28">
+    <main className="flex flex-col min-h-full pb-28 max-w-lg mx-auto w-full">
       <div className="p-4 border-b border-gray-100">
         <div className="flex items-center justify-between">
           <h1 className="text-[22px] font-bold">굿데이 추천</h1>

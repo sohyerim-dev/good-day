@@ -120,7 +120,7 @@ export default function RecommendationDetail() {
   const images = post.post_images;
 
   return (
-    <main className="flex flex-col min-h-full pb-28">
+    <main className="flex flex-col min-h-full pb-28 max-w-lg mx-auto w-full">
       <div className="p-4 flex flex-col gap-4">
         {/* 헤더 */}
         <div className="flex items-start justify-between gap-2">
