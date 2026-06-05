@@ -153,7 +153,7 @@ function WritePage() {
       await supabase.from("course_places").delete().eq("course_id", courseId);
     } else {
       const { data, error } = await supabase.from("courses").insert({
-        user_id: user!.id, title: cTitle, description: cDesc, is_public: true, is_hidden: true, course_lat, course_lng,
+        user_id: user!.id, title: cTitle, description: cDesc, is_public: true, is_hidden: false, course_lat, course_lng,
       }).select("id").single();
       if (error) { alert(`코스 생성 실패: ${error.message}`); return null; }
       if (!data) return null;

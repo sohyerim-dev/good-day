@@ -41,7 +41,7 @@ export default function Home() {
 
     async function load() {
       const [{ data: owned }, { data: myCollabs }] = await Promise.all([
-        supabase.from("courses").select("*").eq("user_id", user!.id).order("created_at", { ascending: false }),
+        supabase.from("courses").select("*").eq("user_id", user!.id).eq("is_hidden", false).order("created_at", { ascending: false }),
         supabase.from("course_collaborators").select("course_id").eq("user_id", user!.id),
       ]);
 
