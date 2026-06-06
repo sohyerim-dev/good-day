@@ -65,9 +65,31 @@ function WritePage() {
         setImages(sortedImages.map((img: { url: string }) => ({ previewUrl: img.url, storedUrl: img.url })));
         const sortedPlaces = (data.post_places ?? []).sort((a: { order: number }, b: { order: number }) => a.order - b.order);
         if (sortedPlaces.length > 0) {
-          setPlaces(sortedPlaces.map((p: { name: string; naver_url: string | null; address: string | null }) => ({
-            ...EMPTY_PLACE, name: p.name, naver_url: p.naver_url ?? "", address: p.address ?? "",
-          })));
+          const naverUrls = sortedPlaces
+            .map((p: { naver_url: string | null }) => p.naver_url)
+            .filter(Boolean) as string[];
+          if (naverUrls.length > 0) {
+            supabase.from("places").select("naver_url, lat, lng, google_place_id")
+              .in("naver_url", naverUrls)
+              .then(({ data: placesData }) => {
+                const latLngMap = Object.fromEntries(
+                  (placesData ?? []).map((p) => [p.naver_url, { lat: p.lat ?? 0, lng: p.lng ?? 0, google_place_id: p.google_place_id ?? "" }])
+                );
+                setPlaces(sortedPlaces.map((p: { name: string; naver_url: string | null; address: string | null }) => ({
+                  ...EMPTY_PLACE,
+                  name: p.name,
+                  naver_url: p.naver_url ?? "",
+                  address: p.address ?? "",
+                  lat: p.naver_url ? (latLngMap[p.naver_url]?.lat ?? 0) : 0,
+                  lng: p.naver_url ? (latLngMap[p.naver_url]?.lng ?? 0) : 0,
+                  google_place_id: p.naver_url ? (latLngMap[p.naver_url]?.google_place_id ?? "") : "",
+                })));
+              });
+          } else {
+            setPlaces(sortedPlaces.map((p: { name: string; naver_url: string | null; address: string | null }) => ({
+              ...EMPTY_PLACE, name: p.name, naver_url: p.naver_url ?? "", address: p.address ?? "",
+            })));
+          }
         }
       });
   }, [editId]);
