@@ -93,6 +93,8 @@ export default function AuthProvider({
         role: profile?.role ?? "user",
       });
       setHasHydrated(true);
+    }).catch(() => {
+      setHasHydrated(true);
     });
   }, [router, pathname]);
 
