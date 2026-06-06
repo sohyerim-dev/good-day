@@ -116,13 +116,7 @@ export default function RecommendationDetail() {
       alert(`저장 실패: ${error.message}`);
     } else {
       setSavedPlaceUrls((prev) => new Set([...prev, naverUrl]));
-      if (!error) {
-        // 처음 저장하는 경우만 count 증가 (재저장 중복 방지)
-        const { error: trackError } = await supabase
-          .from("post_save_users")
-          .insert({ post_id: post.id, user_id: user.id, naver_url: naverUrl });
-        if (!trackError) await supabase.rpc("increment_post_save", { p_id: post.id });
-      }
+      if (!error) await supabase.rpc("increment_post_save", { p_id: post.id });
     }
     setSavingUrl(null);
   }
@@ -138,13 +132,7 @@ export default function RecommendationDetail() {
     if (error && error.code !== "23505") {
       alert(`북마크 실패: ${error.message}`);
     } else {
-      if (!error) {
-        // 처음 북마크하는 경우만 count 증가 (재북마크 중복 방지)
-        const { error: trackError } = await supabase
-          .from("post_bookmark_users")
-          .insert({ post_id: post.id, user_id: user.id });
-        if (!trackError) await supabase.rpc("increment_post_bookmark", { p_id: post.id });
-      }
+      if (!error) await supabase.rpc("increment_post_bookmark", { p_id: post.id });
       setBookmarkDone(true);
     }
     setBookmarkLoading(false);
