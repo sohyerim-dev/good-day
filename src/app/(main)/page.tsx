@@ -135,8 +135,22 @@ export default function Home() {
         >
           굿데이 소개
         </Link>
+        <div className="w-full bg-gray-50 rounded-2xl px-5 py-8 flex flex-col items-center gap-3 text-center">
+          <p className="font-bold text-[18px]">나만의 놀기 코스 플래너</p>
+          <p className="text-gray-400 text-[14px] leading-relaxed">
+            장소를 추가하고 순서를 정하면
+            <br />
+            여행 코스가 완성돼요.
+          </p>
+          <Link
+            href="/login"
+            className="mt-2 bg-[#EE6300] text-white text-[15px] font-medium rounded-2xl px-6 py-3 w-full text-center"
+          >
+            로그인하고 시작하기
+          </Link>
+        </div>
         {recoPosts.length > 0 && (
-          <div className="w-full flex flex-col gap-3">
+          <div className="w-full flex flex-col gap-3 mt-6">
             <div className="flex items-center justify-between">
               <h2 className="font-bold text-[17px]">굿데이 추천 장소&코스</h2>
               <Link
@@ -178,20 +192,6 @@ export default function Home() {
             </div>
           </div>
         )}
-        <div className="w-full bg-gray-50 rounded-2xl px-5 py-8 mt-4 flex flex-col items-center gap-3 text-center">
-          <p className="font-bold text-[18px]">나만의 놀기 코스 플래너</p>
-          <p className="text-gray-400 text-[14px] leading-relaxed">
-            장소를 추가하고 순서를 정하면
-            <br />
-            여행 코스가 완성돼요.
-          </p>
-          <Link
-            href="/login"
-            className="mt-2 bg-[#EE6300] text-white text-[15px] font-medium rounded-2xl px-6 py-3 w-full text-center"
-          >
-            로그인하고 시작하기
-          </Link>
-        </div>
         <InstallPrompt />
       </main>
     );
