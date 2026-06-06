@@ -132,7 +132,13 @@ export default function RecommendationDetail() {
     if (error && error.code !== "23505") {
       alert(`북마크 실패: ${error.message}`);
     } else {
-      if (!error) await supabase.rpc("increment_post_bookmark", { p_id: post.id });
+      if (!error) {
+        // 처음 북마크하는 경우만 count 증가 (재북마크 중복 방지)
+        const { error: trackError } = await supabase
+          .from("post_bookmark_users")
+          .insert({ post_id: post.id, user_id: user.id });
+        if (!trackError) await supabase.rpc("increment_post_bookmark", { p_id: post.id });
+      }
       setBookmarkDone(true);
     }
     setBookmarkLoading(false);
