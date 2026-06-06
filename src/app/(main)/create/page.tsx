@@ -656,7 +656,7 @@ function CreatePage() {
         </div>
       </label>
       <p className="text-[12px] text-gray-400 -mt-2">
-        공개로 설정하면 코스 탐색에서 다른 사용자에게 보여요.
+        ✨ 다른 사람들에게도 도움이 될 수 있어요.<br />공개 코스로 등록해보세요.
       </p>
       <button
         onClick={handleSave}
