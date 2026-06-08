@@ -31,7 +31,7 @@ export default function Explore() {
   const [kakaoLevel, setKakaoLevel] = useState(5);
 
   const [kakaoSdkLoading, kakaoSdkError] = useKakaoLoader({
-    appkey: process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY!,
+    appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY!,
   });
 
   const showKakao = isKorean && !kakaoSdkLoading && !kakaoSdkError;
