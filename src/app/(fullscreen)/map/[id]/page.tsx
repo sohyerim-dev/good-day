@@ -1,12 +1,18 @@
 "use client";
 
+import KakaoRouteRenderer from "@/components/KakaoRouteRenderer";
 import RouteRenderer from "@/components/RouteRenderer";
 import { createClient } from "@/lib/supabase/client";
 import { CoursePlace } from "@/types/course";
 import { RouteSegment } from "@/types/route";
-import { APIProvider, Map } from "@vis.gl/react-google-maps";
+import { APIProvider, Map as GoogleMap } from "@vis.gl/react-google-maps";
 import { useRouter, useSearchParams } from "next/navigation";
 import { use, useEffect, useState } from "react";
+import { Map as KakaoMap, useKakaoLoader } from "react-kakao-maps-sdk";
+
+function isKoreanCoord(lat: number, lng: number) {
+  return lat >= 33 && lat <= 38.5 && lng >= 124 && lng <= 132;
+}
 
 export default function RoutePage({
   params,
@@ -29,6 +35,8 @@ export default function RoutePage({
   const [loading, setLoading] = useState(true);
   const [routeLoading, setRouteLoading] = useState(true);
   const isTransitMode = searchParams.get("transit") === "true";
+
+  const [kakaoLoaded] = useKakaoLoader({ appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY! });
 
   useEffect(() => {
     supabase
@@ -75,6 +83,7 @@ export default function RoutePage({
   }
 
   const activeSegments = routeData.optimized;
+  const isKorean = places.length > 0 && places.every(p => isKoreanCoord(p.places.lat, p.places.lng));
 
   if (loading)
     return (
@@ -182,24 +191,44 @@ export default function RoutePage({
         })()}
       </div>
 
-      <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
-        <Map
-          mapId="DEMO_MAP_ID"
-          style={{ width: "100%", height: "100dvh" }}
-          defaultCenter={{ lat: 37.5, lng: 127 }}
-          defaultZoom={12}
-          mapTypeControl={false}
-        >
-          <RouteRenderer
-            places={places}
-            onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
-            selectedSegment={selectedSegment}
-            showTransit={isTransitMode}
-            showWalk={!isTransitMode}
-            segmentVariants={segmentVariants}
-          />
-        </Map>
-      </APIProvider>
+      {/* 지도 렌더링: 국내 → 카카오맵, 해외 → 구글맵 */}
+      {isKorean ? (
+        kakaoLoaded && (
+          <KakaoMap
+            center={{ lat: 37.5, lng: 127 }}
+            style={{ width: "100%", height: "100dvh" }}
+            level={5}
+          >
+            <KakaoRouteRenderer
+              places={places}
+              onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
+              selectedSegment={selectedSegment}
+              showTransit={isTransitMode}
+              showWalk={!isTransitMode}
+              segmentVariants={segmentVariants}
+            />
+          </KakaoMap>
+        )
+      ) : (
+        <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+          <GoogleMap
+            mapId="DEMO_MAP_ID"
+            style={{ width: "100%", height: "100dvh" }}
+            defaultCenter={{ lat: 37.5, lng: 127 }}
+            defaultZoom={12}
+            mapTypeControl={false}
+          >
+            <RouteRenderer
+              places={places}
+              onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
+              selectedSegment={selectedSegment}
+              showTransit={isTransitMode}
+              showWalk={!isTransitMode}
+              segmentVariants={segmentVariants}
+            />
+          </GoogleMap>
+        </APIProvider>
+      )}
 
       {/* 바텀시트 */}
       {showTransit && (
