@@ -34,7 +34,8 @@ export default function Explore() {
     appkey: process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY!,
   });
 
-  const useKakao = isKorean && !kakaoSdkError;
+  // SDK 로딩 완료 후에만 카카오맵 표시, 그 전까지는 구글맵 fallback
+  const showKakao = isKorean && !kakaoSdkLoading && !kakaoSdkError;
 
   const router = useRouter();
   const supabase = createClient();
@@ -255,27 +256,25 @@ export default function Explore() {
         </button>
       </div>
 
-      {useKakao ? (
-        !kakaoSdkLoading && (
-          <KakaoMap
-            center={center}
-            isPanto
-            level={kakaoLevel}
-            style={{ width: "100%", height: "100dvh" }}
-            onClick={() => { setSelected(null); setSelectedCoursePlaces(undefined); }}
-            onIdle={handleKakaoIdle}
-          >
-            {selectedCoursePlaces && selectedCoursePlaces.length > 0 && (
-              <KakaoPreviewRenderer places={selectedCoursePlaces} />
-            )}
-            {!selected && (
-              <KakaoMarkerRenderer
-                places={markerPlaces}
-                onMarkerClick={handleMarkerClick}
-              />
-            )}
-          </KakaoMap>
-        )
+      {showKakao ? (
+        <KakaoMap
+          center={center}
+          isPanto
+          level={kakaoLevel}
+          style={{ width: "100%", height: "100dvh" }}
+          onClick={() => { setSelected(null); setSelectedCoursePlaces(undefined); }}
+          onIdle={handleKakaoIdle}
+        >
+          {selectedCoursePlaces && selectedCoursePlaces.length > 0 && (
+            <KakaoPreviewRenderer places={selectedCoursePlaces} />
+          )}
+          {!selected && (
+            <KakaoMarkerRenderer
+              places={markerPlaces}
+              onMarkerClick={handleMarkerClick}
+            />
+          )}
+        </KakaoMap>
       ) : (
         <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
           <Map
