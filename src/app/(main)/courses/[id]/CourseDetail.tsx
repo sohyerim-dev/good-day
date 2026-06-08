@@ -675,7 +675,7 @@ export default function CourseDetail({
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={photo.storage_url} alt="" className="w-full h-full object-cover" />
                           </button>
-                          {user?.id === photo.user_id && (
+                          {(user?.id === photo.user_id || user?.role === "admin") && (
                             <button
                               onClick={() => handleDeletePhoto(photo)}
                               className="absolute -top-1 -right-1 bg-black/60 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] leading-none cursor-pointer"
