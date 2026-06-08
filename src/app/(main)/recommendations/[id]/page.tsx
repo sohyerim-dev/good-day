@@ -1,5 +1,6 @@
 "use client";
 
+import { getCategoryEmoji } from "@/lib/categoryEmoji";
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
 import { useParams, useRouter } from "next/navigation";
@@ -14,7 +15,7 @@ interface PostDetail {
   linked_course_id: string | null;
   created_at: string;
   post_images: { id: string; url: string; order: number }[];
-  post_places: { id: string; name: string; naver_url: string | null; address: string | null; order: number }[];
+  post_places: { id: string; name: string; naver_url: string | null; address: string | null; order: number; category: string | null }[];
 }
 
 export default function RecommendationDetail() {
@@ -35,7 +36,7 @@ export default function RecommendationDetail() {
   useEffect(() => {
     supabase
       .from("posts")
-      .select("*, post_images(id, url, order), post_places(id, name, naver_url, address, order)")
+      .select("*, post_images(id, url, order), post_places(id, name, naver_url, address, order, category)")
       .eq("id", id)
       .single()
       .then(({ data }) => {
@@ -267,6 +268,9 @@ export default function RecommendationDetail() {
                       <div className="flex items-center gap-2">
                         {post.category === "course" && (
                           <span className="text-[#EE6300] font-bold text-[13px] shrink-0">{place.order}.</span>
+                        )}
+                        {getCategoryEmoji(place.category) && (
+                          <span>{getCategoryEmoji(place.category)}</span>
                         )}
                         <span className="text-[14px] font-medium">{place.name}</span>
                       </div>

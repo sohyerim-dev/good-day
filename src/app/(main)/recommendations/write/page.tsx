@@ -14,6 +14,7 @@ interface PlaceEntry {
   lat: number;
   lng: number;
   google_place_id: string;
+  category?: string;
 }
 
 const EMPTY_PLACE: PlaceEntry = { name: "", naver_url: "", address: "", lat: 0, lng: 0, google_place_id: "" };
@@ -47,7 +48,7 @@ function WritePage() {
     if (!editId) return;
     supabase
       .from("posts")
-      .select("*, post_images(id, url, order), post_places(id, name, naver_url, address, order)")
+      .select("*, post_images(id, url, order), post_places(id, name, naver_url, address, order, category)")
       .eq("id", editId)
       .single()
       .then(({ data }) => {
@@ -114,6 +115,7 @@ function WritePage() {
       lat: Number(place.mapy) / 10000000,
       lng: Number(place.mapx) / 10000000,
       google_place_id: place.google_place_id ?? "",
+      category: place.category,
     }]);
     setPlaceResults([]);
     setPlaceQuery("");
@@ -228,7 +230,7 @@ function WritePage() {
       }
       if (validPlaces.length > 0) {
         await supabase.from("post_places").insert(
-          validPlaces.map((p, i) => ({ post_id: editId, name: p.name, naver_url: p.naver_url || null, address: p.address || null, order: i + 1 }))
+          validPlaces.map((p, i) => ({ post_id: editId, name: p.name, naver_url: p.naver_url || null, address: p.address || null, order: i + 1, category: p.category || null }))
         );
       }
       router.push(`/recommendations/${editId}`);
@@ -242,7 +244,7 @@ function WritePage() {
       }
       if (validPlaces.length > 0) {
         await supabase.from("post_places").insert(
-          validPlaces.map((p, i) => ({ post_id: postData.id, name: p.name, naver_url: p.naver_url || null, address: p.address || null, order: i + 1 }))
+          validPlaces.map((p, i) => ({ post_id: postData.id, name: p.name, naver_url: p.naver_url || null, address: p.address || null, order: i + 1, category: p.category || null }))
         );
       }
       router.push(`/recommendations/${postData.id}`);
