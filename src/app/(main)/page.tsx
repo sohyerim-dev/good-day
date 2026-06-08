@@ -221,14 +221,16 @@ export default function Home() {
           + 코스 추가하기
         </Link>
       </div>
-      <div className="w-full bg-gray-50 rounded-2xl px-5 py-4 mb-4 text-center">
-        <p className="text-gray-500 text-[14px] font-medium">
-          나만의 코스를 만들어보세요
-        </p>
-        <p className="text-gray-400 text-[12px] mt-1">
-          장소를 추가하고 순서를 정하면 여행 코스가 완성돼요.
-        </p>
-      </div>
+      {courses.length === 0 && (
+        <div className="w-full bg-gray-50 rounded-2xl px-5 py-4 mb-4 text-center">
+          <p className="text-gray-500 text-[14px] font-medium">
+            나만의 코스를 만들어보세요
+          </p>
+          <p className="text-gray-400 text-[12px] mt-1">
+            장소를 추가하고 순서를 정하면 여행 코스가 완성돼요.
+          </p>
+        </div>
+      )}
       <InstallPrompt />
 
       {recoPosts.length > 0 && (
