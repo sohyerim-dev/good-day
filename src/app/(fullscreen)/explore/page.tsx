@@ -34,8 +34,8 @@ export default function Explore() {
     appkey: process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY!,
   });
 
-  // SDK 로딩 완료 후에만 카카오맵 표시, 그 전까지는 구글맵 fallback
   const showKakao = isKorean && !kakaoSdkLoading && !kakaoSdkError;
+  const kakaoFallbackGoogle = isKorean && !!kakaoSdkError;
 
   const router = useRouter();
   const supabase = createClient();
@@ -256,6 +256,12 @@ export default function Explore() {
         </button>
       </div>
 
+      {isKorean && kakaoSdkLoading && (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-100">
+          <div className="w-8 h-8 border-4 border-[#EE6300] border-t-transparent rounded-full animate-spin" />
+        </div>
+      )}
+
       {showKakao ? (
         <KakaoMap
           center={center}
@@ -275,7 +281,7 @@ export default function Explore() {
             />
           )}
         </KakaoMap>
-      ) : (
+      ) : (!isKorean || kakaoFallbackGoogle) && (
         <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
           <Map
             clickableIcons={false}
