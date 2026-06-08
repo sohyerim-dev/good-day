@@ -365,19 +365,21 @@ export default function CourseDetail({
     }
   }
 
-  async function handlePhotoUpload(placeId: string, file: File) {
-    if (!user) return;
+  async function handlePhotoUpload(placeId: string, files: FileList) {
+    if (!user || files.length === 0) return;
     setUploadingPlace(placeId);
     try {
       const supabase = createClient();
-      const compressed = await compressImage(file);
-      const path = `${placeId}/${Date.now()}.jpg`;
-      const { error: uploadError } = await supabase.storage
-        .from("place-photos")
-        .upload(path, compressed, { contentType: "image/jpeg" });
-      if (uploadError) return;
-      const { data: { publicUrl } } = supabase.storage.from("place-photos").getPublicUrl(path);
-      await supabase.from("place_photos").insert({ place_id: placeId, user_id: user.id, storage_url: publicUrl });
+      await Promise.all(Array.from(files).map(async (file) => {
+        const compressed = await compressImage(file);
+        const path = `${placeId}/${Date.now()}-${Math.random().toString(36).slice(2)}.jpg`;
+        const { error: uploadError } = await supabase.storage
+          .from("place-photos")
+          .upload(path, compressed, { contentType: "image/jpeg" });
+        if (uploadError) return;
+        const { data: { publicUrl } } = supabase.storage.from("place-photos").getPublicUrl(path);
+        await supabase.from("place_photos").insert({ place_id: placeId, user_id: user.id, storage_url: publicUrl });
+      }));
       queryClient.invalidateQueries({ queryKey: ["placePhotos"] });
     } finally {
       setUploadingPlace(null);
@@ -693,11 +695,11 @@ export default function CourseDetail({
                           <input
                             type="file"
                             accept="image/*"
+                            multiple
                             className="hidden"
                             disabled={uploadingPlace === p.places.id}
                             onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handlePhotoUpload(p.places.id, file);
+                              if (e.target.files) handlePhotoUpload(p.places.id, e.target.files);
                               e.target.value = "";
                             }}
                           />
