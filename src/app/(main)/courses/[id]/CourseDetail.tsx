@@ -308,6 +308,14 @@ export default function CourseDetail({
     router.push("/");
   }
 
+  function handleNaverPlaceClick(e: React.MouseEvent, placeName: string) {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      e.preventDefault();
+      window.location.href = `nmap://search?query=${encodeURIComponent(placeName)}&appname=kr.co.naver.map`;
+    }
+  }
+
   if (isLoading || !hasHydrated)
     return (
       <main className="flex flex-col min-h-full">
@@ -473,6 +481,7 @@ export default function CourseDetail({
                       <a
                         href={p.places.naver_url}
                         target="_blank"
+                        onClick={(e) => handleNaverPlaceClick(e, p.places.name)}
                         className="text-[12px] text-[#EE6300] border border-[#EE6300] rounded-xl px-2 py-1 hover:bg-[#EE6300] hover:text-white"
                       >
                         네이버 플레이스
