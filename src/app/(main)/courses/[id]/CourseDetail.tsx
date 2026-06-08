@@ -10,6 +10,40 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Fragment, use, useEffect, useRef, useState } from "react";
+
+interface PlacePhoto {
+  id: string;
+  place_id: string;
+  user_id: string;
+  storage_url: string;
+}
+
+async function fetchPlacePhotos(placeIds: string[]): Promise<PlacePhoto[]> {
+  if (placeIds.length === 0) return [];
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("place_photos")
+    .select("id, place_id, user_id, storage_url")
+    .in("place_id", placeIds);
+  return data ?? [];
+}
+
+async function compressImage(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const img = new window.Image();
+    img.onload = () => {
+      const MAX = 1200;
+      let { width, height } = img;
+      if (width > MAX) { height = Math.round((height * MAX) / width); width = MAX; }
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, width, height);
+      canvas.toBlob((blob) => resolve(blob!), "image/jpeg", 0.82);
+    };
+    img.src = URL.createObjectURL(file);
+  });
+}
 import Script from "next/script";
 
 async function fetchCourse(id: string): Promise<Course> {
@@ -76,6 +110,8 @@ export default function CourseDetail({
   const [memoInput, setMemoInput] = useState("");
   const [inviteCopied, setInviteCopied] = useState(false);
   const [schedules, setSchedules] = useState<Record<string, string>>({});
+  const [uploadingPlace, setUploadingPlace] = useState<string | null>(null);
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
 
   const searchParams = useSearchParams();
 
@@ -99,6 +135,18 @@ export default function CourseDetail({
     queryKey: ["coursePlaces", id],
     queryFn: () => fetchCoursePlaces(id),
   });
+
+  const placeIds = places.map((p) => p.places.id);
+  const { data: allPhotos = [] } = useQuery({
+    queryKey: ["placePhotos", placeIds],
+    queryFn: () => fetchPlacePhotos(placeIds),
+    enabled: placeIds.length > 0,
+  });
+  const photosByPlace = allPhotos.reduce((acc, photo) => {
+    if (!acc[photo.place_id]) acc[photo.place_id] = [];
+    acc[photo.place_id].push(photo);
+    return acc;
+  }, {} as Record<string, PlacePhoto[]>);
 
   const userDataQueryKey = ["courseUserData", id, user?.id];
   const { data: userData } = useQuery({
@@ -315,6 +363,33 @@ export default function CourseDetail({
       e.preventDefault();
       window.location.href = `nmap://search?query=${encodeURIComponent(placeName)}&appname=kr.co.naver.map`;
     }
+  }
+
+  async function handlePhotoUpload(placeId: string, file: File) {
+    if (!user) return;
+    setUploadingPlace(placeId);
+    try {
+      const supabase = createClient();
+      const compressed = await compressImage(file);
+      const path = `${placeId}/${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("place-photos")
+        .upload(path, compressed, { contentType: "image/jpeg" });
+      if (uploadError) return;
+      const { data: { publicUrl } } = supabase.storage.from("place-photos").getPublicUrl(path);
+      await supabase.from("place_photos").insert({ place_id: placeId, user_id: user.id, storage_url: publicUrl });
+      queryClient.invalidateQueries({ queryKey: ["placePhotos"] });
+    } finally {
+      setUploadingPlace(null);
+    }
+  }
+
+  async function handleDeletePhoto(photo: PlacePhoto) {
+    const supabase = createClient();
+    const path = photo.storage_url.split("/place-photos/")[1];
+    await supabase.storage.from("place-photos").remove([path]);
+    await supabase.from("place_photos").delete().eq("id", photo.id);
+    queryClient.invalidateQueries({ queryKey: ["placePhotos"] });
   }
 
   if (isLoading || !hasHydrated)
@@ -585,6 +660,52 @@ export default function CourseDetail({
                     )}
                   </div>
                 )}
+                {/* 장소 사진 */}
+                {((photosByPlace[p.places.id] ?? []).length > 0 || user) && (
+                  <div className="pt-2 border-t border-gray-200">
+                    <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                      {(photosByPlace[p.places.id] ?? []).map((photo) => (
+                        <div key={photo.id} className="relative shrink-0">
+                          <button
+                            onClick={() => setLightboxPhoto(photo.storage_url)}
+                            className="block w-16 h-16 rounded-lg overflow-hidden cursor-pointer"
+                          >
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img src={photo.storage_url} alt="" className="w-full h-full object-cover" />
+                          </button>
+                          {user?.id === photo.user_id && (
+                            <button
+                              onClick={() => handleDeletePhoto(photo)}
+                              className="absolute -top-1 -right-1 bg-black/60 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] leading-none cursor-pointer"
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                      {user && (
+                        <label className="shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-[#EE6300] text-gray-400 hover:text-[#EE6300]">
+                          {uploadingPlace === p.places.id ? (
+                            <span className="text-[10px]">업로드중</span>
+                          ) : (
+                            <span className="text-2xl leading-none">+</span>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={uploadingPlace === p.places.id}
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handlePhotoUpload(p.places.id, file);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
+                      )}
+                    </div>
+                  </div>
+                )}
               </li>
               {i !== places.length - 1 && (
                 <li>
@@ -723,6 +844,27 @@ export default function CourseDetail({
         </div>
       </div>
     </main>
+    {/* 사진 라이트박스 */}
+    {lightboxPhoto && (
+      <div
+        className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+        onClick={() => setLightboxPhoto(null)}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={lightboxPhoto}
+          alt=""
+          className="max-w-full max-h-full object-contain"
+          onClick={(e) => e.stopPropagation()}
+        />
+        <button
+          onClick={() => setLightboxPhoto(null)}
+          className="absolute top-4 right-4 text-white text-2xl leading-none cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+    )}
     </>
   );
 }
