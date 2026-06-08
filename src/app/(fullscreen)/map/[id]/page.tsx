@@ -37,7 +37,7 @@ export default function RoutePage({
   const [routeLoading, setRouteLoading] = useState(true);
   const isTransitMode = searchParams.get("transit") === "true";
 
-  const [kakaoSdkLoading, kakaoSdkError] = useKakaoLoader({ appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY! });
+  const [kakaoSdkLoading, kakaoSdkError] = useKakaoLoader({ appkey: process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY! });
 
   useEffect(() => {
     supabase
