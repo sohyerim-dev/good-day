@@ -233,49 +233,6 @@ export default function Home() {
       )}
       <InstallPrompt />
 
-      {recoPosts.length > 0 && (
-        <div className="w-full mt-6 mb-4 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <h2 className="font-bold text-[17px]">굿데이 추천 장소&코스</h2>
-            <Link
-              href="/recommendations"
-              className="text-[12px] text-gray-400 hover:text-[#EE6300]"
-            >
-              더보기
-            </Link>
-          </div>
-          <div className="flex gap-3 overflow-x-auto md:overflow-visible md:grid md:grid-cols-4 scrollbar-hide w-full pb-1">
-            {recoPosts.map((post) => {
-              const thumbnail = post.post_images?.sort(
-                (a, b) => a.order - b.order,
-              )[0]?.url;
-              return (
-                <Link
-                  key={post.id}
-                  href={`/recommendations/${post.id}`}
-                  className="shrink-0 w-32 md:w-auto flex flex-col gap-1"
-                >
-                  <div
-                    className="w-full rounded-xl overflow-hidden bg-gray-100"
-                    style={{ aspectRatio: "4/3" }}
-                  >
-                    {thumbnail && (
-                      <img
-                        src={thumbnail}
-                        alt=""
-                        className="w-full h-full object-cover"
-                      />
-                    )}
-                  </div>
-                  <p className="text-[12px] md:text-[14px] font-medium line-clamp-2 leading-snug">
-                    {post.title}
-                  </p>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
       <h2 className="font-bold text-[18px] mb-3 mt-4 self-start">나의 코스</h2>
 
       {courses.length === 0 ? (
@@ -372,6 +329,49 @@ export default function Home() {
             </div>
           )}
         </>
+      )}
+      {recoPosts.length > 0 && (
+        <div className="w-full mt-6 mb-4 flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <h2 className="font-bold text-[17px]">굿데이 추천 장소&코스</h2>
+            <Link
+              href="/recommendations"
+              className="text-[12px] text-gray-400 hover:text-[#EE6300]"
+            >
+              더보기
+            </Link>
+          </div>
+          <div className="flex gap-3 overflow-x-auto md:overflow-visible md:grid md:grid-cols-4 scrollbar-hide w-full pb-1">
+            {recoPosts.map((post) => {
+              const thumbnail = post.post_images?.sort(
+                (a, b) => a.order - b.order,
+              )[0]?.url;
+              return (
+                <Link
+                  key={post.id}
+                  href={`/recommendations/${post.id}`}
+                  className="shrink-0 w-32 md:w-auto flex flex-col gap-1"
+                >
+                  <div
+                    className="w-full rounded-xl overflow-hidden bg-gray-100"
+                    style={{ aspectRatio: "4/3" }}
+                  >
+                    {thumbnail && (
+                      <img
+                        src={thumbnail}
+                        alt=""
+                        className="w-full h-full object-cover"
+                      />
+                    )}
+                  </div>
+                  <p className="text-[12px] md:text-[14px] font-medium line-clamp-2 leading-snug">
+                    {post.title}
+                  </p>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
       )}
     </main>
   );
