@@ -665,7 +665,7 @@ export default function CourseDetail({
                 {/* 장소 사진 */}
                 {((photosByPlace[p.places.id] ?? []).length > 0 || user) && (
                   <div className="pt-2 border-t border-gray-200">
-                    <div className="flex items-center gap-2 overflow-x-auto pb-1 no-scrollbar">
+                    <div className="flex items-center gap-2 overflow-x-auto pt-2 pb-1 no-scrollbar">
                       {(photosByPlace[p.places.id] ?? []).map((photo) => (
                         <div key={photo.id} className="relative shrink-0">
                           <button
