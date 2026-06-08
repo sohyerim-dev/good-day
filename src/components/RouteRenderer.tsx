@@ -141,9 +141,9 @@ export default function RouteRenderer({ places, onRouteData, selectedSegment, sh
             strokeOpacity: 0,
             icons: [
               {
-                icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 3 },
+                icon: { path: "M 0,-1 0,1", strokeOpacity: 1, scale: 5 },
                 offset: "0",
-                repeat: "12px",
+                repeat: "18px",
               },
             ],
           });
