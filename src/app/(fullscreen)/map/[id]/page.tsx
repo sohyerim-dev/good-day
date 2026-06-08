@@ -219,7 +219,9 @@ export default function RoutePage({
         )}
         {!isTransitMode && (
           <div className="flex items-center gap-2">
-            <div className="w-6 border-t-2 border-dashed border-gray-400" />
+            <div className="w-6 flex items-center gap-0.5">
+              {[0,1,2].map((i) => <div key={i} className="w-1 h-1 rounded-full bg-gray-400" />)}
+            </div>
             <span>도보 경로</span>
           </div>
         )}
