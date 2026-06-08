@@ -91,6 +91,14 @@ export default function RecommendationDetail() {
     }
   }, [post, user]);
 
+  function handleNaverPlaceClick(e: React.MouseEvent, placeName: string) {
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      e.preventDefault();
+      window.location.href = `nmap://search?query=${encodeURIComponent(placeName)}&appname=kr.co.naver.map`;
+    }
+  }
+
   async function handleSavePlace(naverUrl: string) {
     if (!user || !post || savedPlaceUrls.has(naverUrl) || savingUrl) return;
     setSavingUrl(naverUrl);
@@ -285,6 +293,7 @@ export default function RecommendationDetail() {
                           href={place.naver_url}
                           target="_blank"
                           rel="noopener noreferrer"
+                          onClick={(e) => handleNaverPlaceClick(e, place.name)}
                           className="text-[12px] text-gray-500 border border-gray-200 rounded-xl px-2 py-1 hover:text-[#EE6300] hover:border-[#EE6300]"
                         >
                           네이버
