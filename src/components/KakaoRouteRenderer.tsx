@@ -3,95 +3,83 @@
 import { CoursePlace } from "@/types/course";
 import { RouteSegment } from "@/types/route";
 import polylineLib from "@mapbox/polyline";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect } from "react";
 import { CustomOverlayMap, Polyline, useMap } from "react-kakao-maps-sdk";
 
 const ROUTE_COLORS = ["#EE6300", "#2563EB", "#16A34A", "#9333EA", "#DC2626"];
 
-interface LatLng { lat: number; lng: number }
-
-interface SegmentPaths {
-  optimized: LatLng[];
-  bus: LatLng[];
-  subway: LatLng[];
-  walk: LatLng[];
+export interface SegmentPaths {
+  optimized: { lat: number; lng: number }[];
+  bus: { lat: number; lng: number }[];
+  subway: { lat: number; lng: number }[];
+  walk: { lat: number; lng: number }[];
 }
 
 interface Props {
   places: CoursePlace[];
-  onRouteData: (data: { optimized: RouteSegment[]; bus: RouteSegment[]; subway: RouteSegment[] }) => void;
+  segmentPaths: SegmentPaths[];
   selectedSegment: number | null;
   showTransit: boolean;
   showWalk: boolean;
   segmentVariants: Record<number, "optimized" | "bus" | "subway">;
 }
 
-export default function KakaoRouteRenderer({ places, onRouteData, selectedSegment, showTransit, showWalk, segmentVariants }: Props) {
+export function decodeRoutePaths(
+  results: [
+    optimizedData: Record<string, unknown>,
+    busData: Record<string, unknown>,
+    subwayData: Record<string, unknown>,
+    walkData: Record<string, unknown>
+  ][]
+): { paths: SegmentPaths[]; optimized: RouteSegment[]; bus: RouteSegment[]; subway: RouteSegment[] } {
+  const optimizedSegs: RouteSegment[] = [];
+  const busSegs: RouteSegment[] = [];
+  const subwaySegs: RouteSegment[] = [];
+  const paths: SegmentPaths[] = [];
+
+  const decodePath = (encoded?: string): { lat: number; lng: number }[] => {
+    if (!encoded) return [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return polylineLib.decode(encoded as any).map(([lat, lng]: [number, number]) => ({ lat, lng }));
+  };
+
+  results.forEach(([optimizedData, busData, subwayData, walkData]) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const od = optimizedData as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const bd = busData as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const sd = subwayData as any;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const wd = walkData as any;
+
+    optimizedSegs.push({ ...od.routes?.[0]?.legs?.[0], walkDuration: wd.walkDuration });
+    busSegs.push({ ...bd.routes?.[0]?.legs?.[0], walkDuration: wd.walkDuration });
+    subwaySegs.push({ ...sd.routes?.[0]?.legs?.[0], walkDuration: wd.walkDuration });
+
+    paths.push({
+      optimized: decodePath(od.routes?.[0]?.polyline?.encodedPolyline),
+      bus: decodePath(bd.routes?.[0]?.polyline?.encodedPolyline),
+      subway: decodePath(sd.routes?.[0]?.polyline?.encodedPolyline),
+      walk: (wd.walkPath ?? []) as { lat: number; lng: number }[],
+    });
+  });
+
+  return { paths, optimized: optimizedSegs, bus: busSegs, subway: subwaySegs };
+}
+
+export default function KakaoRouteRenderer({ places, segmentPaths, selectedSegment, showTransit, showWalk, segmentVariants }: Props) {
   const map = useMap();
-  const [segmentPaths, setSegmentPaths] = useState<SegmentPaths[]>([]);
 
   useEffect(() => {
     if (!map || places.length === 0) return;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const kakao = (window as any).kakao;
+    if (!kakao?.maps) return;
     const bounds = new kakao.maps.LatLngBounds();
     places.forEach(p => bounds.extend(new kakao.maps.LatLng(p.places.lat, p.places.lng)));
     map.setBounds(bounds);
   }, [map, places]);
-
-  useEffect(() => {
-    if (places.length < 2) return;
-    let cancelled = false;
-
-    async function fetchRoutes() {
-      const results = await Promise.all(
-        Array.from({ length: places.length - 1 }, (_, i) => {
-          const segPlaces = [
-            { lat: places[i].places.lat, lng: places[i].places.lng },
-            { lat: places[i + 1].places.lat, lng: places[i + 1].places.lng },
-          ];
-          const isGlobal = !places[i].places.naver_url || !places[i + 1].places.naver_url;
-          return Promise.all([
-            fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "transit" }) }).then(r => r.json()),
-            fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "transit", transitMode: "bus" }) }).then(r => r.json()),
-            fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "transit", transitMode: "subway" }) }).then(r => r.json()),
-            fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "walk", isGlobal }) }).then(r => r.json()),
-          ]);
-        })
-      );
-
-      if (cancelled) return;
-
-      const optimizedSegs: RouteSegment[] = [];
-      const busSegs: RouteSegment[] = [];
-      const subwaySegs: RouteSegment[] = [];
-      const paths: SegmentPaths[] = [];
-
-      results.forEach(([optimizedData, busData, subwayData, walkData]) => {
-        optimizedSegs.push({ ...optimizedData.routes?.[0]?.legs?.[0], walkDuration: walkData.walkDuration });
-        busSegs.push({ ...busData.routes?.[0]?.legs?.[0], walkDuration: walkData.walkDuration });
-        subwaySegs.push({ ...subwayData.routes?.[0]?.legs?.[0], walkDuration: walkData.walkDuration });
-
-        const decodePath = (encoded?: string): LatLng[] => {
-          if (!encoded) return [];
-          return polylineLib.decode(encoded).map(([lat, lng]) => ({ lat, lng }));
-        };
-
-        paths.push({
-          optimized: decodePath(optimizedData.routes?.[0]?.polyline?.encodedPolyline),
-          bus: decodePath(busData.routes?.[0]?.polyline?.encodedPolyline),
-          subway: decodePath(subwayData.routes?.[0]?.polyline?.encodedPolyline),
-          walk: (walkData.walkPath ?? []) as LatLng[],
-        });
-      });
-
-      setSegmentPaths(paths);
-      onRouteData({ optimized: optimizedSegs, bus: busSegs, subway: subwaySegs });
-    }
-
-    fetchRoutes();
-    return () => { cancelled = true; };
-  }, [places, onRouteData]);
 
   return (
     <>

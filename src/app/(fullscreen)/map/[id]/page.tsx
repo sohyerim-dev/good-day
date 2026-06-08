@@ -1,13 +1,13 @@
 "use client";
 
-import KakaoRouteRenderer from "@/components/KakaoRouteRenderer";
+import KakaoRouteRenderer, { decodeRoutePaths, SegmentPaths } from "@/components/KakaoRouteRenderer";
 import RouteRenderer from "@/components/RouteRenderer";
 import { createClient } from "@/lib/supabase/client";
 import { CoursePlace } from "@/types/course";
 import { RouteSegment } from "@/types/route";
 import { APIProvider, Map as GoogleMap } from "@vis.gl/react-google-maps";
 import { useRouter, useSearchParams } from "next/navigation";
-import { use, useEffect, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { Map as KakaoMap, useKakaoLoader } from "react-kakao-maps-sdk";
 
 function isKoreanCoord(lat: number, lng: number) {
@@ -29,6 +29,7 @@ export default function RoutePage({
   const [routeData, setRouteData] = useState<{ optimized: RouteSegment[]; bus: RouteSegment[]; subway: RouteSegment[] }>({
     optimized: [], bus: [], subway: [],
   });
+  const [kakaoSegmentPaths, setKakaoSegmentPaths] = useState<SegmentPaths[]>([]);
   const [segmentVariants, setSegmentVariants] = useState<Record<number, "optimized" | "bus" | "subway">>({});
   const [selectedSegment, setSelectedSegment] = useState<number | null>(null);
   const [error, setError] = useState("");
@@ -36,7 +37,7 @@ export default function RoutePage({
   const [routeLoading, setRouteLoading] = useState(true);
   const isTransitMode = searchParams.get("transit") === "true";
 
-  const [kakaoLoaded] = useKakaoLoader({ appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY! });
+  const [kakaoSdkLoading, kakaoSdkError] = useKakaoLoader({ appkey: process.env.NEXT_PUBLIC_KAKAO_JS_KEY! });
 
   useEffect(() => {
     supabase
@@ -50,6 +51,48 @@ export default function RoutePage({
         if (!data || error) setError("경로를 불러올 수 없어요");
       });
   }, [id]);
+
+  const isKorean = places.length > 0 && places.every(p => isKoreanCoord(p.places.lat, p.places.lng));
+  // Kakao SDK 오류 시 구글맵 폴백
+  const useKakao = isKorean && !kakaoSdkError;
+
+  // 카카오맵용 route 데이터를 SDK와 별도로 미리 fetch
+  useEffect(() => {
+    if (!useKakao || places.length < 2) return;
+    let cancelled = false;
+
+    async function fetchRoutes() {
+      const results = await Promise.all(
+        Array.from({ length: places.length - 1 }, (_, i) => {
+          const segPlaces = [
+            { lat: places[i].places.lat, lng: places[i].places.lng },
+            { lat: places[i + 1].places.lat, lng: places[i + 1].places.lng },
+          ];
+          const isGlobal = !places[i].places.naver_url || !places[i + 1].places.naver_url;
+          return Promise.all([
+            fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "transit" }) }).then(r => r.json()),
+            fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "transit", transitMode: "bus" }) }).then(r => r.json()),
+            fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "transit", transitMode: "subway" }) }).then(r => r.json()),
+            fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "walk", isGlobal }) }).then(r => r.json()),
+          ]);
+        })
+      );
+
+      if (cancelled) return;
+      const { paths, optimized, bus, subway } = decodeRoutePaths(results);
+      setKakaoSegmentPaths(paths);
+      setRouteData({ optimized, bus, subway });
+      setRouteLoading(false);
+    }
+
+    fetchRoutes();
+    return () => { cancelled = true; };
+  }, [useKakao, places]);
+
+  const handleGoogleRouteData = useCallback((data: { optimized: RouteSegment[]; bus: RouteSegment[]; subway: RouteSegment[] }) => {
+    setRouteData(data);
+    setRouteLoading(false);
+  }, []);
 
   function setSegmentVariant(i: number, v: "optimized" | "bus" | "subway") {
     setSegmentVariants((prev) => ({ ...prev, [i]: v }));
@@ -83,7 +126,6 @@ export default function RoutePage({
   }
 
   const activeSegments = routeData.optimized;
-  const isKorean = places.length > 0 && places.every(p => isKoreanCoord(p.places.lat, p.places.lng));
 
   if (loading)
     return (
@@ -191,9 +233,9 @@ export default function RoutePage({
         })()}
       </div>
 
-      {/* 지도 렌더링: 국내 → 카카오맵, 해외 → 구글맵 */}
-      {isKorean ? (
-        kakaoLoaded && (
+      {/* 지도 렌더링: 국내 → 카카오맵, 해외 또는 Kakao 오류 → 구글맵 */}
+      {useKakao ? (
+        !kakaoSdkLoading && (
           <KakaoMap
             center={{ lat: 37.5, lng: 127 }}
             style={{ width: "100%", height: "100dvh" }}
@@ -201,7 +243,7 @@ export default function RoutePage({
           >
             <KakaoRouteRenderer
               places={places}
-              onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
+              segmentPaths={kakaoSegmentPaths}
               selectedSegment={selectedSegment}
               showTransit={isTransitMode}
               showWalk={!isTransitMode}
@@ -220,7 +262,7 @@ export default function RoutePage({
           >
             <RouteRenderer
               places={places}
-              onRouteData={(data) => { setRouteData(data); setRouteLoading(false); }}
+              onRouteData={handleGoogleRouteData}
               selectedSegment={selectedSegment}
               showTransit={isTransitMode}
               showWalk={!isTransitMode}
