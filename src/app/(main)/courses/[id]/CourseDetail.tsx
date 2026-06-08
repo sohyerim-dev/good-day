@@ -1,6 +1,7 @@
 "use client";
 
 import AlertModal from "@/components/ui/AlertModal";
+import { getCategoryEmoji } from "@/lib/categoryEmoji";
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
 import { Course, CoursePlace } from "@/types/course";
@@ -22,7 +23,7 @@ async function fetchCoursePlaces(id: string): Promise<CoursePlace[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("course_places")
-    .select("*, places(id, name, address, lat, lng, naver_url, google_place_id)")
+    .select("*, places(id, name, address, lat, lng, naver_url, google_place_id, category)")
     .eq("course_id", id)
     .order("order");
   if (error) throw new Error("장소 목록을 불러올 수 없어요");
@@ -470,6 +471,9 @@ export default function CourseDetail({
                   <div className="flex flex-col gap-1 flex-1 min-w-0 mr-2">
                     <span className="font-medium">
                       <span className="text-[#EE6300] mr-2">{p.order}.</span>
+                      {getCategoryEmoji(p.places.category) && (
+                        <span className="mr-1">{getCategoryEmoji(p.places.category)}</span>
+                      )}
                       {p.places.name}
                     </span>
                     <span className="text-[12px] text-gray-400">

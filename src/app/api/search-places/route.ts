@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
       title,
       naverPlaceUrl: `https://map.naver.com/p/search/${encodeURIComponent(title)}`,
       id: `${title}-${item.address}`,
+      category: item.category,
     };
   });
   return NextResponse.json({ ...data, items: cleaned });

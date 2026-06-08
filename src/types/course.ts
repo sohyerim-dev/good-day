@@ -24,6 +24,7 @@ export interface CoursePlace {
     lng: number;
     naver_url: string | null;
     google_place_id?: string | null;
+    category?: string | null;
   };
 }
 

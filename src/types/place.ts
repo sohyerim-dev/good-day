@@ -7,6 +7,7 @@ export interface NaverPlace {
   mapy: string; // 위도 * 10000000
   link: string;
   naverPlaceUrl: string;
+  category?: string;
   google_place_id?: string; // 해외 장소 (Google Places ID)
   source?: "naver" | "google";
 }

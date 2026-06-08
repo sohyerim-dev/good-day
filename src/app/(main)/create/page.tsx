@@ -284,6 +284,7 @@ function CreatePage() {
             lat: Number(p.mapy) / 10000000,
             lng: Number(p.mapx) / 10000000,
             naver_url: p.naverPlaceUrl,
+            ...(p.category ? { category: p.category } : {}),
           })),
           { onConflict: "naver_url" },
         )
