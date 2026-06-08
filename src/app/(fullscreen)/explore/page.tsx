@@ -1,5 +1,7 @@
 "use client";
 import CoursePreviewRenderer from "@/components/CoursePreviewRenderer";
+import KakaoMarkerRenderer from "@/components/KakaoMarkerRenderer";
+import KakaoPreviewRenderer from "@/components/KakaoPreviewRenderer";
 import LocationSetter from "@/components/LocationSetter";
 import MarkerRenderer from "@/components/MarkerRenderer";
 import { createClient } from "@/lib/supabase/client";
@@ -9,10 +11,30 @@ import { APIProvider, Map } from "@vis.gl/react-google-maps";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Map as KakaoMap, useKakaoLoader } from "react-kakao-maps-sdk";
+
+function isKoreanCoord(lat: number, lng: number) {
+  return lat >= 33 && lat <= 38.5 && lng >= 124 && lng <= 132;
+}
+
+function zoomToKakaoLevel(zoom: number): number {
+  const table: Record<number, number> = {
+    3: 14, 4: 13, 5: 12, 6: 11, 7: 10, 8: 9,
+    9: 8, 10: 7, 11: 6, 12: 5, 13: 4, 14: 3, 15: 2,
+  };
+  return table[zoom] ?? 5;
+}
 
 export default function Explore() {
-  // 현재 위치를 가져와서 LocationSetter를 통해 지도를 이동시킴
   const [center, setCenter] = useState({ lat: 37.5, lng: 127 });
+  const [isKorean, setIsKorean] = useState(true);
+  const [kakaoLevel, setKakaoLevel] = useState(5);
+
+  const [kakaoSdkLoading, kakaoSdkError] = useKakaoLoader({
+    appkey: process.env.NEXT_PUBLIC_KAKAO_JAVASCRIPT_KEY!,
+  });
+
+  const useKakao = isKorean && !kakaoSdkError;
 
   const router = useRouter();
   const supabase = createClient();
@@ -24,8 +46,6 @@ export default function Explore() {
 
   const [exploreAllPlaces, setExploreAllPlaces] = useState<ExploreCoursePlace[]>([]);
 
-  // 코스별 뷰포트 내 최소 order 장소를 마커로 사용
-  // (서울→부산 코스를 부산 지도에서 볼 때 부산역에 마커가 찍힘)
   type CpType = ExploreCoursePlace["course_places"][number];
   const courseFirstInViewport: Record<string, { placeId: string; cp: CpType }> = {};
   exploreAllPlaces.forEach((place) => {
@@ -47,7 +67,6 @@ export default function Explore() {
   const markerPlaces = Object.values(markerPlaceMap);
   const markerCourseIds = new Set(Object.keys(courseFirstInViewport));
 
-  // 마커가 있는 코스만 그룹화 (첫 번째 장소가 뷰포트 밖인 코스는 목록에서 제외)
   const placeGroup = exploreAllPlaces.reduce(
     (acc, p) => {
       p.course_places.forEach((cp) => {
@@ -71,28 +90,27 @@ export default function Explore() {
   const [locationQuery, setLocationQuery] = useState("");
 
   useEffect(() => {
-    // 현재 위치 기반 좌표를 center에 저장
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        setCenter({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-        });
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        setCenter({ lat, lng });
+        if (!isKoreanCoord(lat, lng)) {
+          setIsKorean(false);
+        }
       },
       () => {},
     );
   }, []);
+
   useEffect(() => {
-    // 지도 영역(bounds)이 설정된 후에만 조회
     if (!neLat || !neLng || !swLat || !swLng) return;
 
-    // 공개 코스 또는 본인 코스만 표시 + 장소 2개 이상 + 숨김 처리된 코스 제외
     const isVisible = (cp: { courses: { is_public: boolean; is_hidden: boolean; user_id: string; course_places?: { count: number }[] } }) =>
       !cp.courses.is_hidden &&
       (cp.courses.is_public || cp.courses.user_id === user?.id) &&
       (cp.courses.course_places?.[0]?.count ?? 0) >= 2;
 
-    // 뷰포트 내 모든 장소 조회 - 마커 위치와 목록 모두 여기서 파생
     supabase
       .from("places")
       .select("*, course_places!inner(*, courses!inner(*, profiles(username), course_places(count)))")
@@ -101,7 +119,6 @@ export default function Explore() {
       .gte("lng", swLng)
       .lte("lng", neLng)
       .then(({ data }) => {
-        // 비공개 코스 장소 및 장소 1개 코스는 제외 (본인 코스는 유지)
         const filtered = data?.map((p) => ({
           ...p,
           course_places: p.course_places.filter(isVisible),
@@ -117,9 +134,40 @@ export default function Explore() {
       `/api/geocode?query=${encodeURIComponent(locationQuery.trim())}`,
     );
     const data = await res.json();
-    if (data.lat && data.lng) setCenter({ lat: data.lat, lng: data.lng });
+    if (data.lat && data.lng) {
+      setCenter({ lat: data.lat, lng: data.lng });
+      const korean = isKoreanCoord(data.lat, data.lng);
+      setIsKorean(korean);
+      setKakaoLevel(2);
+    }
     setZoomLevel(15);
   }
+
+  function handleMarkerClick(place: ExploreCoursePlace) {
+    setSelectedCoursePlaces(undefined);
+    setSelectedCourseIdx(0);
+    setSelected(place);
+    supabase
+      .from("course_places")
+      .select("*, places(*)")
+      .eq("course_id", place.course_places[0].course_id)
+      .order("order")
+      .then(({ data }) => {
+        setSelectedCoursePlaces(data ?? []);
+      });
+    setShowCourses(false);
+  }
+
+  function handleKakaoIdle(map: kakao.maps.Map) {
+    const bounds = map.getBounds();
+    const sw = bounds.getSouthWest();
+    const ne = bounds.getNorthEast();
+    setSwLat(sw.getLat());
+    setSwLng(sw.getLng());
+    setNeLat(ne.getLat());
+    setNeLng(ne.getLng());
+  }
+
   return (
     <main className="relative h-dvh overflow-hidden">
       <button
@@ -158,7 +206,13 @@ export default function Explore() {
           ].map((region) => (
             <button
               key={region.label}
-              onClick={() => { setCenter({ lat: region.lat, lng: region.lng }); setZoomLevel(region.zoom); }}
+              onClick={() => {
+                setCenter({ lat: region.lat, lng: region.lng });
+                setZoomLevel(region.zoom);
+                const korean = isKoreanCoord(region.lat, region.lng);
+                setIsKorean(korean);
+                if (korean) setKakaoLevel(zoomToKakaoLevel(region.zoom));
+              }}
               className="shrink-0 bg-white rounded-2xl px-4 py-1.5 shadow text-[13px] font-medium text-gray-700 cursor-pointer hover:bg-[#EE6300] hover:text-white"
             >
               {region.label}
@@ -172,10 +226,11 @@ export default function Explore() {
           onClick={() => {
             navigator.geolocation.getCurrentPosition(
               (position) => {
-                setCenter({
-                  lat: position.coords.latitude,
-                  lng: position.coords.longitude,
-                });
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                setCenter({ lat, lng });
+                setIsKorean(isKoreanCoord(lat, lng));
+                setKakaoLevel(5);
               },
               () => {},
             );
@@ -199,50 +254,61 @@ export default function Explore() {
           {showCourses ? "목록 닫기" : "코스 목록"}
         </button>
       </div>
-      <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
-        <Map
-          clickableIcons={false}
-          mapId="DEMO_MAP_ID"
-          style={{ width: "100%", height: "100dvh" }}
-          // 첫 페이지 화면 - 현재 위치 기반으로 지도 보여주기
-          defaultCenter={{ lat: 37.5, lng: 127 }}
-          defaultZoom={12}
-          mapTypeControl={false}
-          onIdle={(e) => {
-            const bounds = e.map.getBounds();
-            const ne = bounds?.getNorthEast(); // 북동
-            const sw = bounds?.getSouthWest(); // 남서
-            setNeLat(ne?.lat());
-            setNeLng(ne?.lng());
-            setSwLat(sw?.lat());
-            setSwLng(sw?.lng());
-          }}
-        >
-          <LocationSetter lat={center.lat} lng={center.lng} zoom={zoomLevel} />
-          {selectedCoursePlaces && selectedCoursePlaces.length > 0 && (
-            <CoursePreviewRenderer places={selectedCoursePlaces} />
-          )}
-          {!selected && (
-            <MarkerRenderer
-              places={markerPlaces}
-              onMarkerClick={(place) => {
-                setSelectedCoursePlaces(undefined);
-                setSelectedCourseIdx(0);
-                setSelected(place);
-                supabase
-                  .from("course_places")
-                  .select("*, places(*)")
-                  .eq("course_id", place.course_places[0].course_id)
-                  .order("order")
-                  .then(({ data }) => {
-                    setSelectedCoursePlaces(data ?? []);
-                  });
-                setShowCourses(false);
-              }}
-            />
-          )}
-        </Map>
-      </APIProvider>
+
+      {useKakao ? (
+        !kakaoSdkLoading && (
+          <KakaoMap
+            center={center}
+            isPanto
+            level={kakaoLevel}
+            style={{ width: "100%", height: "100dvh" }}
+            onClick={() => { setSelected(null); setSelectedCoursePlaces(undefined); }}
+            onIdle={handleKakaoIdle}
+          >
+            {selectedCoursePlaces && selectedCoursePlaces.length > 0 && (
+              <KakaoPreviewRenderer places={selectedCoursePlaces} />
+            )}
+            {!selected && (
+              <KakaoMarkerRenderer
+                places={markerPlaces}
+                onMarkerClick={handleMarkerClick}
+              />
+            )}
+          </KakaoMap>
+        )
+      ) : (
+        <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!}>
+          <Map
+            clickableIcons={false}
+            mapId="DEMO_MAP_ID"
+            style={{ width: "100%", height: "100dvh" }}
+            defaultCenter={{ lat: 37.5, lng: 127 }}
+            defaultZoom={12}
+            mapTypeControl={false}
+            onIdle={(e) => {
+              const bounds = e.map.getBounds();
+              const ne = bounds?.getNorthEast();
+              const sw = bounds?.getSouthWest();
+              setNeLat(ne?.lat());
+              setNeLng(ne?.lng());
+              setSwLat(sw?.lat());
+              setSwLng(sw?.lng());
+            }}
+          >
+            <LocationSetter lat={center.lat} lng={center.lng} zoom={zoomLevel} />
+            {selectedCoursePlaces && selectedCoursePlaces.length > 0 && (
+              <CoursePreviewRenderer places={selectedCoursePlaces} />
+            )}
+            {!selected && (
+              <MarkerRenderer
+                places={markerPlaces}
+                onMarkerClick={handleMarkerClick}
+              />
+            )}
+          </Map>
+        </APIProvider>
+      )}
+
       {selected && (
         <div className="z-50 absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
           <div className="flex justify-between items-start mb-3 gap-3">
@@ -265,7 +331,6 @@ export default function Explore() {
             </button>
           </div>
 
-          {/* 코스 탭 (여러 코스에 포함된 경우) */}
           {selected.course_places.length > 1 && (
             <div className="flex gap-2 overflow-x-auto scrollbar-hide mb-3 -mx-1 px-1">
               {selected.course_places.map((cp, i) => (
@@ -325,6 +390,7 @@ export default function Explore() {
           </Link>
         </div>
       )}
+
       {showCourses && (
         <div className="z-50 absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl p-6 shadow-lg max-h-[60vh] overflow-y-auto">
           <div className="flex justify-between items-center mb-4">
@@ -343,7 +409,6 @@ export default function Explore() {
           ) : (
             <ul className="flex flex-col gap-3">
               {Object.entries(placeGroup).slice(0, visibleCourseCount).map(([courseId, places]) => {
-                // 현재 courseId에 해당하는 course_places 항목을 찾아서 코스 정보(제목, 작성자) 추출
                 const courseInfo = places[0].course_places.find(
                   (cp) => cp.course_id === courseId,
                 );
@@ -365,7 +430,6 @@ export default function Explore() {
                         <p className="text-[12px] text-gray-400">
                           {places
                             .slice()
-                            // 현재 코스의 order 기준으로 정렬 (course_places[0]이 다른 코스 항목일 수 있으므로 find 사용)
                             .sort((a, b) => {
                               const aOrder =
                                 a.course_places.find(

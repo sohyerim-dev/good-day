@@ -124,7 +124,7 @@ export default function KakaoRouteRenderer({ places, segmentPaths, selectedSegme
               <Polyline path={seg.subway} strokeWeight={4} strokeColor={color} strokeOpacity={0.9} strokeStyle="solid" />
             )}
             {showWalk && visible && seg.walk.length > 1 && (
-              <Polyline path={seg.walk} strokeWeight={2} strokeColor={color} strokeOpacity={0.7} strokeStyle="shortdot" />
+              <Polyline path={seg.walk} strokeWeight={4} strokeColor={color} strokeOpacity={0.8} strokeStyle="shortdot" />
             )}
           </Fragment>
         );
