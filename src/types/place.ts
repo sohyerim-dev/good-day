@@ -8,6 +8,7 @@ export interface NaverPlace {
   link: string;
   naverPlaceUrl: string;
   category?: string;
+  detail_address?: string;
   google_place_id?: string; // 해외 장소 (Google Places ID)
   source?: "naver" | "google";
 }

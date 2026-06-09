@@ -57,7 +57,7 @@ async function fetchCoursePlaces(id: string): Promise<CoursePlace[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("course_places")
-    .select("*, places(id, name, address, lat, lng, naver_url, google_place_id, category)")
+    .select("*, places(id, name, address, detail_address, lat, lng, naver_url, google_place_id, category)")
     .eq("course_id", id)
     .order("order");
   if (error) throw new Error("장소 목록을 불러올 수 없어요");
@@ -557,7 +557,7 @@ export default function CourseDetail({
                       {p.places.name}
                     </span>
                     <span className="text-[12px] text-gray-400">
-                      {p.places.address}
+                      {p.places.address}{p.places.detail_address ? ` ${p.places.detail_address}` : ""}
                     </span>
                   </div>
                   <div className="flex gap-2 shrink-0">

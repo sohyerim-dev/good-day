@@ -78,6 +78,7 @@ function CreatePage() {
   const [directGeoLoading, setDirectGeoLoading] = useState(false);
   const [directRegion, setDirectRegion] = useState<"domestic" | "global">("domestic");
   const [directCategory, setDirectCategory] = useState("");
+  const [directDetailAddress, setDirectDetailAddress] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -259,6 +260,7 @@ function CreatePage() {
       order: selectedPlaces.length + 1,
       _key: `direct-${Date.now()}`,
       ...(directCategory ? { category: directCategory } : {}),
+      ...(directDetailAddress.trim() ? { detail_address: directDetailAddress.trim() } : {}),
     };
     setSelectedPlaces((prev) => [...prev, { ...place, order: prev.length + 1 }]);
     setDirectName("");
@@ -266,6 +268,7 @@ function CreatePage() {
     setDirectLat(null);
     setDirectLng(null);
     setDirectCategory("");
+    setDirectDetailAddress("");
     if (!placeActive) setPlaceActive(true);
   }
 
@@ -331,9 +334,9 @@ function CreatePage() {
 
     if (selectedPlaces.length < 2) return;
 
-    // 국내/해외 분리 upsert (A→B→A처럼 같은 장소가 여러 번 있을 수 있으므로 중복 제거)
+    const directPlaces = selectedPlaces.filter((p) => p.id.startsWith("direct-"));
     const seen = new Set<string>();
-    const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id).filter((p) => {
+    const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id && !p.id.startsWith("direct-")).filter((p) => {
       if (seen.has(p.naverPlaceUrl)) return false;
       seen.add(p.naverPlaceUrl); return true;
     });
@@ -343,6 +346,18 @@ function CreatePage() {
       seenG.add(p.google_place_id!); return true;
     });
     const placeIdMap: Record<string, string> = {};
+
+    for (const p of directPlaces) {
+      const { data } = await supabase.from("places").insert({
+        name: p.title,
+        address: p.roadAddress || p.address,
+        lat: Number(p.mapy) / 10000000,
+        lng: Number(p.mapx) / 10000000,
+        category: p.category || null,
+        detail_address: p.detail_address || null,
+      }).select().single();
+      if (data) placeIdMap[p._key ?? p.id] = data.id;
+    }
 
     if (naverPlaces.length > 0) {
       const { data, error } = await supabase
@@ -407,7 +422,9 @@ function CreatePage() {
     await supabase.from("course_places").insert(
       selectedPlaces.map((p) => ({
         course_id: courseData.id,
-        place_id: placeIdMap[p.google_place_id ?? p.naverPlaceUrl],
+        place_id: p.id.startsWith("direct-")
+          ? placeIdMap[p._key ?? p.id]
+          : placeIdMap[p.google_place_id ?? p.naverPlaceUrl],
         order: p.order,
       })),
     );
@@ -622,6 +639,12 @@ function CreatePage() {
             <option value="미용">💇 미용</option>
             <option value="병원">🏥 병원</option>
           </select>
+          <input
+            placeholder="상세 주소 (동/호수 등, 선택사항)"
+            value={directDetailAddress}
+            onChange={(e) => setDirectDetailAddress(e.target.value)}
+            className="bg-gray-50 rounded-2xl p-4 w-full text-[14px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+          />
           <button
             type="button"
             onClick={handleAddDirectPlace}

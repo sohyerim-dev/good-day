@@ -99,6 +99,7 @@ export default function EditCourse({
   const [directGeoLoading, setDirectGeoLoading] = useState(false);
   const [directRegion, setDirectRegion] = useState<"domestic" | "global">("domestic");
   const [directCategory, setDirectCategory] = useState("");
+  const [directDetailAddress, setDirectDetailAddress] = useState("");
 
   const { data: courseData } = useQuery({
     queryKey: ["course", id],
@@ -194,6 +195,7 @@ export default function EditCourse({
       order: selectedPlaces.length + 1,
       _key: `direct-${Date.now()}`,
       category: directCategory,
+      ...(directDetailAddress.trim() ? { detail_address: directDetailAddress.trim() } : {}),
     };
     setSelectedPlaces((prev) => [...prev, { ...place, order: prev.length + 1 }]);
     setDirectName("");
@@ -201,6 +203,7 @@ export default function EditCourse({
     setDirectLat(null);
     setDirectLng(null);
     setDirectCategory("");
+    setDirectDetailAddress("");
     if (!placeActive) setPlaceActive(true);
   }
 
@@ -287,6 +290,7 @@ export default function EditCourse({
           lat: Number(p.mapy) / 10000000,
           lng: Number(p.mapx) / 10000000,
           category: p.category || null,
+          detail_address: p.detail_address || null,
         }).select().single();
         if (data) placeIdMap[p._key ?? p.id] = data.id;
       }
@@ -499,6 +503,12 @@ export default function EditCourse({
             <option value="미용">💇 미용</option>
             <option value="병원">🏥 병원</option>
           </select>
+          <input
+            placeholder="상세 주소 (동/호수 등, 선택사항)"
+            value={directDetailAddress}
+            onChange={(e) => setDirectDetailAddress(e.target.value)}
+            className="bg-gray-50 rounded-2xl p-4 w-full text-[14px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+          />
           <button type="button" onClick={handleAddDirectPlace}
             disabled={!directName.trim() || !directAddress || directLat === null || !directCategory || directGeoLoading}
             className="bg-[#EE6300] text-white rounded-2xl p-4 w-full cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
