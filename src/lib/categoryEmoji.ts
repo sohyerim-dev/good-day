@@ -20,13 +20,14 @@ export function getCategoryEmoji(category: string | null | undefined): string {
       c.includes("이탈리아음식") || c.includes("초밥") || c.includes("라면") ||
       c.includes("우동") || c.includes("덮밥") || c.includes("돈가스") ||
       c.includes("고기요리") || c.includes("곱창") || c.includes("칼국수") ||
-      c.includes("생선회")) return "🍽️";
+      c.includes("생선회") || c.includes("뷔페")) return "🍽️";
 
   // 쇼핑 — 가구/인테리어 포함
   if (c.includes("쇼핑") || c.includes("유통") || c.includes("서점") ||
       c.includes("시장") || c.includes("백화점") || c.includes("가구") ||
       c.includes("인테리어") || c.includes("편의점") || c.includes("문구") ||
-      c.includes("장난감") || c.includes("패션") || c.includes("음반")) return "🛍️";
+      c.includes("장난감") || c.includes("패션") || c.includes("음반") ||
+      c.includes("마트") || c.includes("슈퍼")) return "🛍️";
 
   // 사진/스튜디오
   if (c.includes("사진") || c.includes("스튜디오")) return "📸";
