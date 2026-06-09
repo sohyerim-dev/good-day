@@ -233,12 +233,22 @@ export default function Home() {
         className="mb-2"
       />
       <div className="flex justify-between items-center w-full mb-4">
-        <Link
-          href="/about"
-          className="text-[13px] text-gray-400 border border-gray-200 rounded-2xl px-3 py-1.5 hover:border-[#EE6300] hover:text-[#EE6300]"
-        >
-          굿데이 소개
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/about"
+            className="text-[13px] text-gray-400 border border-gray-200 rounded-2xl px-3 py-1.5 hover:border-[#EE6300] hover:text-[#EE6300]"
+          >
+            굿데이 소개
+          </Link>
+          {user?.role === "admin" && (
+            <Link
+              href="/admin"
+              className="text-[13px] text-gray-400 border border-gray-200 rounded-2xl px-3 py-1.5 hover:border-gray-500 hover:text-gray-600"
+            >
+              관리자
+            </Link>
+          )}
+        </div>
         <Link
           href="/create"
           className="bg-[#EE6300] text-white text-[14px] rounded-2xl px-4 py-2 cursor-pointer border border-[#EE6300] hover:bg-white hover:text-[#EE6300]"

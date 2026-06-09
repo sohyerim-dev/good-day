@@ -1,0 +1,314 @@
+"use client";
+
+import { createClient } from "@/lib/supabase/client";
+import { useUserStore } from "@/store/userStore";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+
+interface Stats {
+  totalCourses: number;
+  publicCourses: number;
+  totalUsers: number;
+  newUsersThisWeek: number;
+  pendingReports: number;
+}
+
+interface Report {
+  id: string;
+  target_type: "course" | "place_photo";
+  target_id: string;
+  reason: string;
+  created_at: string;
+  reporter_id: string;
+  // 조인된 데이터
+  courseTitle?: string;
+  photoUrl?: string;
+}
+
+interface AdminCourse {
+  id: string;
+  title: string;
+  user_id: string;
+  is_public: boolean;
+  is_hidden: boolean;
+  created_at: string;
+  username?: string;
+  placeCount?: number;
+}
+
+export default function AdminPage() {
+  const user = useUserStore((s) => s.user);
+  const hasHydrated = useUserStore((s) => s.hasHydrated);
+  const router = useRouter();
+  const [tab, setTab] = useState<"reports" | "courses">("reports");
+  const [stats, setStats] = useState<Stats | null>(null);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [courses, setCourses] = useState<AdminCourse[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!hasHydrated) return;
+    if (!user || user.role !== "admin") { router.replace("/"); return; }
+    loadAll();
+  }, [user, hasHydrated]);
+
+  async function loadAll() {
+    const supabase = createClient();
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+
+    const [
+      { count: totalCourses },
+      { count: publicCourses },
+      { count: totalUsers },
+      { count: newUsers },
+      { count: pendingReports },
+    ] = await Promise.all([
+      supabase.from("courses").select("id", { count: "exact", head: true }),
+      supabase.from("courses").select("id", { count: "exact", head: true }).eq("is_public", true).eq("is_hidden", false),
+      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", weekAgo),
+      supabase.from("reports").select("id", { count: "exact", head: true }).eq("status", "pending"),
+    ]);
+
+    setStats({
+      totalCourses: totalCourses ?? 0,
+      publicCourses: publicCourses ?? 0,
+      totalUsers: totalUsers ?? 0,
+      newUsersThisWeek: newUsers ?? 0,
+      pendingReports: pendingReports ?? 0,
+    });
+
+    await Promise.all([loadReports(supabase), loadCourses(supabase)]);
+    setLoading(false);
+  }
+
+  async function loadReports(supabase: ReturnType<typeof createClient>) {
+    const { data } = await supabase
+      .from("reports")
+      .select("id, target_type, target_id, reason, created_at, reporter_id")
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    if (!data) return;
+
+    const courseIds = data.filter((r) => r.target_type === "course").map((r) => r.target_id);
+    const photoIds = data.filter((r) => r.target_type === "place_photo").map((r) => r.target_id);
+
+    const [coursesRes, photosRes] = await Promise.all([
+      courseIds.length > 0 ? supabase.from("courses").select("id, title").in("id", courseIds) : Promise.resolve({ data: [] }),
+      photoIds.length > 0 ? supabase.from("place_photos").select("id, storage_url").in("id", photoIds) : Promise.resolve({ data: [] }),
+    ]);
+
+    const courseMap: Record<string, string> = {};
+    (coursesRes.data ?? []).forEach((c) => { courseMap[c.id] = c.title; });
+    const photoMap: Record<string, string> = {};
+    (photosRes.data ?? []).forEach((p) => { photoMap[p.id] = p.storage_url; });
+
+    setReports(data.map((r) => ({
+      ...r,
+      courseTitle: r.target_type === "course" ? courseMap[r.target_id] : undefined,
+      photoUrl: r.target_type === "place_photo" ? photoMap[r.target_id] : undefined,
+    })));
+  }
+
+  async function loadCourses(supabase: ReturnType<typeof createClient>) {
+    const { data: coursesData } = await supabase
+      .from("courses")
+      .select("id, title, user_id, is_public, is_hidden, created_at")
+      .eq("is_public", true)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (!coursesData) return;
+
+    const userIds = [...new Set(coursesData.map((c) => c.user_id))];
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, username")
+      .in("id", userIds);
+    const profileMap: Record<string, string> = {};
+    (profilesData ?? []).forEach((p) => { profileMap[p.id] = p.username; });
+
+    const courseIds = coursesData.map((c) => c.id);
+    const { data: placeCounts } = await supabase
+      .from("course_places")
+      .select("course_id")
+      .in("course_id", courseIds);
+    const countMap: Record<string, number> = {};
+    (placeCounts ?? []).forEach((cp) => { countMap[cp.course_id] = (countMap[cp.course_id] ?? 0) + 1; });
+
+    setCourses(coursesData.map((c) => ({
+      ...c,
+      username: profileMap[c.user_id] ?? "-",
+      placeCount: countMap[c.id] ?? 0,
+    })));
+  }
+
+  async function handleReportAction(reportId: string, status: "resolved" | "dismissed") {
+    const supabase = createClient();
+    await supabase.from("reports").update({ status }).eq("id", reportId);
+    setReports((prev) => prev.filter((r) => r.id !== reportId));
+    setStats((prev) => prev ? { ...prev, pendingReports: prev.pendingReports - 1 } : prev);
+  }
+
+  async function handleHideAndResolve(reportId: string, courseId: string) {
+    const supabase = createClient();
+    await supabase.from("courses").update({ is_hidden: true }).eq("id", courseId);
+    await handleReportAction(reportId, "resolved");
+    setCourses((prev) => prev.map((c) => c.id === courseId ? { ...c, is_hidden: true } : c));
+  }
+
+  async function handleDeletePhoto(reportId: string, photoId: string, photoUrl: string) {
+    const supabase = createClient();
+    const path = photoUrl.split("/place-photos/")[1];
+    if (path) await supabase.storage.from("place-photos").remove([path]);
+    await supabase.from("place_photos").delete().eq("id", photoId);
+    await handleReportAction(reportId, "resolved");
+  }
+
+  async function handleToggleHidden(courseId: string, isHidden: boolean) {
+    const supabase = createClient();
+    await supabase.from("courses").update({ is_hidden: !isHidden }).eq("id", courseId);
+    setCourses((prev) => prev.map((c) => c.id === courseId ? { ...c, is_hidden: !isHidden } : c));
+  }
+
+  if (!hasHydrated || loading) {
+    return <main className="p-4"><p className="text-gray-400 text-[14px]">불러오는 중...</p></main>;
+  }
+
+  return (
+    <main className="p-4 pb-28 flex flex-col gap-5">
+      <h1 className="text-[20px] font-bold">관리자 대시보드</h1>
+
+      {/* 통계 */}
+      {stats && (
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {[
+            { label: "총 코스", value: stats.totalCourses },
+            { label: "공개 코스", value: stats.publicCourses },
+            { label: "총 유저", value: stats.totalUsers },
+            { label: "이번주 신규 가입", value: stats.newUsersThisWeek },
+            { label: "미처리 신고", value: stats.pendingReports, highlight: stats.pendingReports > 0 },
+          ].map(({ label, value, highlight }) => (
+            <div key={label} className={`rounded-2xl p-4 flex flex-col gap-1 ${highlight ? "bg-red-50" : "bg-gray-50"}`}>
+              <span className={`text-[12px] ${highlight ? "text-red-400" : "text-gray-400"}`}>{label}</span>
+              <span className={`text-[22px] font-bold ${highlight ? "text-red-500" : ""}`}>{value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 탭 */}
+      <div className="flex gap-2">
+        <button
+          onClick={() => setTab("reports")}
+          className={`text-[13px] rounded-xl px-4 py-2 cursor-pointer ${tab === "reports" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"}`}
+        >
+          신고 관리 {stats && stats.pendingReports > 0 && <span className="ml-1 bg-red-500 text-white rounded-full px-1.5 text-[10px]">{stats.pendingReports}</span>}
+        </button>
+        <button
+          onClick={() => setTab("courses")}
+          className={`text-[13px] rounded-xl px-4 py-2 cursor-pointer ${tab === "courses" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"}`}
+        >
+          코스 관리
+        </button>
+      </div>
+
+      {/* 신고 관리 */}
+      {tab === "reports" && (
+        <div className="flex flex-col gap-3">
+          {reports.length === 0 ? (
+            <p className="text-gray-400 text-[14px] text-center py-8">미처리 신고가 없어요</p>
+          ) : (
+            reports.map((report) => (
+              <div key={report.id} className="bg-gray-50 rounded-2xl p-4 flex flex-col gap-3">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex flex-col gap-1">
+                    <div className="flex items-center gap-2">
+                      <span className={`text-[11px] rounded-full px-2 py-0.5 ${report.target_type === "course" ? "bg-blue-100 text-blue-600" : "bg-purple-100 text-purple-600"}`}>
+                        {report.target_type === "course" ? "코스" : "사진"}
+                      </span>
+                      <span className="text-[12px] text-gray-500">{report.reason}</span>
+                    </div>
+                    {report.target_type === "course" && report.courseTitle && (
+                      <p className="text-[13px] font-medium">{report.courseTitle}</p>
+                    )}
+                    {report.target_type === "place_photo" && report.photoUrl && (
+                      <img src={report.photoUrl} alt="" className="w-16 h-16 rounded-lg object-cover mt-1" />
+                    )}
+                    <p className="text-[11px] text-gray-400">{new Date(report.created_at).toLocaleDateString("ko-KR")}</p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  {report.target_type === "course" && (
+                    <>
+                      <button
+                        onClick={() => router.push(`/courses/${report.target_id}`)}
+                        className="text-[12px] border border-gray-300 text-gray-500 rounded-xl px-3 py-1.5 cursor-pointer hover:border-gray-500"
+                      >
+                        코스 보기
+                      </button>
+                      <button
+                        onClick={() => handleHideAndResolve(report.id, report.target_id)}
+                        className="text-[12px] border border-red-300 text-red-500 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-red-50"
+                      >
+                        숨김 + 처리완료
+                      </button>
+                    </>
+                  )}
+                  {report.target_type === "place_photo" && report.photoUrl && (
+                    <button
+                      onClick={() => handleDeletePhoto(report.id, report.target_id, report.photoUrl!)}
+                      className="text-[12px] border border-red-300 text-red-400 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-red-50"
+                    >
+                      사진 삭제
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleReportAction(report.id, "resolved")}
+                    className="text-[12px] border border-green-300 text-green-600 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-green-50"
+                  >
+                    처리 완료
+                  </button>
+                  <button
+                    onClick={() => handleReportAction(report.id, "dismissed")}
+                    className="text-[12px] border border-gray-200 text-gray-400 rounded-xl px-3 py-1.5 cursor-pointer hover:border-gray-400"
+                  >
+                    기각
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {/* 코스 관리 */}
+      {tab === "courses" && (
+        <div className="flex flex-col gap-2">
+          {courses.map((course) => (
+            <div key={course.id} className={`rounded-2xl p-4 flex items-center justify-between gap-2 ${course.is_hidden ? "bg-gray-100 opacity-60" : "bg-gray-50"}`}>
+              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                <p className="font-medium text-[14px] truncate">{course.title}</p>
+                <p className="text-[11px] text-gray-400">@{course.username} · 장소 {course.placeCount}개 · {new Date(course.created_at).toLocaleDateString("ko-KR")}</p>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  onClick={() => router.push(`/courses/${course.id}`)}
+                  className="text-[11px] border border-gray-300 text-gray-500 rounded-xl px-2 py-1 cursor-pointer hover:border-gray-500"
+                >
+                  보기
+                </button>
+                <button
+                  onClick={() => handleToggleHidden(course.id, course.is_hidden)}
+                  className={`text-[11px] rounded-xl px-2 py-1 cursor-pointer border ${course.is_hidden ? "border-green-300 text-green-600 hover:bg-green-50" : "border-red-300 text-red-400 hover:bg-red-50"}`}
+                >
+                  {course.is_hidden ? "숨김 해제" : "숨김"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </main>
+  );
+}
