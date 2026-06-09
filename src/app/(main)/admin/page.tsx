@@ -53,7 +53,9 @@ export default function AdminPage() {
   const [reports, setReports] = useState<Report[]>([]);
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
+  const [userPage, setUserPage] = useState(1);
   const [loading, setLoading] = useState(true);
+  const USER_PAGE_SIZE = 20;
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -156,8 +158,7 @@ export default function AdminPage() {
     const { data: profilesData } = await supabase
       .from("profiles")
       .select("id, username, created_at, role")
-      .order("created_at", { ascending: false })
-      .limit(200);
+      .order("created_at", { ascending: false });
     if (!profilesData) return;
 
     const userIds = profilesData.map((p) => p.id);
@@ -175,6 +176,18 @@ export default function AdminPage() {
       role: p.role ?? "user",
       courseCount: countMap[p.id] ?? 0,
     })));
+  }
+
+  async function handleRenameUser(userId: string, currentUsername: string) {
+    const newUsername = prompt(`새 닉네임 입력 (현재: ${currentUsername})`);
+    if (!newUsername || newUsername.trim() === currentUsername) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("profiles").update({ username: newUsername.trim() }).eq("id", userId);
+    if (!error) {
+      setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, username: newUsername.trim() } : u));
+    } else {
+      alert("닉네임 변경 중 오류가 발생했어요.");
+    }
   }
 
   async function handleDeleteUser(userId: string) {
@@ -346,7 +359,7 @@ export default function AdminPage() {
       {/* 회원 관리 */}
       {tab === "users" && (
         <div className="flex flex-col gap-2">
-          {users.map((u) => (
+          {users.slice((userPage - 1) * USER_PAGE_SIZE, userPage * USER_PAGE_SIZE).map((u) => (
             <div key={u.id} className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between gap-2">
               <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                 <div className="flex items-center gap-2">
@@ -357,16 +370,43 @@ export default function AdminPage() {
                 </div>
                 <p className="text-[11px] text-gray-400">코스 {u.courseCount}개 · 가입 {new Date(u.created_at).toLocaleDateString("ko-KR")}</p>
               </div>
-              {u.role !== "admin" && (
+              <div className="flex gap-2 shrink-0">
                 <button
-                  onClick={() => handleDeleteUser(u.id)}
-                  className="text-[11px] border border-red-300 text-red-400 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-red-50 shrink-0"
+                  onClick={() => handleRenameUser(u.id, u.username)}
+                  className="text-[11px] border border-gray-300 text-gray-500 rounded-xl px-3 py-1.5 cursor-pointer hover:border-gray-500"
                 >
-                  탈퇴 처리
+                  닉네임 변경
                 </button>
-              )}
+                {u.role !== "admin" && (
+                  <button
+                    onClick={() => handleDeleteUser(u.id)}
+                    className="text-[11px] border border-red-300 text-red-400 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-red-50"
+                  >
+                    탈퇴 처리
+                  </button>
+                )}
+              </div>
             </div>
           ))}
+          {Math.ceil(users.length / USER_PAGE_SIZE) > 1 && (
+            <div className="flex justify-center items-center gap-2 pt-2">
+              <button
+                onClick={() => setUserPage((p) => Math.max(1, p - 1))}
+                disabled={userPage === 1}
+                className="px-3 py-1.5 rounded-xl text-[13px] bg-gray-100 text-gray-500 disabled:opacity-30 cursor-pointer disabled:cursor-default"
+              >
+                이전
+              </button>
+              <span className="text-[13px] text-gray-500">{userPage} / {Math.ceil(users.length / USER_PAGE_SIZE)}</span>
+              <button
+                onClick={() => setUserPage((p) => Math.min(Math.ceil(users.length / USER_PAGE_SIZE), p + 1))}
+                disabled={userPage === Math.ceil(users.length / USER_PAGE_SIZE)}
+                className="px-3 py-1.5 rounded-xl text-[13px] bg-gray-100 text-gray-500 disabled:opacity-30 cursor-pointer disabled:cursor-default"
+              >
+                다음
+              </button>
+            </div>
+          )}
         </div>
       )}
 
