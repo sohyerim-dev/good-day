@@ -36,14 +36,23 @@ interface AdminCourse {
   placeCount?: number;
 }
 
+interface AdminUser {
+  id: string;
+  username: string;
+  created_at: string;
+  role: string;
+  courseCount: number;
+}
+
 export default function AdminPage() {
   const user = useUserStore((s) => s.user);
   const hasHydrated = useUserStore((s) => s.hasHydrated);
   const router = useRouter();
-  const [tab, setTab] = useState<"reports" | "courses">("reports");
+  const [tab, setTab] = useState<"reports" | "courses" | "users">("reports");
   const [stats, setStats] = useState<Stats | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [courses, setCourses] = useState<AdminCourse[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -78,7 +87,7 @@ export default function AdminPage() {
       pendingReports: pendingReports ?? 0,
     });
 
-    await Promise.all([loadReports(supabase), loadCourses(supabase)]);
+    await Promise.all([loadReports(supabase), loadCourses(supabase), loadUsers(supabase)]);
     setLoading(false);
   }
 
@@ -141,6 +150,46 @@ export default function AdminPage() {
       username: profileMap[c.user_id] ?? "-",
       placeCount: countMap[c.id] ?? 0,
     })));
+  }
+
+  async function loadUsers(supabase: ReturnType<typeof createClient>) {
+    const { data: profilesData } = await supabase
+      .from("profiles")
+      .select("id, username, created_at, role")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (!profilesData) return;
+
+    const userIds = profilesData.map((p) => p.id);
+    const { data: courseCounts } = await supabase
+      .from("courses")
+      .select("user_id")
+      .in("user_id", userIds);
+    const countMap: Record<string, number> = {};
+    (courseCounts ?? []).forEach((c) => { countMap[c.user_id] = (countMap[c.user_id] ?? 0) + 1; });
+
+    setUsers(profilesData.map((p) => ({
+      id: p.id,
+      username: p.username,
+      created_at: p.created_at,
+      role: p.role ?? "user",
+      courseCount: countMap[p.id] ?? 0,
+    })));
+  }
+
+  async function handleDeleteUser(userId: string) {
+    if (!confirm("정말 이 회원을 탈퇴 처리하시겠어요? 되돌릴 수 없어요.")) return;
+    const res = await fetch("/api/admin/delete-user", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId }),
+    });
+    if (res.ok) {
+      setUsers((prev) => prev.filter((u) => u.id !== userId));
+      setStats((prev) => prev ? { ...prev, totalUsers: prev.totalUsers - 1 } : prev);
+    } else {
+      alert("탈퇴 처리 중 오류가 발생했어요.");
+    }
   }
 
   async function handleReportAction(reportId: string, status: "resolved" | "dismissed") {
@@ -217,6 +266,12 @@ export default function AdminPage() {
         >
           코스 관리
         </button>
+        <button
+          onClick={() => setTab("users")}
+          className={`text-[13px] rounded-xl px-4 py-2 cursor-pointer ${tab === "users" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"}`}
+        >
+          회원 관리
+        </button>
       </div>
 
       {/* 신고 관리 */}
@@ -285,6 +340,33 @@ export default function AdminPage() {
               </div>
             ))
           )}
+        </div>
+      )}
+
+      {/* 회원 관리 */}
+      {tab === "users" && (
+        <div className="flex flex-col gap-2">
+          {users.map((u) => (
+            <div key={u.id} className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between gap-2">
+              <div className="flex flex-col gap-0.5 flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-[14px] truncate">@{u.username}</p>
+                  {u.role === "admin" && (
+                    <span className="text-[10px] bg-gray-800 text-white rounded-full px-2 py-0.5">관리자</span>
+                  )}
+                </div>
+                <p className="text-[11px] text-gray-400">코스 {u.courseCount}개 · 가입 {new Date(u.created_at).toLocaleDateString("ko-KR")}</p>
+              </div>
+              {u.role !== "admin" && (
+                <button
+                  onClick={() => handleDeleteUser(u.id)}
+                  className="text-[11px] border border-red-300 text-red-400 rounded-xl px-3 py-1.5 cursor-pointer hover:bg-red-50 shrink-0"
+                >
+                  탈퇴 처리
+                </button>
+              )}
+            </div>
+          ))}
         </div>
       )}
 
