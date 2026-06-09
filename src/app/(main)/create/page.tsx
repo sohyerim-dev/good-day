@@ -855,6 +855,9 @@ function CreatePage() {
             className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${isPublic ? "translate-x-7" : "translate-x-1"}`}
           />
         </div>
+        {isPublic && selectedPlaces.some((p) => !p.google_place_id && !p.naverPlaceUrl) && (
+          <p className="text-[12px] text-amber-500 mt-1 w-full">개인 장소가 포함된 코스를 공개하면 해당 장소의 주소가 다른 사람에게 노출될 수 있어요.</p>
+        )}
       </label>
       <p className="text-[12px] text-gray-400 -mt-2">
         ✨ 다른 사람들에게도 도움이 될 수 있어요.<br />공개 코스로 등록해보세요.
