@@ -48,25 +48,44 @@ export default function Explore() {
   const [exploreAllPlaces, setExploreAllPlaces] = useState<ExploreCoursePlace[]>([]);
 
   type CpType = ExploreCoursePlace["course_places"][number];
-  const courseFirstInViewport: Record<string, { placeId: string; cp: CpType }> = {};
-  exploreAllPlaces.forEach((place) => {
-    place.course_places.forEach((cp) => {
-      const existing = courseFirstInViewport[cp.course_id];
-      if (!existing || cp.order < existing.cp.order) {
-        courseFirstInViewport[cp.course_id] = { placeId: place.id, cp };
-      }
+  // 한번 결정된 마커 위치는 고정 — 지도 이동 시 재계산 방지
+  const [stableCourseMarkers, setStableCourseMarkers] = useState<Record<string, { placeId: string; cp: CpType }>>({});
+
+  useEffect(() => {
+    setStableCourseMarkers((prev) => {
+      // 현재 viewport에 있는 코스 ID
+      const visibleCourseIds = new Set<string>();
+      exploreAllPlaces.forEach((p) => p.course_places.forEach((cp) => visibleCourseIds.add(cp.course_id)));
+      // viewport를 벗어난 코스 제거
+      const next: Record<string, { placeId: string; cp: CpType }> = {};
+      Object.entries(prev).forEach(([courseId, val]) => {
+        if (visibleCourseIds.has(courseId)) next[courseId] = val;
+      });
+      // 새로 나타난 코스만 min-order로 추가
+      const newFirst: Record<string, { placeId: string; cp: CpType }> = {};
+      exploreAllPlaces.forEach((place) => {
+        place.course_places.forEach((cp) => {
+          if (next[cp.course_id]) return;
+          const existing = newFirst[cp.course_id];
+          if (!existing || cp.order < existing.cp.order) {
+            newFirst[cp.course_id] = { placeId: place.id, cp };
+          }
+        });
+      });
+      return { ...next, ...newFirst };
     });
-  });
+  }, [exploreAllPlaces]);
+
   const placeById: Record<string, ExploreCoursePlace> = Object.fromEntries(exploreAllPlaces.map((p) => [p.id, p]));
   const markerPlaceMap: Record<string, ExploreCoursePlace & { course_places: CpType[] }> = {};
-  Object.values(courseFirstInViewport).forEach(({ placeId, cp }) => {
+  Object.values(stableCourseMarkers).forEach(({ placeId, cp }) => {
     const place = placeById[placeId];
     if (!place) return;
     if (!markerPlaceMap[placeId]) markerPlaceMap[placeId] = { ...place, course_places: [] };
     markerPlaceMap[placeId].course_places.push(cp);
   });
   const markerPlaces = Object.values(markerPlaceMap);
-  const markerCourseIds = new Set(Object.keys(courseFirstInViewport));
+  const markerCourseIds = new Set(Object.keys(stableCourseMarkers));
 
   const placeGroup = exploreAllPlaces.reduce(
     (acc, p) => {
