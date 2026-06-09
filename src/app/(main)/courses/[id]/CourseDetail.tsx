@@ -1,6 +1,7 @@
 "use client";
 
 import AlertModal from "@/components/ui/AlertModal";
+import ReportModal from "@/components/ReportModal";
 import { getCategoryEmoji } from "@/lib/categoryEmoji";
 import { createClient } from "@/lib/supabase/client";
 import { useUserStore } from "@/store/userStore";
@@ -112,6 +113,7 @@ export default function CourseDetail({
   const [schedules, setSchedules] = useState<Record<string, string>>({});
   const [uploadingPlace, setUploadingPlace] = useState<string | null>(null);
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
+  const [reportTarget, setReportTarget] = useState<{ type: "course" | "place_photo"; id: string } | null>(null);
 
   const searchParams = useSearchParams();
 
@@ -422,6 +424,13 @@ export default function CourseDetail({
 
   return (
     <>
+    {reportTarget && (
+      <ReportModal
+        targetType={reportTarget.type}
+        targetId={reportTarget.id}
+        onClose={() => setReportTarget(null)}
+      />
+    )}
     {showLoginPrompt && (
       <AlertModal
         message="로그인 후 이용할 수 있어요"
@@ -528,11 +537,21 @@ export default function CourseDetail({
               </div>
             )}
           </div>
-          {user && (
-            <button onClick={() => router.back()} className="text-gray-400 shrink-0 cursor-pointer hover:text-black">
-              뒤로 가기
-            </button>
-          )}
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            {user && (
+              <button onClick={() => router.back()} className="text-gray-400 cursor-pointer hover:text-black">
+                뒤로 가기
+              </button>
+            )}
+            {user && course && user.id !== course.user_id && (
+              <button
+                onClick={() => setReportTarget({ type: "course", id: course.id })}
+                className="text-[11px] text-gray-400 hover:text-red-400 cursor-pointer"
+              >
+                신고
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -678,12 +697,20 @@ export default function CourseDetail({
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img src={photo.storage_url} alt="" className="w-full h-full object-cover" />
                           </button>
-                          {(user?.id === photo.user_id || user?.role === "admin") && (
+                          {(user?.id === photo.user_id || user?.role === "admin") ? (
                             <button
                               onClick={() => handleDeletePhoto(photo)}
                               className="absolute -top-1 -right-1 bg-black/60 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] leading-none cursor-pointer"
                             >
                               ✕
+                            </button>
+                          ) : user && (
+                            <button
+                              onClick={() => setReportTarget({ type: "place_photo", id: photo.id })}
+                              className="absolute -top-1 -right-1 bg-black/60 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] leading-none cursor-pointer"
+                              title="신고"
+                            >
+                              🚩
                             </button>
                           )}
                         </div>
