@@ -119,15 +119,26 @@ export default function Home() {
 
   if (!hasHydrated)
     return (
-      <main className="flex flex-col items-center justify-center min-h-full gap-4">
-        <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" />
+      <main className="fixed inset-0">
+        <div className="absolute top-12 left-0 right-0 flex justify-center">
+          <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" />
+        </div>
         {loadTimeout && (
-          <button
-            onClick={() => window.location.reload()}
-            className="text-[13px] text-gray-400 border border-gray-200 rounded-xl px-4 py-2"
-          >
-            새로고침
-          </button>
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+            <p className="text-[12px] text-gray-400">불러오는 중 문제가 생겼어요</p>
+            <button
+              onClick={() => window.location.reload()}
+              className="flex items-center gap-1.5 text-[13px] text-gray-500 border border-gray-200 rounded-xl px-4 py-2 hover:border-gray-400"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                <path d="M21 3v5h-5"/>
+                <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                <path d="M8 16H3v5"/>
+              </svg>
+              새로고침
+            </button>
+          </div>
         )}
       </main>
     );
