@@ -29,6 +29,7 @@ export interface ExploreCoursePlace {
       title: string;
       user_id: string;
       profiles: { username: string };
+      course_places?: { count: number }[];
     };
   }[];
 }

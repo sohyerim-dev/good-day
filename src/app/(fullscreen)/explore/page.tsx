@@ -61,16 +61,23 @@ export default function Explore() {
       Object.entries(prev).forEach(([courseId, val]) => {
         if (visibleCourseIds.has(courseId)) next[courseId] = val;
       });
-      // 새로 나타난 코스만 min-order로 추가
-      const newFirst: Record<string, { placeId: string; cp: CpType }> = {};
+      // 새로 나타난 코스만 가운데 order에 가장 가까운 장소로 추가
+      const candidates: Record<string, { placeId: string; cp: CpType }[]> = {};
       exploreAllPlaces.forEach((place) => {
         place.course_places.forEach((cp) => {
           if (next[cp.course_id]) return;
-          const existing = newFirst[cp.course_id];
-          if (!existing || cp.order < existing.cp.order) {
-            newFirst[cp.course_id] = { placeId: place.id, cp };
-          }
+          if (!candidates[cp.course_id]) candidates[cp.course_id] = [];
+          candidates[cp.course_id].push({ placeId: place.id, cp });
         });
+      });
+      const newFirst: Record<string, { placeId: string; cp: CpType }> = {};
+      Object.entries(candidates).forEach(([courseId, list]) => {
+        const totalCount = list[0].cp.courses.course_places?.[0]?.count ?? list.length;
+        const midOrder = Math.ceil(totalCount / 2);
+        const best = list.reduce((a, b) =>
+          Math.abs(a.cp.order - midOrder) <= Math.abs(b.cp.order - midOrder) ? a : b
+        );
+        newFirst[courseId] = best;
       });
       return { ...next, ...newFirst };
     });
