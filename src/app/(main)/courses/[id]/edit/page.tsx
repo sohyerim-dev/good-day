@@ -2,6 +2,7 @@
 
 import { NaverPlace, SavedPlace } from "@/types/place";
 import { Fragment, use, useEffect, useState } from "react";
+import Script from "next/script";
 import {
   DndContext,
   closestCenter,
@@ -89,7 +90,15 @@ export default function EditCourse({
   const [placeActive, setPlaceActive] = useState(false);
 
   const [showSaved, setShowSaved] = useState(false);
-  const [region, setRegion] = useState<"domestic" | "global">("domestic");
+  const [region, setRegion] = useState<"domestic" | "global" | "direct">("domestic");
+  const [directName, setDirectName] = useState("");
+  const [directAddress, setDirectAddress] = useState("");
+  const [directAddressInput, setDirectAddressInput] = useState("");
+  const [directLat, setDirectLat] = useState<number | null>(null);
+  const [directLng, setDirectLng] = useState<number | null>(null);
+  const [directGeoLoading, setDirectGeoLoading] = useState(false);
+  const [directRegion, setDirectRegion] = useState<"domestic" | "global">("domestic");
+  const [directCategory, setDirectCategory] = useState("");
 
   const { data: courseData } = useQuery({
     queryKey: ["course", id],
@@ -133,6 +142,67 @@ export default function EditCourse({
     setSelectedPlaces(asNaverPlaces);
     if (asNaverPlaces.length > 0) setPlaceActive(true);
   }, [coursePlacesData]);
+
+  async function handleGlobalAddressSearch() {
+    if (!directAddressInput.trim()) return;
+    setDirectGeoLoading(true);
+    setDirectAddress("");
+    setDirectLat(null);
+    setDirectLng(null);
+    const res = await fetch(`/api/geocode?query=${encodeURIComponent(directAddressInput.trim())}`);
+    const geo = await res.json();
+    if (geo.lat && geo.lng) {
+      setDirectAddress(geo.formatted_address ?? directAddressInput.trim());
+      setDirectLat(geo.lat);
+      setDirectLng(geo.lng);
+    } else {
+      setDirectAddress("주소를 찾을 수 없어요");
+    }
+    setDirectGeoLoading(false);
+  }
+
+  function openDaumPostcode() {
+    new window.daum.Postcode({
+      oncomplete: async (data: { roadAddress: string; address: string }) => {
+        const addr = data.roadAddress || data.address;
+        setDirectAddress(addr);
+        setDirectLat(null);
+        setDirectLng(null);
+        setDirectGeoLoading(true);
+        const res = await fetch(`/api/geocode?query=${encodeURIComponent(addr)}`);
+        const geo = await res.json();
+        if (geo.lat && geo.lng) {
+          setDirectLat(geo.lat);
+          setDirectLng(geo.lng);
+        }
+        setDirectGeoLoading(false);
+      },
+    }).open();
+  }
+
+  function handleAddDirectPlace() {
+    if (!directName.trim() || !directAddress || directLat === null || directLng === null || !directCategory) return;
+    const place: NaverPlace & { order: number; _key?: string } = {
+      id: `direct-${Date.now()}`,
+      title: directName.trim(),
+      address: directAddress,
+      roadAddress: directAddress,
+      mapx: String(Math.round(directLng * 10000000)),
+      mapy: String(Math.round(directLat * 10000000)),
+      link: "",
+      naverPlaceUrl: "",
+      order: selectedPlaces.length + 1,
+      _key: `direct-${Date.now()}`,
+      category: directCategory,
+    };
+    setSelectedPlaces((prev) => [...prev, { ...place, order: prev.length + 1 }]);
+    setDirectName("");
+    setDirectAddress("");
+    setDirectLat(null);
+    setDirectLng(null);
+    setDirectCategory("");
+    if (!placeActive) setPlaceActive(true);
+  }
 
   async function handleSearch() {
     if (!query.trim()) return;
@@ -197,8 +267,9 @@ export default function EditCourse({
       const courseTitle = title.trim() || `${user?.username || "나"}의 코스 - ${dateStr} ${timeStr}`;
       setTitle(courseTitle);
 
+      const directPlaces = selectedPlaces.filter((p) => p.id.startsWith("direct-"));
       const seenNaver = new Set<string>();
-      const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id).filter((p) => {
+      const naverPlaces = selectedPlaces.filter((p) => !p.google_place_id && !p.id.startsWith("direct-")).filter((p) => {
         if (seenNaver.has(p.naverPlaceUrl)) return false;
         seenNaver.add(p.naverPlaceUrl); return true;
       });
@@ -208,6 +279,17 @@ export default function EditCourse({
         seenGoogle.add(p.google_place_id!); return true;
       });
       const placeIdMap: Record<string, string> = {};
+
+      for (const p of directPlaces) {
+        const { data } = await supabase.from("places").insert({
+          name: p.title,
+          address: p.roadAddress || p.address,
+          lat: Number(p.mapy) / 10000000,
+          lng: Number(p.mapx) / 10000000,
+          category: p.category || null,
+        }).select().single();
+        if (data) placeIdMap[p._key ?? p.id] = data.id;
+      }
 
       if (naverPlaces.length > 0) {
         const { data, error } = await supabase
@@ -267,7 +349,9 @@ export default function EditCourse({
       await supabase.from("course_places").insert(
         selectedPlaces.map((p) => ({
           course_id: id,
-          place_id: placeIdMap[p.google_place_id ?? p.naverPlaceUrl],
+          place_id: p.id.startsWith("direct-")
+            ? placeIdMap[p._key ?? p.id]
+            : (placeIdMap[p.google_place_id ?? p.naverPlaceUrl] ?? p.id),
           order: p.order,
         })),
       );
@@ -296,6 +380,7 @@ export default function EditCourse({
 
   return (
     <main className="p-4 flex flex-col gap-4 pb-32">
+      <Script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" strategy="afterInteractive" />
       <h1 className="text-[20px] text-center font-bold">코스 수정하기</h1>
 
       <label htmlFor="course-title" className="font-medium text-[18px]">
@@ -340,13 +425,87 @@ export default function EditCourse({
           >
             해외
           </button>
+          <button
+            type="button"
+            onClick={() => { setRegion("direct"); setSearchResults([]); setSearchActive(false); }}
+            className={`text-[13px] rounded-xl px-3 py-1 cursor-pointer ${region === "direct" ? "bg-[#EE6300] text-white" : "bg-gray-100 text-gray-500"}`}
+          >
+            직접 입력
+          </button>
         </div>
         <p className="text-[12px] text-gray-300">
           {region === "domestic"
             ? <>결과가 없으면 장소명을 더 구체적으로 입력해보세요.<br />(예: 블루보틀 → 성수동 블루보틀)</>
-            : <>현지어나 영어로 검색하면 더 정확해요.<br />(예: Eiffel Tower, 東京タワー)</>}
+            : region === "global"
+            ? <>현지어나 영어로 검색하면 더 정확해요.<br />(예: Eiffel Tower, 東京タワー)</>
+            : <>네이버에 등록되지 않은 장소(집, 개인 장소 등)를 직접 추가할 수 있어요.</>}
         </p>
       </div>
+      {region === "direct" ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-1">
+            <button type="button" onClick={() => { setDirectRegion("domestic"); setDirectAddress(""); setDirectAddressInput(""); setDirectLat(null); setDirectLng(null); }}
+              className={`text-[12px] rounded-xl px-3 py-1 cursor-pointer ${directRegion === "domestic" ? "bg-gray-600 text-white" : "bg-gray-100 text-gray-500"}`}>국내</button>
+            <button type="button" onClick={() => { setDirectRegion("global"); setDirectAddress(""); setDirectAddressInput(""); setDirectLat(null); setDirectLng(null); }}
+              className={`text-[12px] rounded-xl px-3 py-1 cursor-pointer ${directRegion === "global" ? "bg-gray-600 text-white" : "bg-gray-100 text-gray-500"}`}>해외</button>
+          </div>
+          <input placeholder="장소 이름" value={directName} onChange={(e) => setDirectName(e.target.value)}
+            className="bg-gray-50 rounded-2xl p-4 w-full focus:outline-none focus:ring-2 focus:ring-[#EE6300]" />
+          {directRegion === "domestic" ? (
+            <div className="flex gap-2">
+              <div className="bg-gray-50 rounded-2xl p-4 flex-1 text-[14px] text-gray-500 truncate">
+                {directAddress || "주소를 검색해주세요"}
+              </div>
+              <button type="button" onClick={openDaumPostcode}
+                className="bg-[#EE6300] border hover:border-[#EE6300] hover:text-[#EE6300] hover:bg-white rounded-2xl p-4 w-[30%] cursor-pointer text-white text-[14px] whitespace-nowrap">
+                {directGeoLoading ? "검색중..." : "주소 검색"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <div className="flex gap-2">
+                <input placeholder="영문 주소 또는 장소명 (예: Eiffel Tower)" value={directAddressInput}
+                  onChange={(e) => setDirectAddressInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleGlobalAddressSearch(); }}
+                  className="bg-gray-50 rounded-2xl p-4 flex-1 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]" />
+                <button type="button" onClick={handleGlobalAddressSearch}
+                  className="bg-[#EE6300] border hover:border-[#EE6300] hover:text-[#EE6300] hover:bg-white rounded-2xl p-4 w-[30%] cursor-pointer text-white text-[14px] whitespace-nowrap">
+                  {directGeoLoading ? "검색중..." : "주소 확인"}
+                </button>
+              </div>
+              {directAddress && (
+                <p className={`text-[12px] px-1 ${directLat ? "text-gray-500" : "text-red-400"}`}>{directAddress}</p>
+              )}
+            </div>
+          )}
+          <select value={directCategory} onChange={(e) => setDirectCategory(e.target.value)}
+            className="bg-gray-50 rounded-2xl p-4 w-full text-[14px] text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#EE6300]">
+            <option value="">카테고리 선택</option>
+            <option value="개인 장소">🏠 개인 장소</option>
+            <option value="카페">☕ 카페</option>
+            <option value="음식점">🍽️ 음식점</option>
+            <option value="술집">🍸 술집/바</option>
+            <option value="쇼핑">🛍️ 쇼핑</option>
+            <option value="서점">📚 서점</option>
+            <option value="사진">📸 사진/스튜디오</option>
+            <option value="문화시설">🎭 문화/예술</option>
+            <option value="여행명소">🏛️ 여행 명소</option>
+            <option value="숙박">🏨 숙박/호텔</option>
+            <option value="교통,운수">🚉 교통</option>
+            <option value="교육">🎓 교육</option>
+            <option value="스포츠">🏃 스포츠/체육</option>
+            <option value="오락시설">🎡 오락</option>
+            <option value="생활,편의">🛠️ 생활편의</option>
+            <option value="미용">💇 미용</option>
+            <option value="병원">🏥 병원</option>
+          </select>
+          <button type="button" onClick={handleAddDirectPlace}
+            disabled={!directName.trim() || !directAddress || directLat === null || !directCategory || directGeoLoading}
+            className="bg-[#EE6300] text-white rounded-2xl p-4 w-full cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed">
+            장소 추가
+          </button>
+        </div>
+      ) : (
       <div className="flex gap-2">
         <input
           id="place-search"
@@ -366,6 +525,7 @@ export default function EditCourse({
           검색
         </button>
       </div>
+      )}
       <button
         onClick={() => setShowSaved(true)}
         className="border hover:bg-[#EE6300] hover:text-white border-[#EE6300] text-[#EE6300] rounded-2xl p-3 w-full text-[14px] font-medium cursor-pointer"

@@ -2,6 +2,7 @@
 
 import { NaverPlace, PlaceCollection, SavedPlace } from "@/types/place";
 import { Fragment, Suspense, useState, useRef, useEffect } from "react";
+import Script from "next/script";
 import {
   DndContext,
   closestCenter,
@@ -226,7 +227,7 @@ function CreatePage() {
   }
 
   function openDaumPostcode() {
-    new (window as any).daum.Postcode({
+    new window.daum.Postcode({
       oncomplete: async (data: { roadAddress: string; address: string }) => {
         const addr = data.roadAddress || data.address;
         setDirectAddress(addr);
@@ -464,7 +465,7 @@ function CreatePage() {
 
   return (
     <main className="p-4 flex flex-col gap-4 pb-32">
-      <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" />
+      <Script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" strategy="afterInteractive" />
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-[13px] px-5 py-2.5 rounded-2xl shadow-lg whitespace-nowrap">
           {toast}
