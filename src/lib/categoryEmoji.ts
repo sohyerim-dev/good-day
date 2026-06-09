@@ -10,7 +10,7 @@ export function getCategoryEmoji(category: string | null | undefined): string {
       c.includes("아이스크림") || c.includes("케이크")) return "☕";
 
   // 술집/바
-  if (c.includes("술집") || c.includes("주점") || c.includes("바(bar)")) return "🍺";
+  if (c.includes("술집") || c.includes("주점") || c.includes("바(bar)")) return "🍸";
 
   // 식당 — 상위 카테고리 없이 단독 사용 포함 (한식, 중식 등)
   if (c.includes("음식점") || c.includes("한식") || c.includes("일식") ||
