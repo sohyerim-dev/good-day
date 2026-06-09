@@ -68,7 +68,7 @@ export default function RoutePage({
             { lat: places[i].places.lat, lng: places[i].places.lng },
             { lat: places[i + 1].places.lat, lng: places[i + 1].places.lng },
           ];
-          const isGlobal = !places[i].places.naver_url || !places[i + 1].places.naver_url;
+          const isGlobal = !isKoreanCoord(places[i].places.lat, places[i].places.lng) || !isKoreanCoord(places[i + 1].places.lat, places[i + 1].places.lng);
           return Promise.all([
             fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "transit" }) }).then(r => r.json()),
             fetch("/api/route-directions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ places: segPlaces, mode: "transit", transitMode: "bus" }) }).then(r => r.json()),

@@ -78,7 +78,8 @@ export default function RouteRenderer({ places, onRouteData, selectedSegment, sh
             { lat: places[i].places.lat, lng: places[i].places.lng },
             { lat: places[i + 1].places.lat, lng: places[i + 1].places.lng },
           ];
-          const isGlobal = !places[i].places.naver_url || !places[i + 1].places.naver_url;
+          const isKorean = (lat: number, lng: number) => lat >= 33 && lat <= 38.5 && lng >= 124 && lng <= 132;
+          const isGlobal = !isKorean(places[i].places.lat, places[i].places.lng) || !isKorean(places[i + 1].places.lat, places[i + 1].places.lng);
           return Promise.all([
             fetch("/api/route-directions", {
               method: "POST",
