@@ -504,6 +504,9 @@ export default function CourseDetail({
                 <span className="text-[11px] leading-4.75 bg-[#EE6300] text-white rounded-full px-2 py-0.5">
                   내 코스
                 </span>
+                <span className={`text-[11px] leading-4.75 rounded-full px-2 py-0.5 ${course.is_public ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"}`}>
+                  {course.is_public ? "공개" : "비공개"}
+                </span>
                 <Link
                   href={`/courses/${id}/edit`}
                   className="text-[11px] text-[#EE6300] border leading-4.75 border-[#EE6300] rounded-full px-2 py-0.5"
