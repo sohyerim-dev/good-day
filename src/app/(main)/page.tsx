@@ -21,6 +21,12 @@ interface RecoPost {
 export default function Home() {
   const user = useUserStore((state) => state.user);
   const hasHydrated = useUserStore((state) => state.hasHydrated);
+  const [loadTimeout, setLoadTimeout] = useState(false);
+  useEffect(() => {
+    if (hasHydrated) return;
+    const t = setTimeout(() => setLoadTimeout(true), 5000);
+    return () => clearTimeout(t);
+  }, [hasHydrated]);
   const [courses, setCourses] = useState<CourseWithCollab[]>([]);
   const [page, setPage] = useState(1);
   const [recoPosts, setRecoPosts] = useState<RecoPost[]>([]);
@@ -113,8 +119,16 @@ export default function Home() {
 
   if (!hasHydrated)
     return (
-      <main className="flex items-center justify-center min-h-full">
+      <main className="flex flex-col items-center justify-center min-h-full gap-4">
         <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" />
+        {loadTimeout && (
+          <button
+            onClick={() => window.location.reload()}
+            className="text-[13px] text-gray-400 border border-gray-200 rounded-xl px-4 py-2"
+          >
+            새로고침
+          </button>
+        )}
       </main>
     );
 
