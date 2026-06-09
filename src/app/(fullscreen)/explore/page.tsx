@@ -10,7 +10,7 @@ import { ExploreCoursePlace } from "@/types/place";
 import { APIProvider, Map } from "@vis.gl/react-google-maps";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Map as KakaoMap, useKakaoLoader } from "react-kakao-maps-sdk";
 
 function isKoreanCoord(lat: number, lng: number) {
@@ -48,51 +48,65 @@ export default function Explore() {
   const [exploreAllPlaces, setExploreAllPlaces] = useState<ExploreCoursePlace[]>([]);
 
   type CpType = ExploreCoursePlace["course_places"][number];
-  // 한번 결정된 마커 위치는 고정 — 지도 이동 시 재계산 방지
-  const [stableCourseMarkers, setStableCourseMarkers] = useState<Record<string, { placeId: string; cp: CpType }>>({});
+  type MarkerPlace = ExploreCoursePlace & { course_places: CpType[] };
+
+  // stable ref: 지도 이동과 무관하게 진짜 가운데 장소에 마커 고정
+  const stableMarkersRef = useRef<Record<string, MarkerPlace>>({});
+  const [markerPlaces, setMarkerPlaces] = useState<MarkerPlace[]>([]);
 
   useEffect(() => {
-    setStableCourseMarkers((prev) => {
-      // 현재 viewport에 있는 코스 ID
-      const visibleCourseIds = new Set<string>();
-      exploreAllPlaces.forEach((p) => p.course_places.forEach((cp) => visibleCourseIds.add(cp.course_id)));
-      // viewport를 벗어난 코스 제거
-      const next: Record<string, { placeId: string; cp: CpType }> = {};
-      Object.entries(prev).forEach(([courseId, val]) => {
-        if (visibleCourseIds.has(courseId)) next[courseId] = val;
+    // 현재 보이는 코스 ID와 각 코스의 메타 정보 수집
+    const visibleCourseIds = new Set<string>();
+    const courseTotalCount: Record<string, number> = {};
+    const courseCpList: Record<string, CpType[]> = {};
+    exploreAllPlaces.forEach((p) => {
+      p.course_places.forEach((cp) => {
+        visibleCourseIds.add(cp.course_id);
+        courseTotalCount[cp.course_id] = cp.courses.course_places?.[0]?.count ?? 1;
+        if (!courseCpList[cp.course_id]) courseCpList[cp.course_id] = [];
+        courseCpList[cp.course_id].push(cp);
       });
-      // 새로 나타난 코스만 가운데 order에 가장 가까운 장소로 추가
-      const candidates: Record<string, { placeId: string; cp: CpType }[]> = {};
-      exploreAllPlaces.forEach((place) => {
-        place.course_places.forEach((cp) => {
-          if (next[cp.course_id]) return;
-          if (!candidates[cp.course_id]) candidates[cp.course_id] = [];
-          candidates[cp.course_id].push({ placeId: place.id, cp });
-        });
-      });
-      const newFirst: Record<string, { placeId: string; cp: CpType }> = {};
-      Object.entries(candidates).forEach(([courseId, list]) => {
-        const totalCount = list[0].cp.courses.course_places?.[0]?.count ?? list.length;
-        const midOrder = Math.ceil(totalCount / 2);
-        const best = list.reduce((a, b) =>
-          Math.abs(a.cp.order - midOrder) <= Math.abs(b.cp.order - midOrder) ? a : b
-        );
-        newFirst[courseId] = best;
-      });
-      return { ...next, ...newFirst };
     });
+
+    // viewport 밖으로 나간 코스 제거
+    Object.keys(stableMarkersRef.current).forEach((courseId) => {
+      if (!visibleCourseIds.has(courseId)) delete stableMarkersRef.current[courseId];
+    });
+
+    // 새로 나타난 코스만 쿼리
+    const newCourseIds = [...visibleCourseIds].filter((id) => !stableMarkersRef.current[id]);
+    if (newCourseIds.length === 0) {
+      setMarkerPlaces(Object.values(stableMarkersRef.current));
+      return;
+    }
+
+    supabase
+      .from("course_places")
+      .select("course_id, order, places!inner(id, lat, lng, name, address, naver_url)")
+      .in("course_id", newCourseIds)
+      .then(({ data }) => {
+        if (!data) return;
+        const byCourse: Record<string, typeof data> = {};
+        data.forEach((cp) => {
+          if (!byCourse[cp.course_id]) byCourse[cp.course_id] = [];
+          byCourse[cp.course_id].push(cp);
+        });
+        Object.entries(byCourse).forEach(([courseId, cps]) => {
+          const midOrder = Math.ceil((courseTotalCount[courseId] ?? cps.length) / 2);
+          const best = cps.reduce((a, b) =>
+            Math.abs(a.order - midOrder) <= Math.abs(b.order - midOrder) ? a : b
+          );
+          const pl = best.places as unknown as ExploreCoursePlace;
+          stableMarkersRef.current[courseId] = {
+            ...pl,
+            course_places: courseCpList[courseId] ?? [],
+          };
+        });
+        setMarkerPlaces(Object.values(stableMarkersRef.current));
+      });
   }, [exploreAllPlaces]);
 
-  const placeById: Record<string, ExploreCoursePlace> = Object.fromEntries(exploreAllPlaces.map((p) => [p.id, p]));
-  const markerPlaceMap: Record<string, ExploreCoursePlace & { course_places: CpType[] }> = {};
-  Object.values(stableCourseMarkers).forEach(({ placeId, cp }) => {
-    const place = placeById[placeId];
-    if (!place) return;
-    if (!markerPlaceMap[placeId]) markerPlaceMap[placeId] = { ...place, course_places: [] };
-    markerPlaceMap[placeId].course_places.push(cp);
-  });
-  const markerPlaces = Object.values(markerPlaceMap);
-  const markerCourseIds = new Set(Object.keys(stableCourseMarkers));
+  const markerCourseIds = new Set(markerPlaces.flatMap((p) => p.course_places.map((cp) => cp.course_id)));
 
   const placeGroup = exploreAllPlaces.reduce(
     (acc, p) => {
