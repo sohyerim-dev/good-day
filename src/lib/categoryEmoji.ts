@@ -22,8 +22,11 @@ export function getCategoryEmoji(category: string | null | undefined): string {
       c.includes("고기요리") || c.includes("곱창") || c.includes("칼국수") ||
       c.includes("생선회") || c.includes("뷔페")) return "🍽️";
 
+  // 서점
+  if (c.includes("서점")) return "📚";
+
   // 쇼핑 — 가구/인테리어 포함
-  if (c.includes("쇼핑") || c.includes("유통") || c.includes("서점") ||
+  if (c.includes("쇼핑") || c.includes("유통") ||
       c.includes("시장") || c.includes("백화점") || c.includes("가구") ||
       c.includes("인테리어") || c.includes("편의점") || c.includes("문구") ||
       c.includes("장난감") || c.includes("패션") || c.includes("음반") ||
