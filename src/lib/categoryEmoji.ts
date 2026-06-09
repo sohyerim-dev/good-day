@@ -59,7 +59,7 @@ export function getCategoryEmoji(category: string | null | undefined): string {
   // 스포츠/오락
   if (c.includes("스포츠") || c.includes("오락시설") || c.includes("노래방") ||
       c.includes("만화방") || c.includes("레저") || c.includes("테마파크") ||
-      c.includes("테마공원")) return "🎡";
+      c.includes("테마공원") || c.includes("스포츠센터") || c.includes("체육")) return "🎡";
 
   // 생활/편의/공방
   if (c.includes("생활,편의") || c.includes("공방")) return "🛠️";
