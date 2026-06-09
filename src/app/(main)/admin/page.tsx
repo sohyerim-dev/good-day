@@ -171,6 +171,12 @@ export default function AdminPage() {
     setCourses((prev) => prev.map((c) => c.id === courseId ? { ...c, is_hidden: !isHidden } : c));
   }
 
+  async function handleTogglePublic(courseId: string, isPublic: boolean) {
+    const supabase = createClient();
+    await supabase.from("courses").update({ is_public: !isPublic }).eq("id", courseId);
+    setCourses((prev) => prev.map((c) => c.id === courseId ? { ...c, is_public: !isPublic } : c));
+  }
+
   if (!hasHydrated || loading) {
     return <main className="p-4"><p className="text-gray-400 text-[14px]">불러오는 중...</p></main>;
   }
@@ -297,6 +303,12 @@ export default function AdminPage() {
                   className="text-[11px] border border-gray-300 text-gray-500 rounded-xl px-2 py-1 cursor-pointer hover:border-gray-500"
                 >
                   보기
+                </button>
+                <button
+                  onClick={() => handleTogglePublic(course.id, course.is_public)}
+                  className={`text-[11px] rounded-xl px-2 py-1 cursor-pointer border ${course.is_public ? "border-orange-300 text-orange-500 hover:bg-orange-50" : "border-gray-300 text-gray-500 hover:bg-gray-100"}`}
+                >
+                  {course.is_public ? "비공개 전환" : "공개 전환"}
                 </button>
                 <button
                   onClick={() => handleToggleHidden(course.id, course.is_hidden)}
