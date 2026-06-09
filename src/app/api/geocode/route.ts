@@ -11,5 +11,5 @@ export async function GET(req: NextRequest) {
 
   if (!location)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ lat: location.lat, lng: location.lng });
+  return NextResponse.json({ lat: location.lat, lng: location.lng, formatted_address: data.results[0].formatted_address });
 }

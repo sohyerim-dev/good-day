@@ -68,7 +68,15 @@ function CreatePage() {
   const SAVED_PAGE_SIZE = 10;
   // 이미 저장된 장소 키(naver_url 또는 google_place_id) 목록 - 검색 결과에서 저장 여부 표시용
   const [savedPlaceKeys, setSavedPlaceKeys] = useState<Set<string>>(new Set());
-  const [region, setRegion] = useState<"domestic" | "global">("domestic");
+  const [region, setRegion] = useState<"domestic" | "global" | "direct">("domestic");
+  const [directName, setDirectName] = useState("");
+  const [directAddress, setDirectAddress] = useState("");
+  const [directAddressInput, setDirectAddressInput] = useState("");
+  const [directLat, setDirectLat] = useState<number | null>(null);
+  const [directLng, setDirectLng] = useState<number | null>(null);
+  const [directGeoLoading, setDirectGeoLoading] = useState(false);
+  const [directRegion, setDirectRegion] = useState<"domestic" | "global">("domestic");
+  const [directCategory, setDirectCategory] = useState("");
 
   const [isSaving, setIsSaving] = useState(false);
 
@@ -197,6 +205,67 @@ function CreatePage() {
     const data = await res.json();
     setSearchResults(data.items ?? []);
     setSearchActive(true);
+  }
+
+  async function handleGlobalAddressSearch() {
+    if (!directAddressInput.trim()) return;
+    setDirectGeoLoading(true);
+    setDirectAddress("");
+    setDirectLat(null);
+    setDirectLng(null);
+    const res = await fetch(`/api/geocode?query=${encodeURIComponent(directAddressInput.trim())}`);
+    const geo = await res.json();
+    if (geo.lat && geo.lng) {
+      setDirectAddress(geo.formatted_address ?? directAddressInput.trim());
+      setDirectLat(geo.lat);
+      setDirectLng(geo.lng);
+    } else {
+      setDirectAddress("주소를 찾을 수 없어요");
+    }
+    setDirectGeoLoading(false);
+  }
+
+  function openDaumPostcode() {
+    new (window as any).daum.Postcode({
+      oncomplete: async (data: { roadAddress: string; address: string }) => {
+        const addr = data.roadAddress || data.address;
+        setDirectAddress(addr);
+        setDirectLat(null);
+        setDirectLng(null);
+        setDirectGeoLoading(true);
+        const res = await fetch(`/api/geocode?query=${encodeURIComponent(addr)}`);
+        const geo = await res.json();
+        if (geo.lat && geo.lng) {
+          setDirectLat(geo.lat);
+          setDirectLng(geo.lng);
+        }
+        setDirectGeoLoading(false);
+      },
+    }).open();
+  }
+
+  function handleAddDirectPlace() {
+    if (!directName.trim() || !directAddress || directLat === null || directLng === null) return;
+    const place: NaverPlace & { order: number; _key?: string } = {
+      id: `direct-${Date.now()}`,
+      title: directName.trim(),
+      address: directAddress,
+      roadAddress: directAddress,
+      mapx: String(Math.round(directLng * 10000000)),
+      mapy: String(Math.round(directLat * 10000000)),
+      link: "",
+      naverPlaceUrl: "",
+      order: selectedPlaces.length + 1,
+      _key: `direct-${Date.now()}`,
+      ...(directCategory ? { category: directCategory } : {}),
+    };
+    setSelectedPlaces((prev) => [...prev, { ...place, order: prev.length + 1 }]);
+    setDirectName("");
+    setDirectAddress("");
+    setDirectLat(null);
+    setDirectLng(null);
+    setDirectCategory("");
+    if (!placeActive) setPlaceActive(true);
   }
 
   // 검색 결과에서 장소를 코스에 추가, 첫 추가 시 목록 섹션 표시
@@ -395,6 +464,7 @@ function CreatePage() {
 
   return (
     <main className="p-4 flex flex-col gap-4 pb-32">
+      <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js" />
       {toast && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-gray-800 text-white text-[13px] px-5 py-2.5 rounded-2xl shadow-lg whitespace-nowrap">
           {toast}
@@ -449,32 +519,138 @@ function CreatePage() {
           >
             해외
           </button>
+          <button
+            type="button"
+            onClick={() => { setRegion("direct"); setSearchResults([]); setSearchActive(false); }}
+            className={`text-[13px] rounded-xl px-3 py-1 cursor-pointer ${region === "direct" ? "bg-[#EE6300] text-white" : "bg-gray-100 text-gray-500"}`}
+          >
+            직접 입력
+          </button>
         </div>
         <p className="text-[12px] text-gray-300">
           {region === "domestic"
             ? <>원하는 결과가 없으면 장소명을 더 구체적으로 입력해보세요.<br />(예: 블루보틀 → 성수동 블루보틀)</>
-            : <>현지어나 영어로 검색하면 더 정확해요.<br />(예: Eiffel Tower, 東京タワー)</>}
+            : region === "global"
+            ? <>현지어나 영어로 검색하면 더 정확해요.<br />(예: Eiffel Tower, 東京タワー)</>
+            : <>네이버에 등록되지 않은 장소(집, 개인 장소 등)를 직접 추가할 수 있어요.</>}
         </p>
       </div>
-      <div className="flex gap-2">
-        <input
-          id="place-search"
-          placeholder="장소 검색"
-          value={query}
-          autoComplete="off"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") handleSearch();
-          }}
-          onChange={(e) => setQuery(e.target.value)}
-          className="bg-gray-50 rounded-2xl p-4 w-[70%] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
-        />
-        <button
-          onClick={handleSearch}
-          className="bg-[#EE6300] border hover:border-[#EE6300] hover:text-[#EE6300] hover:bg-white rounded-2xl p-4 w-[30%] cursor-pointer text-white"
-        >
-          검색
-        </button>
-      </div>
+      {region === "direct" ? (
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-1">
+            <button
+              type="button"
+              onClick={() => { setDirectRegion("domestic"); setDirectAddress(""); setDirectAddressInput(""); setDirectLat(null); setDirectLng(null); }}
+              className={`text-[12px] rounded-xl px-3 py-1 cursor-pointer ${directRegion === "domestic" ? "bg-gray-600 text-white" : "bg-gray-100 text-gray-500"}`}
+            >
+              국내
+            </button>
+            <button
+              type="button"
+              onClick={() => { setDirectRegion("global"); setDirectAddress(""); setDirectAddressInput(""); setDirectLat(null); setDirectLng(null); }}
+              className={`text-[12px] rounded-xl px-3 py-1 cursor-pointer ${directRegion === "global" ? "bg-gray-600 text-white" : "bg-gray-100 text-gray-500"}`}
+            >
+              해외
+            </button>
+          </div>
+          <input
+            placeholder="장소 이름"
+            value={directName}
+            onChange={(e) => setDirectName(e.target.value)}
+            className="bg-gray-50 rounded-2xl p-4 w-full focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+          />
+          {directRegion === "domestic" ? (
+            <div className="flex gap-2">
+              <div className="bg-gray-50 rounded-2xl p-4 flex-1 text-[14px] text-gray-500 truncate">
+                {directAddress || "주소를 검색해주세요"}
+              </div>
+              <button
+                type="button"
+                onClick={openDaumPostcode}
+                className="bg-[#EE6300] border hover:border-[#EE6300] hover:text-[#EE6300] hover:bg-white rounded-2xl p-4 w-[30%] cursor-pointer text-white text-[14px] whitespace-nowrap"
+              >
+                {directGeoLoading ? "검색중..." : "주소 검색"}
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col gap-1">
+              <div className="flex gap-2">
+                <input
+                  placeholder="영문 주소 또는 장소명 (예: Eiffel Tower)"
+                  value={directAddressInput}
+                  onChange={(e) => setDirectAddressInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleGlobalAddressSearch(); }}
+                  className="bg-gray-50 rounded-2xl p-4 flex-1 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+                />
+                <button
+                  type="button"
+                  onClick={handleGlobalAddressSearch}
+                  className="bg-[#EE6300] border hover:border-[#EE6300] hover:text-[#EE6300] hover:bg-white rounded-2xl p-4 w-[30%] cursor-pointer text-white text-[14px] whitespace-nowrap"
+                >
+                  {directGeoLoading ? "검색중..." : "주소 확인"}
+                </button>
+              </div>
+              {directAddress && (
+                <p className={`text-[12px] px-1 ${directLat ? "text-gray-500" : "text-red-400"}`}>
+                  {directAddress}
+                </p>
+              )}
+            </div>
+          )}
+          <select
+            value={directCategory}
+            onChange={(e) => setDirectCategory(e.target.value)}
+            className="bg-gray-50 rounded-2xl p-4 w-full text-[14px] text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+          >
+            <option value="">카테고리 선택</option>
+            <option value="개인 장소">🏠 개인 장소</option>
+            <option value="카페">☕ 카페</option>
+            <option value="음식점">🍽️ 음식점</option>
+            <option value="술집">🍸 술집/바</option>
+            <option value="쇼핑">🛍️ 쇼핑</option>
+            <option value="서점">📚 서점</option>
+            <option value="사진">📸 사진/스튜디오</option>
+            <option value="문화시설">🎭 문화/예술</option>
+            <option value="여행명소">🏛️ 여행 명소</option>
+            <option value="숙박">🏨 숙박/호텔</option>
+            <option value="교통,운수">🚉 교통</option>
+            <option value="교육">🎓 교육</option>
+            <option value="스포츠">🏃 스포츠/체육</option>
+            <option value="오락시설">🎡 오락</option>
+            <option value="생활,편의">🛠️ 생활편의</option>
+            <option value="미용">💇 미용</option>
+            <option value="병원">🏥 병원</option>
+          </select>
+          <button
+            type="button"
+            onClick={handleAddDirectPlace}
+            disabled={!directName.trim() || !directAddress || directLat === null || !directCategory || directGeoLoading}
+            className="bg-[#EE6300] text-white rounded-2xl p-4 w-full cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            장소 추가
+          </button>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <input
+            id="place-search"
+            placeholder="장소 검색"
+            value={query}
+            autoComplete="off"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") handleSearch();
+            }}
+            onChange={(e) => setQuery(e.target.value)}
+            className="bg-gray-50 rounded-2xl p-4 w-[70%] focus:outline-none focus:ring-2 focus:ring-[#EE6300]"
+          />
+          <button
+            onClick={handleSearch}
+            className="bg-[#EE6300] border hover:border-[#EE6300] hover:text-[#EE6300] hover:bg-white rounded-2xl p-4 w-[30%] cursor-pointer text-white"
+          >
+            검색
+          </button>
+        </div>
+      )}
       <button
         onClick={() => {
           setActiveCollection(null);

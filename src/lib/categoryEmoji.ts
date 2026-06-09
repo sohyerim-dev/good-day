@@ -2,6 +2,9 @@ export function getCategoryEmoji(category: string | null | undefined): string {
   if (!category) return "";
   const c = category.toLowerCase();
 
+  // 개인 장소 (집 등)
+  if (c.includes("개인 장소") || c === "개인") return "🏠";
+
   // 방탈출은 카페보다 먼저 (방탈출카페 등)
   if (c.includes("방탈출")) return "🎮";
 
