@@ -58,13 +58,12 @@ export default function Explore() {
     // 현재 보이는 코스 ID와 각 코스의 메타 정보 수집
     const visibleCourseIds = new Set<string>();
     const courseTotalCount: Record<string, number> = {};
-    const courseCpList: Record<string, CpType[]> = {};
+    const courseCpList: Record<string, CpType> = {};
     exploreAllPlaces.forEach((p) => {
       p.course_places.forEach((cp) => {
         visibleCourseIds.add(cp.course_id);
         courseTotalCount[cp.course_id] = cp.courses.course_places?.[0]?.count ?? 1;
-        if (!courseCpList[cp.course_id]) courseCpList[cp.course_id] = [];
-        courseCpList[cp.course_id].push(cp);
+        if (!courseCpList[cp.course_id]) courseCpList[cp.course_id] = cp;
       });
     });
 
@@ -99,7 +98,7 @@ export default function Explore() {
           const pl = best.places as unknown as ExploreCoursePlace;
           stableMarkersRef.current[courseId] = {
             ...pl,
-            course_places: courseCpList[courseId] ?? [],
+            course_places: courseCpList[courseId] ? [courseCpList[courseId]] : [],
           };
         });
         setMarkerPlaces(Object.values(stableMarkersRef.current));
