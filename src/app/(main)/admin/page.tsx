@@ -44,18 +44,30 @@ interface AdminUser {
   courseCount: number;
 }
 
+interface AdminPhoto {
+  id: string;
+  storage_url: string;
+  place_id: string;
+  created_at: string;
+  placeName: string;
+  placeAddress: string;
+}
+
 export default function AdminPage() {
   const user = useUserStore((s) => s.user);
   const hasHydrated = useUserStore((s) => s.hasHydrated);
   const router = useRouter();
-  const [tab, setTab] = useState<"reports" | "courses" | "users">("reports");
+  const [tab, setTab] = useState<"reports" | "courses" | "photos" | "users">("reports");
   const [stats, setStats] = useState<Stats | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [courses, setCourses] = useState<AdminCourse[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [userPage, setUserPage] = useState(1);
+  const [photos, setPhotos] = useState<AdminPhoto[]>([]);
+  const [photoPage, setPhotoPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const USER_PAGE_SIZE = 20;
+  const PHOTO_PAGE_SIZE = 20;
 
   useEffect(() => {
     if (!hasHydrated) return;
@@ -92,7 +104,7 @@ export default function AdminPage() {
       pendingReports: pendingReports ?? 0,
     });
 
-    await Promise.all([loadReports(supabase), loadCourses(supabase), loadUsers(supabase)]);
+    await Promise.all([loadReports(supabase), loadCourses(supabase), loadUsers(supabase), loadPhotos(supabase)]);
     setLoading(false);
   }
 
@@ -179,6 +191,37 @@ export default function AdminPage() {
       role: p.role ?? "user",
       courseCount: countMap[p.id] ?? 0,
     })));
+  }
+
+  async function loadPhotos(supabase: ReturnType<typeof createClient>) {
+    const { data } = await supabase
+      .from("place_photos")
+      .select("id, storage_url, place_id, created_at")
+      .order("created_at", { ascending: false });
+    if (!data) return;
+
+    const placeIds = [...new Set(data.map((p) => p.place_id))];
+    const { data: placesData } = await supabase
+      .from("places")
+      .select("id, name, address")
+      .in("id", placeIds);
+    const placeMap: Record<string, { name: string; address: string }> = {};
+    (placesData ?? []).forEach((p) => { placeMap[p.id] = { name: p.name, address: p.address }; });
+
+    setPhotos(data.map((p) => ({
+      ...p,
+      placeName: placeMap[p.place_id]?.name ?? "-",
+      placeAddress: placeMap[p.place_id]?.address ?? "",
+    })));
+  }
+
+  async function handleDeleteAdminPhoto(photoId: string, photoUrl: string) {
+    if (!confirm("이 사진을 삭제할까요?")) return;
+    const supabase = createClient();
+    const path = photoUrl.split("/place-photos/")[1];
+    if (path) await supabase.storage.from("place-photos").remove([path]);
+    await supabase.from("place_photos").delete().eq("id", photoId);
+    setPhotos((prev) => prev.filter((p) => p.id !== photoId));
   }
 
   async function handleRenameUser(userId: string, currentUsername: string) {
@@ -283,6 +326,12 @@ export default function AdminPage() {
           코스 관리
         </button>
         <button
+          onClick={() => setTab("photos")}
+          className={`text-[13px] rounded-xl px-4 py-2 cursor-pointer ${tab === "photos" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"}`}
+        >
+          사진 관리
+        </button>
+        <button
           onClick={() => setTab("users")}
           className={`text-[13px] rounded-xl px-4 py-2 cursor-pointer ${tab === "users" ? "bg-gray-800 text-white" : "bg-gray-100 text-gray-500"}`}
         >
@@ -355,6 +404,56 @@ export default function AdminPage() {
                 </div>
               </div>
             ))
+          )}
+        </div>
+      )}
+
+      {/* 사진 관리 */}
+      {tab === "photos" && (
+        <div className="flex flex-col gap-3">
+          {photos.length === 0 ? (
+            <p className="text-gray-400 text-[14px] text-center py-8">등록된 사진이 없어요</p>
+          ) : (
+            <>
+              <p className="text-[12px] text-gray-400">전체 {photos.length}장</p>
+              <div className="grid grid-cols-2 gap-3">
+                {photos.slice((photoPage - 1) * PHOTO_PAGE_SIZE, photoPage * PHOTO_PAGE_SIZE).map((photo) => (
+                  <div key={photo.id} className="bg-gray-50 rounded-2xl overflow-hidden flex flex-col">
+                    <img src={photo.storage_url} alt="" className="w-full aspect-square object-cover" />
+                    <div className="p-3 flex flex-col gap-1.5">
+                      <p className="text-[13px] font-medium truncate">{photo.placeName}</p>
+                      <p className="text-[11px] text-gray-400 truncate">{photo.placeAddress}</p>
+                      <p className="text-[10px] text-gray-300">{new Date(photo.created_at).toLocaleDateString("ko-KR")}</p>
+                      <button
+                        onClick={() => handleDeleteAdminPhoto(photo.id, photo.storage_url)}
+                        className="mt-1 text-[11px] border border-red-300 text-red-400 rounded-xl py-1.5 cursor-pointer hover:bg-red-50"
+                      >
+                        삭제
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {Math.ceil(photos.length / PHOTO_PAGE_SIZE) > 1 && (
+                <div className="flex justify-center items-center gap-2 pt-2">
+                  <button
+                    onClick={() => setPhotoPage((p) => Math.max(1, p - 1))}
+                    disabled={photoPage === 1}
+                    className="px-3 py-1.5 rounded-xl text-[13px] bg-gray-100 text-gray-500 disabled:opacity-30 cursor-pointer disabled:cursor-default"
+                  >
+                    이전
+                  </button>
+                  <span className="text-[13px] text-gray-500">{photoPage} / {Math.ceil(photos.length / PHOTO_PAGE_SIZE)}</span>
+                  <button
+                    onClick={() => setPhotoPage((p) => Math.min(Math.ceil(photos.length / PHOTO_PAGE_SIZE), p + 1))}
+                    disabled={photoPage === Math.ceil(photos.length / PHOTO_PAGE_SIZE)}
+                    className="px-3 py-1.5 rounded-xl text-[13px] bg-gray-100 text-gray-500 disabled:opacity-30 cursor-pointer disabled:cursor-default"
+                  >
+                    다음
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
