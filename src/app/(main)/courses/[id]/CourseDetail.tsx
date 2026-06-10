@@ -716,29 +716,29 @@ export default function CourseDetail({
                         </div>
                       ))}
                       {user && (
-                        <div className="flex flex-col gap-1">
-                          <label className="shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-[#EE6300] text-gray-400 hover:text-[#EE6300]">
-                            {uploadingPlace === p.places.id ? (
-                              <span className="text-[10px]">업로드중</span>
-                            ) : (
-                              <span className="text-2xl leading-none">+</span>
-                            )}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              className="hidden"
-                              disabled={uploadingPlace === p.places.id}
-                              onChange={(e) => {
-                                if (e.target.files) handlePhotoUpload(p.places.id, e.target.files);
-                                e.target.value = "";
-                              }}
-                            />
-                          </label>
-                          <p className="text-[9px] text-gray-400 w-16 text-center leading-snug">직접 찍은 사진만 첨부해주세요</p>
-                        </div>
+                        <label className="shrink-0 w-16 h-16 rounded-lg border-2 border-dashed border-gray-300 flex items-center justify-center cursor-pointer hover:border-[#EE6300] text-gray-400 hover:text-[#EE6300]">
+                          {uploadingPlace === p.places.id ? (
+                            <span className="text-[10px]">업로드중</span>
+                          ) : (
+                            <span className="text-2xl leading-none">+</span>
+                          )}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            multiple
+                            className="hidden"
+                            disabled={uploadingPlace === p.places.id}
+                            onChange={(e) => {
+                              if (e.target.files) handlePhotoUpload(p.places.id, e.target.files);
+                              e.target.value = "";
+                            }}
+                          />
+                        </label>
                       )}
                     </div>
+                    {user && (
+                      <p className="text-[10px] text-gray-400 mt-1">직접 찍은 사진만 첨부해주세요</p>
+                    )}
                   </div>
                 )}
               </li>
