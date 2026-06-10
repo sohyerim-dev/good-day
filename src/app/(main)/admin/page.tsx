@@ -209,7 +209,10 @@ export default function AdminPage() {
     (placesData ?? []).forEach((p) => { placeMap[p.id] = { name: p.name, address: p.address }; });
 
     setPhotos(data.map((p) => ({
-      ...p,
+      id: p.id,
+      storage_url: p.storage_url,
+      place_id: p.place_id,
+      created_at: p.created_at,
       placeName: placeMap[p.place_id]?.name ?? "-",
       placeAddress: placeMap[p.place_id]?.address ?? "",
     })));
@@ -223,6 +226,7 @@ export default function AdminPage() {
     await supabase.from("place_photos").delete().eq("id", photoId);
     setPhotos((prev) => prev.filter((p) => p.id !== photoId));
   }
+
 
   async function handleRenameUser(userId: string, currentUsername: string) {
     const newUsername = prompt(`새 닉네임 입력 (현재: ${currentUsername})`);
