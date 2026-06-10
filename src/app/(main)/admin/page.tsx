@@ -65,7 +65,10 @@ export default function AdminPage() {
 
   async function loadAll() {
     const supabase = createClient();
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+    const weekAgoDate = new Date();
+    weekAgoDate.setDate(weekAgoDate.getDate() - 7);
+    weekAgoDate.setHours(0, 0, 0, 0);
+    const weekAgo = weekAgoDate.toISOString();
 
     const [
       { count: totalCourses },
