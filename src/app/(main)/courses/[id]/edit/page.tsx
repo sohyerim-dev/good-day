@@ -349,16 +349,21 @@ export default function EditCourse({
 
       if (courseError) throw new Error("코스 저장 실패");
 
-      await supabase.from("course_places").delete().eq("course_id", id);
-      await supabase.from("course_places").insert(
-        selectedPlaces.map((p) => ({
+      const coursePlacesPayload = selectedPlaces
+        .map((p) => ({
           course_id: id,
           place_id: p.id.startsWith("direct-")
             ? placeIdMap[p._key ?? p.id]
             : (placeIdMap[p.google_place_id ?? p.naverPlaceUrl] ?? p.id),
           order: p.order,
-        })),
-      );
+        }))
+        .filter((cp) => !!cp.place_id);
+
+      if (coursePlacesPayload.length === 0) throw new Error("장소 저장 실패");
+
+      await supabase.from("course_places").delete().eq("course_id", id);
+      const { error: insertError } = await supabase.from("course_places").insert(coursePlacesPayload);
+      if (insertError) throw new Error("장소 저장 실패");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["course", id] });
