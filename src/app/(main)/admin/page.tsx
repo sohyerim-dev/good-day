@@ -140,7 +140,7 @@ export default function AdminPage() {
   async function loadCourses(supabase: ReturnType<typeof createClient>) {
     const { data: coursesData } = await supabase
       .from("courses")
-      .select("id, title, user_id, is_public, is_hidden, created_at")
+      .select("id, title, user_id, is_public, is_hidden, created_at, course_places(count)")
       .order("created_at", { ascending: false })
       .limit(200);
     if (!coursesData) return;
@@ -153,18 +153,15 @@ export default function AdminPage() {
     const profileMap: Record<string, string> = {};
     (profilesData ?? []).forEach((p) => { profileMap[p.id] = p.username; });
 
-    const courseIds = coursesData.map((c) => c.id);
-    const { data: placeCounts } = await supabase
-      .from("course_places")
-      .select("course_id")
-      .in("course_id", courseIds);
-    const countMap: Record<string, number> = {};
-    (placeCounts ?? []).forEach((cp) => { countMap[cp.course_id] = (countMap[cp.course_id] ?? 0) + 1; });
-
     setCourses(coursesData.map((c) => ({
-      ...c,
+      id: c.id,
+      title: c.title,
+      user_id: c.user_id,
+      is_public: c.is_public,
+      is_hidden: c.is_hidden,
+      created_at: c.created_at,
       username: profileMap[c.user_id] ?? "-",
-      placeCount: countMap[c.id] ?? 0,
+      placeCount: (c.course_places as unknown as { count: number }[])[0]?.count ?? 0,
     })));
   }
 
