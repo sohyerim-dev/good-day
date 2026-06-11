@@ -119,12 +119,28 @@ export default function Home() {
 
   if (!hasHydrated)
     return (
-      <main className="fixed inset-0">
-        <div className="absolute top-12 left-0 right-0 flex justify-center">
-          <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" />
+      <main className="p-4 pb-28 flex flex-col items-center relative">
+        <Image src="/images/logo.svg" width={65} height={89.5} alt="굿데이" className="mb-2" />
+        {/* 헤더 스켈레톤 */}
+        <div className="flex justify-between items-center w-full mb-4">
+          <div className="h-8 w-20 bg-gray-100 rounded-2xl animate-pulse" />
+          <div className="h-9 w-28 bg-gray-100 rounded-2xl animate-pulse" />
         </div>
+        {/* 코스 목록 스켈레톤 */}
+        <div className="h-6 w-24 bg-gray-100 rounded-lg animate-pulse self-start mb-3" />
+        <ul className="flex flex-col gap-3 w-full">
+          {[...Array(4)].map((_, i) => (
+            <li key={i} className="bg-gray-50 rounded-2xl p-4 flex items-center justify-between">
+              <div className="flex flex-col gap-2">
+                <div className="h-4 w-36 bg-gray-200 rounded-lg animate-pulse" />
+                <div className="h-3 w-24 bg-gray-100 rounded-lg animate-pulse" />
+              </div>
+              <div className="h-5 w-5 bg-gray-100 rounded animate-pulse" />
+            </li>
+          ))}
+        </ul>
         {loadTimeout && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2">
+          <div className="fixed inset-0 flex flex-col items-center justify-center gap-2 bg-white/80">
             <p className="text-[12px] text-gray-400">불러오는 중 문제가 생겼어요</p>
             <button
               onClick={() => window.location.reload()}
