@@ -141,9 +141,8 @@ export default function AdminPage() {
     const { data: coursesData } = await supabase
       .from("courses")
       .select("id, title, user_id, is_public, is_hidden, created_at")
-      .eq("is_public", true)
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(200);
     if (!coursesData) return;
 
     const userIds = [...new Set(coursesData.map((c) => c.user_id))];
@@ -523,7 +522,10 @@ export default function AdminPage() {
             <div key={course.id} className={`rounded-2xl p-4 flex items-center justify-between gap-2 ${course.is_hidden ? "bg-gray-100 opacity-60" : "bg-gray-50"}`}>
               <div className="flex flex-col gap-0.5 flex-1 min-w-0">
                 <p className="font-medium text-[14px] truncate">{course.title}</p>
-                <p className="text-[11px] text-gray-400">@{course.username} · 장소 {course.placeCount}개 · {new Date(course.created_at).toLocaleDateString("ko-KR")}</p>
+                <div className="flex items-center gap-1.5">
+                  {!course.is_public && <span className="text-[10px] bg-gray-200 text-gray-500 rounded-full px-1.5 py-0.5">비공개</span>}
+                  <p className="text-[11px] text-gray-400">@{course.username} · 장소 {course.placeCount}개 · {new Date(course.created_at).toLocaleDateString("ko-KR")}</p>
+                </div>
               </div>
               <div className="flex gap-2 shrink-0">
                 <button
