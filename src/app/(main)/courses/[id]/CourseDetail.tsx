@@ -269,15 +269,15 @@ export default function CourseDetail({
   async function handleSaveTime(coursePlaceId: string, time: string) {
     if (!user || !isScheduleEditable || !scheduleOwnerId) return;
     const supabase = createClient();
+    await supabase.from("user_course_schedules").delete()
+      .eq("user_id", scheduleOwnerId).eq("course_place_id", coursePlaceId);
     if (!time) {
-      await supabase.from("user_course_schedules").delete()
-        .eq("user_id", scheduleOwnerId).eq("course_place_id", coursePlaceId);
       setSchedules((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
     } else {
-      await supabase.from("user_course_schedules").upsert(
-        { user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId, time_memo: time },
-        { onConflict: "user_id,course_place_id" },
-      );
+      await supabase.from("user_course_schedules").insert({
+        user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId,
+        time_memo: time, memo: memos[coursePlaceId] ?? null,
+      });
       setSchedules((prev) => ({ ...prev, [coursePlaceId]: time }));
     }
   }
@@ -286,24 +286,19 @@ export default function CourseDetail({
     if (!user || !isScheduleEditable || !scheduleOwnerId) return;
     const supabase = createClient();
     const trimmed = memo.trim();
-    if (!trimmed) {
-      if (!schedules[coursePlaceId]) {
-        const { error } = await supabase.from("user_course_schedules").delete()
-          .eq("user_id", scheduleOwnerId).eq("course_place_id", coursePlaceId);
-        if (!error) setMemos((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
-      } else {
-        const { error } = await supabase.from("user_course_schedules").upsert(
-          { user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId, time_memo: schedules[coursePlaceId], memo: null },
-          { onConflict: "user_id,course_place_id" },
-        );
-        if (!error) setMemos((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
-      }
+    await supabase.from("user_course_schedules").delete()
+      .eq("user_id", scheduleOwnerId).eq("course_place_id", coursePlaceId);
+    if (!trimmed && !schedules[coursePlaceId]) {
+      setMemos((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
     } else {
-      const { error } = await supabase.from("user_course_schedules").upsert(
-        { user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId, time_memo: schedules[coursePlaceId] ?? "", memo: trimmed },
-        { onConflict: "user_id,course_place_id" },
-      );
-      if (!error) setMemos((prev) => ({ ...prev, [coursePlaceId]: trimmed }));
+      const { error } = await supabase.from("user_course_schedules").insert({
+        user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId,
+        time_memo: schedules[coursePlaceId] ?? null, memo: trimmed || null,
+      });
+      if (!error) {
+        if (trimmed) setMemos((prev) => ({ ...prev, [coursePlaceId]: trimmed }));
+        else setMemos((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
+      }
     }
   }
 
