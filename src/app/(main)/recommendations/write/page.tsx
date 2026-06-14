@@ -65,6 +65,10 @@ function WritePage() {
         }
         const sortedImages = (data.post_images ?? []).sort((a: { order: number }, b: { order: number }) => a.order - b.order);
         setImages(sortedImages.map((img: { url: string }) => ({ previewUrl: img.url, storedUrl: img.url })));
+        if (data.thumbnail_url) {
+          const thumbIdx = sortedImages.findIndex((img: { url: string }) => img.url === data.thumbnail_url);
+          if (thumbIdx >= 0) setThumbnailIndex(thumbIdx);
+        }
         const sortedPlaces = (data.post_places ?? []).sort((a: { order: number }, b: { order: number }) => a.order - b.order);
         if (sortedPlaces.length > 0) {
           const naverUrls = sortedPlaces
