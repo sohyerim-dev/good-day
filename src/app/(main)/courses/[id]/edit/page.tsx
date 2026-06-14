@@ -361,9 +361,40 @@ export default function EditCourse({
 
       if (coursePlacesPayload.length === 0) throw new Error("장소 저장 실패");
 
+      // 기존 메모/시간 백업
+      const { data: oldCps } = await supabase
+        .from("course_places").select("id, place_id").eq("course_id", id);
+      const oldCpIds = (oldCps ?? []).map((cp) => cp.id);
+      const { data: oldSchedules } = oldCpIds.length > 0
+        ? await supabase.from("user_course_schedules")
+            .select("user_id, course_place_id, memo, time_memo")
+            .in("course_place_id", oldCpIds)
+        : { data: [] as { user_id: string; course_place_id: string; memo: string | null; time_memo: string | null }[] };
+      const scheduleQueue: Record<string, { user_id: string; memo: string | null; time_memo: string | null }[]> = {};
+      for (const s of oldSchedules ?? []) {
+        const cp = (oldCps ?? []).find((c) => c.id === s.course_place_id);
+        if (!cp) continue;
+        if (!scheduleQueue[cp.place_id]) scheduleQueue[cp.place_id] = [];
+        scheduleQueue[cp.place_id].push(s);
+      }
+
       await supabase.from("course_places").delete().eq("course_id", id);
-      const { error: insertError } = await supabase.from("course_places").insert(coursePlacesPayload);
+      const { data: newCpData, error: insertError } = await supabase
+        .from("course_places").insert(coursePlacesPayload).select("id, place_id");
       if (insertError) throw new Error("장소 저장 실패");
+
+      // 메모/시간 복원
+      const toRestore: { user_id: string; course_id: string; course_place_id: string; memo: string | null; time_memo: string | null }[] = [];
+      for (const np of newCpData ?? []) {
+        const queue = scheduleQueue[np.place_id];
+        if (!queue || queue.length === 0) continue;
+        const s = queue.shift()!;
+        if (!s.memo && !s.time_memo) continue;
+        toRestore.push({ user_id: s.user_id, course_id: id, course_place_id: np.id, memo: s.memo, time_memo: s.time_memo });
+      }
+      if (toRestore.length > 0) {
+        await supabase.from("user_course_schedules").insert(toRestore);
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["course", id] });
