@@ -363,29 +363,34 @@ export default function EditCourse({
 
       // 기존 메모/시간 백업
       const { data: oldCps } = await supabase
-        .from("course_places").select("id, place_id").eq("course_id", id);
+        .from("course_places").select("id, place_id, order").eq("course_id", id);
       const oldCpIds = (oldCps ?? []).map((cp) => cp.id);
       const { data: oldSchedules } = oldCpIds.length > 0
         ? await supabase.from("user_course_schedules")
             .select("user_id, course_place_id, memo, time_memo")
             .in("course_place_id", oldCpIds)
         : { data: [] as { user_id: string; course_place_id: string; memo: string | null; time_memo: string | null }[] };
-      const scheduleQueue: Record<string, { user_id: string; memo: string | null; time_memo: string | null }[]> = {};
+      // place_id별로 order 순으로 정렬해서 큐 구성
+      const scheduleQueue: Record<string, { user_id: string; memo: string | null; time_memo: string | null; order: number }[]> = {};
       for (const s of oldSchedules ?? []) {
         const cp = (oldCps ?? []).find((c) => c.id === s.course_place_id);
         if (!cp) continue;
         if (!scheduleQueue[cp.place_id]) scheduleQueue[cp.place_id] = [];
-        scheduleQueue[cp.place_id].push(s);
+        scheduleQueue[cp.place_id].push({ ...s, order: cp.order });
+      }
+      for (const key of Object.keys(scheduleQueue)) {
+        scheduleQueue[key].sort((a, b) => a.order - b.order);
       }
 
       await supabase.from("course_places").delete().eq("course_id", id);
       const { data: newCpData, error: insertError } = await supabase
-        .from("course_places").insert(coursePlacesPayload).select("id, place_id");
+        .from("course_places").insert(coursePlacesPayload).select("id, place_id, order");
       if (insertError) throw new Error("장소 저장 실패");
 
-      // 메모/시간 복원
+      // order 순으로 정렬 후 복원
+      const sortedNewCps = [...(newCpData ?? [])].sort((a, b) => a.order - b.order);
       const toRestore: { user_id: string; course_id: string; course_place_id: string; memo: string | null; time_memo: string | null }[] = [];
-      for (const np of newCpData ?? []) {
+      for (const np of sortedNewCps) {
         const queue = scheduleQueue[np.place_id];
         if (!queue || queue.length === 0) continue;
         const s = queue.shift()!;
