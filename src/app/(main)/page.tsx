@@ -38,7 +38,7 @@ export default function Home() {
       .from("posts")
       .select("id, title, category, thumbnail_url, post_images(url, order)")
       .order("created_at", { ascending: false })
-      .limit(10)
+      .limit(8)
       .then(({ data }) => setRecoPosts(data ?? []));
   }, []);
 
