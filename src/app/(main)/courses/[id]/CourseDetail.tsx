@@ -190,16 +190,17 @@ export default function CourseDetail({
     const supabase = createClient();
     supabase
       .from("user_course_schedules")
-      .select("place_id, time_memo, memo")
+      .select("course_place_id, time_memo, memo")
       .eq("user_id", scheduleOwnerId)
       .eq("course_id", id)
       .then(({ data }) => {
         if (!data) return;
         const timeMap: Record<string, string> = {};
         const memoMap: Record<string, string> = {};
-        data.forEach((s: { place_id: string; time_memo: string; memo: string }) => {
-          if (s.time_memo) timeMap[s.place_id] = s.time_memo;
-          if (s.memo) memoMap[s.place_id] = s.memo;
+        data.forEach((s: { course_place_id: string; time_memo: string; memo: string }) => {
+          if (!s.course_place_id) return;
+          if (s.time_memo) timeMap[s.course_place_id] = s.time_memo;
+          if (s.memo) memoMap[s.course_place_id] = s.memo;
         });
         setSchedules(timeMap);
         setMemos(memoMap);
@@ -265,44 +266,44 @@ export default function CourseDetail({
   }
 
   // 시간 메모 저장: 값이 있으면 upsert, 없으면 삭제
-  async function handleSaveTime(placeId: string, time: string) {
+  async function handleSaveTime(coursePlaceId: string, time: string) {
     if (!user || !isScheduleEditable || !scheduleOwnerId) return;
     const supabase = createClient();
     if (!time) {
       await supabase.from("user_course_schedules").delete()
-        .eq("user_id", scheduleOwnerId).eq("course_id", id).eq("place_id", placeId);
-      setSchedules((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
+        .eq("user_id", scheduleOwnerId).eq("course_place_id", coursePlaceId);
+      setSchedules((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
     } else {
       await supabase.from("user_course_schedules").upsert(
-        { user_id: scheduleOwnerId, course_id: id, place_id: placeId, time_memo: time },
-        { onConflict: "user_id,course_id,place_id" },
+        { user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId, time_memo: time },
+        { onConflict: "user_id,course_place_id" },
       );
-      setSchedules((prev) => ({ ...prev, [placeId]: time }));
+      setSchedules((prev) => ({ ...prev, [coursePlaceId]: time }));
     }
   }
 
-  async function handleSaveMemo(placeId: string, memo: string) {
+  async function handleSaveMemo(coursePlaceId: string, memo: string) {
     if (!user || !isScheduleEditable || !scheduleOwnerId) return;
     const supabase = createClient();
     const trimmed = memo.trim();
     if (!trimmed) {
-      if (!schedules[placeId]) {
+      if (!schedules[coursePlaceId]) {
         const { error } = await supabase.from("user_course_schedules").delete()
-          .eq("user_id", scheduleOwnerId).eq("course_id", id).eq("place_id", placeId);
-        if (!error) setMemos((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
+          .eq("user_id", scheduleOwnerId).eq("course_place_id", coursePlaceId);
+        if (!error) setMemos((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
       } else {
         const { error } = await supabase.from("user_course_schedules").upsert(
-          { user_id: scheduleOwnerId, course_id: id, place_id: placeId, time_memo: schedules[placeId], memo: null },
-          { onConflict: "user_id,course_id,place_id" },
+          { user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId, time_memo: schedules[coursePlaceId], memo: null },
+          { onConflict: "user_id,course_place_id" },
         );
-        if (!error) setMemos((prev) => { const next = { ...prev }; delete next[placeId]; return next; });
+        if (!error) setMemos((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
       }
     } else {
       const { error } = await supabase.from("user_course_schedules").upsert(
-        { user_id: scheduleOwnerId, course_id: id, place_id: placeId, time_memo: schedules[placeId] ?? "", memo: trimmed },
-        { onConflict: "user_id,course_id,place_id" },
+        { user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId, time_memo: schedules[coursePlaceId] ?? "", memo: trimmed },
+        { onConflict: "user_id,course_place_id" },
       );
-      if (!error) setMemos((prev) => ({ ...prev, [placeId]: trimmed }));
+      if (!error) setMemos((prev) => ({ ...prev, [coursePlaceId]: trimmed }));
     }
   }
 
@@ -609,24 +610,24 @@ export default function CourseDetail({
                   </div>
                 </div>
                 {/* 메모: 내 코스·공동편집자·북마크면 편집 가능, 공유받은 경우 읽기 전용, 없으면 숨김 */}
-                {(((course?.user_id === user?.id || isCollaborator || bookmarked) && isScheduleEditable) || (!isScheduleEditable && memos[p.places.id])) && (
+                {(((course?.user_id === user?.id || isCollaborator || bookmarked) && isScheduleEditable) || (!isScheduleEditable && memos[p.id])) && (
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
-                    {memos[p.places.id] ? (
+                    {memos[p.id] ? (
                       <button
                         onClick={() => {
-                          setMemoInput(memos[p.places.id] ?? "");
-                          setMemoModal({ placeId: p.places.id, placeName: p.places.name });
+                          setMemoInput(memos[p.id] ?? "");
+                          setMemoModal({ placeId: p.id, placeName: p.places.name });
                         }}
                         className="flex items-center gap-1.5 flex-1 min-w-0 text-left cursor-pointer group"
                       >
                         <span className="text-[11px] text-[#EE6300] border border-[#EE6300] rounded-lg px-1.5 py-0.5 shrink-0 group-hover:bg-[#EE6300] group-hover:text-white">메모</span>
-                        <span className="text-[12px] text-gray-500 truncate group-hover:text-[#EE6300]">{memos[p.places.id]}</span>
+                        <span className="text-[12px] text-gray-500 truncate group-hover:text-[#EE6300]">{memos[p.id]}</span>
                       </button>
                     ) : (
                       <button
                         onClick={() => {
                           setMemoInput("");
-                          setMemoModal({ placeId: p.places.id, placeName: p.places.name });
+                          setMemoModal({ placeId: p.id, placeName: p.places.name });
                         }}
                         className="text-[12px] text-gray-500 border border-gray-300 rounded-xl px-3 py-1 cursor-pointer hover:border-[#EE6300] hover:text-[#EE6300] shrink-0"
                       >
@@ -636,25 +637,25 @@ export default function CourseDetail({
                   </div>
                 )}
                 {/* 시간 메모: 내 코스·공동편집자·북마크면 편집 가능, 공유받은 일정이면 읽기 전용, 없으면 숨김 */}
-                {(((course?.user_id === user?.id || isCollaborator || bookmarked) && isScheduleEditable) || (!isScheduleEditable && schedules[p.places.id])) && (
+                {(((course?.user_id === user?.id || isCollaborator || bookmarked) && isScheduleEditable) || (!isScheduleEditable && schedules[p.id])) && (
                   <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
                     <span className="text-[12px] text-gray-400">🕐</span>
                     {isScheduleEditable ? (
-                      schedules[p.places.id] ? (
+                      schedules[p.id] ? (
                         // 시간 있음: 수정 가능한 input + 삭제 버튼
                         <>
                           <input
                             type="time"
-                            value={schedules[p.places.id]}
+                            value={schedules[p.id]}
                             onChange={(e) =>
-                              setSchedules((prev) => ({ ...prev, [p.places.id]: e.target.value }))
+                              setSchedules((prev) => ({ ...prev, [p.id]: e.target.value }))
                             }
-                            onBlur={(e) => handleSaveTime(p.places.id, e.target.value)}
+                            onBlur={(e) => handleSaveTime(p.id, e.target.value)}
                             className="text-[16px] text-[#EE6300] bg-transparent focus:outline-none"
                           />
                           <button
                             type="button"
-                            onClick={() => handleSaveTime(p.places.id, "")}
+                            onClick={() => handleSaveTime(p.id, "")}
                             className="text-gray-300 hover:text-gray-500 cursor-pointer text-[16px] leading-none"
                           >
                             ✕
@@ -668,8 +669,8 @@ export default function CourseDetail({
                             type="time"
                             onBlur={(e) => {
                               if (e.target.value) {
-                                setSchedules((prev) => ({ ...prev, [p.places.id]: e.target.value }));
-                                handleSaveTime(p.places.id, e.target.value);
+                                setSchedules((prev) => ({ ...prev, [p.id]: e.target.value }));
+                                handleSaveTime(p.id, e.target.value);
                               }
                             }}
                             className="absolute inset-0 opacity-0 cursor-pointer"
@@ -679,7 +680,7 @@ export default function CourseDetail({
                     ) : (
                       // 공유받은 일정: 읽기 전용
                       <span className="text-[13px] text-[#EE6300]">
-                        {schedules[p.places.id]}
+                        {schedules[p.id]}
                       </span>
                     )}
                   </div>
