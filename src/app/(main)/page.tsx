@@ -15,6 +15,7 @@ interface RecoPost {
   id: string;
   title: string;
   category: "place" | "course";
+  thumbnail_url?: string | null;
   post_images: { url: string; order: number }[];
 }
 
@@ -35,7 +36,7 @@ export default function Home() {
     const supabase = createClient();
     supabase
       .from("posts")
-      .select("id, title, category, post_images(url, order)")
+      .select("id, title, category, thumbnail_url, post_images(url, order)")
       .order("created_at", { ascending: false })
       .limit(10)
       .then(({ data }) => setRecoPosts(data ?? []));
@@ -203,7 +204,7 @@ export default function Home() {
             </div>
             <div className="flex gap-3 overflow-x-auto md:overflow-visible md:grid md:grid-cols-4 scrollbar-hide w-full pb-1">
               {recoPosts.map((post) => {
-                const thumbnail = post.post_images?.sort(
+                const thumbnail = post.thumbnail_url ?? post.post_images?.sort(
                   (a, b) => a.order - b.order,
                 )[0]?.url;
                 return (
@@ -394,7 +395,7 @@ export default function Home() {
           </div>
           <div className="flex gap-3 overflow-x-auto md:overflow-visible md:grid md:grid-cols-4 scrollbar-hide w-full pb-1">
             {recoPosts.map((post) => {
-              const thumbnail = post.post_images?.sort(
+              const thumbnail = post.thumbnail_url ?? post.post_images?.sort(
                 (a, b) => a.order - b.order,
               )[0]?.url;
               return (

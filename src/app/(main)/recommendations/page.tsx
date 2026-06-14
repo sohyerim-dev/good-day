@@ -13,6 +13,7 @@ interface Post {
   title: string;
   category: "place" | "course";
   created_at: string;
+  thumbnail_url?: string | null;
   post_images: { url: string; order: number }[];
 }
 
@@ -20,7 +21,7 @@ async function fetchPosts(): Promise<Post[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("posts")
-    .select("id, title, category, created_at, post_images(url, order)")
+    .select("id, title, category, created_at, thumbnail_url, post_images(url, order)")
     .order("created_at", { ascending: false });
   if (error) throw new Error("추천 글을 불러올 수 없어요");
   return data ?? [];
@@ -91,8 +92,8 @@ export default function Recommendations() {
           <p className="text-gray-400 text-center py-10">아직 등록된 글이 없어요</p>
         ) : (
           filtered.map((post) => {
-            const thumbnail = post.post_images
-              ?.sort((a, b) => a.order - b.order)[0]?.url;
+            const thumbnail = post.thumbnail_url
+              ?? post.post_images?.sort((a, b) => a.order - b.order)[0]?.url;
             return (
               <li key={post.id}>
                 <Link

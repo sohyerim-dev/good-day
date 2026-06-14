@@ -34,6 +34,7 @@ function WritePage() {
   const [courseDescription, setCourseDescription] = useState("");
   const [content, setContent] = useState("");
   const [images, setImages] = useState<{ file?: File; previewUrl: string; storedUrl?: string }[]>([]);
+  const [thumbnailIndex, setThumbnailIndex] = useState(0);
   const [places, setPlaces] = useState<PlaceEntry[]>([EMPTY_PLACE]);
   const [placeQuery, setPlaceQuery] = useState("");
   const [placeResults, setPlaceResults] = useState<NaverPlace[]>([]);
@@ -199,6 +200,7 @@ function WritePage() {
     try {
 
     const imageUrls = await uploadImages();
+    const thumbnailUrl = imageUrls.length > 0 ? imageUrls[Math.min(thumbnailIndex, imageUrls.length - 1)] : null;
     const validPlaces = places.filter((p) => p.name.trim());
 
     // 장소 글이면 places 테이블에 upsert (저장하기 기능에서 올바른 좌표로 조회 가능하도록)
@@ -221,6 +223,7 @@ function WritePage() {
       await supabase.from("posts").update({
         title: title.trim(), content, category,
         linked_course_id: linkedCourseId,
+        thumbnail_url: thumbnailUrl,
         updated_at: new Date().toISOString(),
       }).eq("id", editId);
       await supabase.from("post_images").delete().eq("post_id", editId);
@@ -236,7 +239,7 @@ function WritePage() {
       router.push(`/recommendations/${editId}`);
     } else {
       const { data: postData } = await supabase.from("posts").insert({
-        title: title.trim(), content, category, linked_course_id: linkedCourseId,
+        title: title.trim(), content, category, linked_course_id: linkedCourseId, thumbnail_url: thumbnailUrl,
       }).select("id").single();
       if (!postData) { setIsSubmitting(false); return; }
       if (imageUrls.length > 0) {
@@ -325,10 +328,21 @@ function WritePage() {
         <div className="flex gap-2 flex-wrap">
           {images.map((img, i) => (
             <div key={i} className="relative w-20 h-20">
-              <img src={img.previewUrl} alt="" className="w-full h-full object-cover rounded-xl" />
+              <img
+                src={img.previewUrl}
+                alt=""
+                onClick={() => setThumbnailIndex(i)}
+                className={`w-full h-full object-cover rounded-xl cursor-pointer ${thumbnailIndex === i ? "ring-2 ring-[#EE6300]" : ""}`}
+              />
+              {thumbnailIndex === i && (
+                <span className="absolute bottom-1 left-1 bg-[#EE6300] text-white text-[9px] rounded px-1 py-0.5 leading-none">대표</span>
+              )}
               <button
                 type="button"
-                onClick={() => setImages((prev) => prev.filter((_, j) => j !== i))}
+                onClick={() => {
+                  setImages((prev) => prev.filter((_, j) => j !== i));
+                  setThumbnailIndex((prev) => prev > i ? prev - 1 : Math.min(prev, images.length - 2));
+                }}
                 className="absolute -top-1 -right-1 bg-gray-700 text-white rounded-full w-5 h-5 text-[11px] flex items-center justify-center cursor-pointer"
               >×</button>
             </div>
