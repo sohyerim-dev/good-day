@@ -269,17 +269,15 @@ export default function CourseDetail({
   async function handleSaveTime(coursePlaceId: string, time: string) {
     if (!user || !isScheduleEditable || !scheduleOwnerId) return;
     const supabase = createClient();
-    const { error: delErr } = await supabase.from("user_course_schedules").delete()
+    await supabase.from("user_course_schedules").delete()
       .eq("user_id", scheduleOwnerId).eq("course_place_id", coursePlaceId);
-    if (delErr) { alert("삭제 오류: " + JSON.stringify(delErr)); return; }
     if (!time) {
       setSchedules((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
     } else {
-      const { error: insErr } = await supabase.from("user_course_schedules").insert({
+      await supabase.from("user_course_schedules").insert({
         user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId,
         time_memo: time, memo: memos[coursePlaceId] ?? null,
       });
-      if (insErr) { alert("저장 오류: " + JSON.stringify(insErr)); return; }
       setSchedules((prev) => ({ ...prev, [coursePlaceId]: time }));
     }
   }
@@ -288,17 +286,15 @@ export default function CourseDetail({
     if (!user || !isScheduleEditable || !scheduleOwnerId) return;
     const supabase = createClient();
     const trimmed = memo.trim();
-    const { error: delErr } = await supabase.from("user_course_schedules").delete()
+    await supabase.from("user_course_schedules").delete()
       .eq("user_id", scheduleOwnerId).eq("course_place_id", coursePlaceId);
-    if (delErr) { alert("삭제 오류: " + JSON.stringify(delErr)); return; }
     if (!trimmed && !schedules[coursePlaceId]) {
       setMemos((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
     } else {
-      const { error } = await supabase.from("user_course_schedules").insert({
+      await supabase.from("user_course_schedules").insert({
         user_id: scheduleOwnerId, course_id: id, course_place_id: coursePlaceId,
         time_memo: schedules[coursePlaceId] ?? null, memo: trimmed || null,
       });
-      if (error) { alert("저장 오류: " + JSON.stringify(error)); return; }
       if (trimmed) setMemos((prev) => ({ ...prev, [coursePlaceId]: trimmed }));
       else setMemos((prev) => { const next = { ...prev }; delete next[coursePlaceId]; return next; });
     }
