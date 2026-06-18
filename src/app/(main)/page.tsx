@@ -25,7 +25,7 @@ export default function Home() {
   const [loadTimeout, setLoadTimeout] = useState(false);
   useEffect(() => {
     if (hasHydrated) return;
-    const t = setTimeout(() => setLoadTimeout(true), 5000);
+    const t = setTimeout(() => setLoadTimeout(true), 15000);
     return () => clearTimeout(t);
   }, [hasHydrated]);
   const [courses, setCourses] = useState<CourseWithCollab[]>([]);
