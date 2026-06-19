@@ -56,7 +56,8 @@ export default function AuthProvider({
       /^\/recommendations\/[^/]+$/.test(pathname);
     const supabase = createClient();
 
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      const user = session?.user ?? null;
       if (!user) {
         setHasHydrated(true);
         if (!isPublicPage) {
@@ -77,7 +78,7 @@ export default function AuthProvider({
           const fullPath = pathname + window.location.search;
           router.push(`/login?redirect=${encodeURIComponent(fullPath)}`);
         }
-        return; // public이든 private이든 setUser 호출 안 함 → 비로그인 상태로 표시
+        return;
       }
 
       const { data: profile } = await supabase
