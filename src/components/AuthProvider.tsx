@@ -81,19 +81,24 @@ export default function AuthProvider({
         return;
       }
 
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("username, role")
-        .eq("id", user.id)
-        .single();
-
-      setUser({
-        id: user.id,
-        email: user.email ?? "",
-        username: profile?.username ?? "",
-        role: profile?.role ?? "user",
-      });
+      // 세션 확인 즉시 화면 표시, 프로필은 백그라운드에서 채움
+      setUser({ id: user.id, email: user.email ?? "", username: "", role: "user" });
       setHasHydrated(true);
+
+      const profileResult = await Promise.race([
+        supabase.from("profiles").select("username, role").eq("id", user.id).single(),
+        new Promise<null>((resolve) => setTimeout(() => resolve(null), 5000)),
+      ]);
+      const profile = profileResult && "data" in profileResult ? profileResult.data : null;
+
+      if (profile) {
+        setUser({
+          id: user.id,
+          email: user.email ?? "",
+          username: profile.username ?? "",
+          role: profile.role ?? "user",
+        });
+      }
     }).catch(() => {
       setHasHydrated(true);
     });
