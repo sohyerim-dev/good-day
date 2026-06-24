@@ -56,6 +56,7 @@ interface AdminPhoto {
 export default function AdminPage() {
   const user = useUserStore((s) => s.user);
   const hasHydrated = useUserStore((s) => s.hasHydrated);
+  const profileReady = useUserStore((s) => s.profileReady);
   const router = useRouter();
   const [tab, setTab] = useState<"reports" | "courses" | "photos" | "users">("reports");
   const [stats, setStats] = useState<Stats | null>(null);
@@ -70,10 +71,10 @@ export default function AdminPage() {
   const PHOTO_PAGE_SIZE = 20;
 
   useEffect(() => {
-    if (!hasHydrated) return;
+    if (!hasHydrated || !profileReady) return;
     if (!user || user.role !== "admin") { router.replace("/"); return; }
     loadAll();
-  }, [user, hasHydrated]);
+  }, [user, hasHydrated, profileReady]);
 
   async function loadAll() {
     const supabase = createClient();

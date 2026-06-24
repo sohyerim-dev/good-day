@@ -16,6 +16,7 @@ export default function AuthProvider({
   const pathname = usePathname();
   const setUser = useUserStore((state) => state.setUser);
   const setHasHydrated = useUserStore((state) => state.setHasHydrated);
+  const setProfileReady = useUserStore((state) => state.setProfileReady);
 
   // 토큰 자동 갱신을 위한 상시 리스너 (탭이 열려있는 동안 세션 유지)
   useEffect(() => {
@@ -99,6 +100,7 @@ export default function AuthProvider({
           role: profile.role ?? "user",
         });
       }
+      setProfileReady(true);
     }).catch(() => {
       setHasHydrated(true);
     });
